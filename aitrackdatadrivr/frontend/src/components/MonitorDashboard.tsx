@@ -1,98 +1,54 @@
 import React, { useState } from 'react';
 import { mockMonitors, mockVehiclesInMonitors } from '../mockData/mockMonitors';
-import { mockEvents, eventTypesCatalog } from '../mockData/mockEvents';
 import type { Monitor, VehicleInMonitor } from '../mockData/mockMonitors';
-import type { Event } from '../mockData/mockEvents';
 
 interface MonitorDashboardProps {
-  onVehicleSelect?: (deviceId: string) => void;
+  onMonitorSelect: (monitorId: number) => void;
+  onVehicleSelect: (vehicle: VehicleInMonitor) => void;
+  selectedMonitorId: number | null;
 }
 
-const MonitorDashboard: React.FC<MonitorDashboardProps> = ({ onVehicleSelect }) => {
-  const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'details'>('list');
-
-  const handleMonitorClick = (monitor: Monitor) => {
-    setSelectedMonitor(monitor);
-    setViewMode('details');
-  };
+const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
+  onMonitorSelect,
+  onVehicleSelect,
+  selectedMonitorId,
+}) => {
+  const selectedMonitor = selectedMonitorId ? mockMonitors.find(m => m.id === selectedMonitorId) : null;
+  const vehiclesInMonitor = selectedMonitorId
+    ? mockVehiclesInMonitors.filter(v => v.monitor_id === selectedMonitorId)
+    : [];
 
   const handleBack = () => {
-    setViewMode('list');
-    setSelectedMonitor(null);
-  };
-
-  // Get vehicles for selected monitor
-  const getMonitorVehicles = (monitorId: number): VehicleInMonitor[] => {
-    return mockVehiclesInMonitors.filter(v => v.monitor_id === monitorId);
-  };
-
-  // Get all events from vehicles in monitor
-  const getMonitorEvents = (monitorId: number): Event[] => {
-    const vehicles = getMonitorVehicles(monitorId);
-    const deviceIds = vehicles.map(v => v.device_id);
-    return mockEvents.filter(e => deviceIds.includes(e.device_id));
-  };
-
-  // Group events by category
-  const groupEventsByCategory = (events: Event[]) => {
-    return {
-      critical: events.filter(e => e.categoria === 'critical'),
-      behavioral: events.filter(e => e.categoria === 'behavioral'),
-      operational: events.filter(e => e.categoria === 'operational'),
-    };
+    onMonitorSelect(null as any);
   };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
-      {viewMode === 'list' ? (
-        <MonitorList monitors={mockMonitors} onMonitorClick={handleMonitorClick} />
+      {!selectedMonitor ? (
+        <MonitorList monitors={mockMonitors} onMonitorClick={onMonitorSelect} />
       ) : (
-        selectedMonitor && (
-          <MonitorDetails
-            monitor={selectedMonitor}
-            vehicles={getMonitorVehicles(selectedMonitor.id)}
-            events={getMonitorEvents(selectedMonitor.id)}
-            groupedEvents={groupEventsByCategory(getMonitorEvents(selectedMonitor.id))}
-            onBack={handleBack}
-            onVehicleSelect={onVehicleSelect}
-          />
-        )
+        <VehicleList
+          monitor={selectedMonitor}
+          vehicles={vehiclesInMonitor}
+          onVehicleClick={onVehicleSelect}
+          onBack={handleBack}
+        />
       )}
     </div>
   );
 };
 
 // Monitor List View
-const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (m: Monitor) => void }> = ({
+const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (id: number) => void }> = ({
   monitors,
   onMonitorClick,
 }) => {
-  const tipoColors: Record<string, string> = {
-    safety: '#ef4444',
-    efficiency: '#10b981',
-    compliance: '#3b82f6',
-    predictive: '#8b5cf6',
-    custom: '#6b7280',
-  };
-
-  const tipoIcons: Record<string, string> = {
-    safety: '🛡️',
-    efficiency: '⚡',
-    compliance: '✅',
-    predictive: '🔮',
-    custom: '⚙️',
-  };
-
   return (
     <>
       <div style={styles.header}>
         <h2 style={styles.title}>🤖 Monitores AI</h2>
         <div style={styles.stats}>
           <span style={{ color: '#10b981' }}>{monitors.filter(m => m.ativo).length} Ativos</span>
-          <span style={{ color: '#6b7280', marginLeft: '15px' }}>
-            {monitors.filter(m => !m.ativo).length} Inativos
-          </span>
         </div>
       </div>
 
@@ -102,26 +58,23 @@ const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (m: Monitor) 
             key={monitor.id}
             style={{
               ...styles.monitorCard,
-              borderLeft: `4px solid ${tipoColors[monitor.tipo_monitor]}`,
               opacity: monitor.ativo ? 1 : 0.5,
               cursor: 'pointer',
             }}
-            onClick={() => onMonitorClick(monitor)}
+            onClick={() => monitor.ativo && onMonitorClick(monitor.id)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '24px' }}>{tipoIcons[monitor.tipo_monitor]}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <div
+                style={{
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  color: monitor.ativo ? '#10b981' : '#6b7280',
+                }}
+              >
+                #{monitor.id}
+              </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ margin: 0, color: '#f9fafb', fontSize: '16px' }}>{monitor.nome}</h3>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: tipoColors[monitor.tipo_monitor],
-                    textTransform: 'uppercase',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {monitor.tipo_monitor}
-                </span>
               </div>
               {monitor.ativo && (
                 <span style={{ ...styles.badge, backgroundColor: '#10b981' }}>ATIVO</span>
@@ -131,7 +84,7 @@ const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (m: Monitor) 
               )}
             </div>
 
-            <p style={{ margin: '10px 0', color: '#d1d5db', fontSize: '13px', lineHeight: '1.5' }}>
+            <p style={{ margin: '8px 0', color: '#d1d5db', fontSize: '13px' }}>
               {monitor.descricao}
             </p>
 
@@ -141,18 +94,8 @@ const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (m: Monitor) 
                 <span style={{ color: '#f9fafb', fontWeight: 'bold' }}>{monitor.veiculos_monitorados}</span>
               </div>
               <div style={styles.statItem}>
-                <span style={{ color: '#9ca3af' }}>Intervalo:</span>
+                <span style={{ color: '#9ca3af' }}>Análise:</span>
                 <span style={{ color: '#f9fafb' }}>{monitor.intervalo_analise / 60} min</span>
-              </div>
-              <div style={styles.statItem}>
-                <span style={{ color: '#9ca3af' }}>Score &lt;:</span>
-                <span style={{ color: '#f9fafb' }}>{monitor.score_threshold}</span>
-              </div>
-              <div style={styles.statItem}>
-                <span style={{ color: '#9ca3af' }}>Alertas:</span>
-                <span style={{ color: monitor.gera_alertas ? '#10b981' : '#6b7280' }}>
-                  {monitor.gera_alertas ? 'SIM' : 'NÃO'}
-                </span>
               </div>
             </div>
           </div>
@@ -162,38 +105,23 @@ const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (m: Monitor) 
   );
 };
 
-// Monitor Details View
-const MonitorDetails: React.FC<{
+// Vehicle List with Status Badges
+const VehicleList: React.FC<{
   monitor: Monitor;
   vehicles: VehicleInMonitor[];
-  events: Event[];
-  groupedEvents: { critical: Event[]; behavioral: Event[]; operational: Event[] };
+  onVehicleClick: (vehicle: VehicleInMonitor) => void;
   onBack: () => void;
-  onVehicleSelect?: (deviceId: string) => void;
-}> = ({ monitor, vehicles, events, groupedEvents, onBack, onVehicleSelect }) => {
-  const [activeTab, setActiveTab] = useState<'vehicles' | 'events'>('vehicles');
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return '#10b981';
-    if (score >= 60) return '#f59e0b';
-    return '#ef4444';
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getCategoryInfo = (category: string) => {
-    switch (category) {
+}> = ({ monitor, vehicles, onVehicleClick, onBack }) => {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return { color: '#10b981', label: 'OK', blink: false };
+      case 'warning':
+        return { color: '#f59e0b', label: 'ALERTA', blink: false };
       case 'critical':
-        return { icon: '🚨', color: '#dc2626', label: 'Críticos' };
-      case 'behavioral':
-        return { icon: '⚠️', color: '#f59e0b', label: 'Comportamentais' };
-      case 'operational':
-        return { icon: '📊', color: '#84cc16', label: 'Operacionais' };
+        return { color: '#dc2626', label: 'CRÍTICO', blink: true };
       default:
-        return { icon: '•', color: '#6b7280', label: 'Outros' };
+        return { color: '#6b7280', label: '?', blink: false };
     }
   };
 
@@ -203,190 +131,70 @@ const MonitorDetails: React.FC<{
         <button onClick={onBack} style={styles.backButton}>
           ← Voltar
         </button>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ ...styles.title, fontSize: '16px', marginBottom: '5px' }}>{monitor.nome}</h2>
-          <p style={{ margin: 0, color: '#9ca3af', fontSize: '12px' }}>{monitor.descricao}</p>
+        <div>
+          <h2 style={{ ...styles.title, fontSize: '16px', marginBottom: '4px' }}>{monitor.nome}</h2>
+          <p style={{ margin: 0, color: '#9ca3af', fontSize: '12px' }}>
+            {vehicles.length} veículos monitorados
+          </p>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          style={{ ...styles.tab, ...(activeTab === 'vehicles' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('vehicles')}
-        >
-          🚗 Veículos ({vehicles.length})
-        </button>
-        <button
-          style={{ ...styles.tab, ...(activeTab === 'events' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('events')}
-        >
-          📋 Todos os Eventos ({events.length})
-        </button>
       </div>
 
       <div style={styles.content}>
-        {activeTab === 'vehicles' ? (
-          <div>
-            {vehicles.map(vehicle => (
-              <div
-                key={vehicle.device_id}
-                style={{
-                  ...styles.vehicleCard,
-                  cursor: onVehicleSelect ? 'pointer' : 'default',
-                }}
-                onClick={() => onVehicleSelect && onVehicleSelect(vehicle.device_id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '18px' }}>
-                        {vehicle.tipo_veiculo === 'dirijabem' ? '🏁' : '🚗'}
-                      </span>
-                      <span style={{ color: '#f9fafb', fontWeight: 'bold', fontSize: '14px' }}>
-                        {vehicle.device_id}
-                      </span>
-                    </div>
-                    {vehicle.nome_motorista && (
-                      <div style={{ marginTop: '4px', color: '#d1d5db', fontSize: '12px' }}>
-                        {vehicle.nome_motorista}
-                      </div>
-                    )}
+        {vehicles.map(vehicle => {
+          const badge = getStatusBadge(vehicle.status);
+          return (
+            <div
+              key={vehicle.device_id}
+              style={{
+                ...styles.vehicleCard,
+                cursor: 'pointer',
+              }}
+              onClick={() => onVehicleClick(vehicle)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '18px' }}>
+                      {vehicle.tipo_veiculo === 'dirijabem' ? '🏁' : '🚗'}
+                    </span>
+                    <span style={{ color: '#f9fafb', fontWeight: 'bold', fontSize: '14px' }}>
+                      {vehicle.device_id}
+                    </span>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        fontSize: '20px',
-                        fontWeight: 'bold',
-                        color: getScoreColor(vehicle.score_atual),
-                      }}
-                    >
-                      {vehicle.score_atual.toFixed(1)}
+                  {vehicle.nome_motorista && (
+                    <div style={{ marginLeft: '26px', color: '#d1d5db', fontSize: '12px' }}>
+                      {vehicle.nome_motorista}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                      {vehicle.total_eventos_hoje} eventos hoje
-                    </div>
+                  )}
+                  <div style={{ marginLeft: '26px', color: '#9ca3af', fontSize: '11px', marginTop: '2px' }}>
+                    Score: {vehicle.score_atual.toFixed(1)} • {vehicle.total_eventos_hoje} eventos
                   </div>
                 </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      ...styles.statusBadge,
+                      backgroundColor: badge.color,
+                      animation: badge.blink ? 'blink 1s infinite' : 'none',
+                    }}
+                  >
+                    {badge.label}
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div>
-            {/* Critical Events */}
-            {groupedEvents.critical.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={styles.categoryTitle}>
-                  <span style={{ color: '#dc2626' }}>🚨 Eventos Críticos</span>
-                  <span style={styles.categoryCount}>{groupedEvents.critical.length}</span>
-                </h3>
-                {groupedEvents.critical.map(event => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
-            )}
-
-            {/* Behavioral Events */}
-            {groupedEvents.behavioral.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={styles.categoryTitle}>
-                  <span style={{ color: '#f59e0b' }}>⚠️ Eventos Comportamentais</span>
-                  <span style={styles.categoryCount}>{groupedEvents.behavioral.length}</span>
-                </h3>
-                {groupedEvents.behavioral.map(event => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
-            )}
-
-            {/* Operational Events */}
-            {groupedEvents.operational.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={styles.categoryTitle}>
-                  <span style={{ color: '#84cc16' }}>📊 Eventos Operacionais</span>
-                  <span style={styles.categoryCount}>{groupedEvents.operational.length}</span>
-                </h3>
-                {groupedEvents.operational.map(event => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
-            )}
-
-            {events.length === 0 && (
-              <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px 20px' }}>
-                Nenhum evento registrado nas últimas horas
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* CSS for blinking animation */}
+      <style>{`
+        @keyframes blink {
+          0%, 50%, 100% { opacity: 1; }
+          25%, 75% { opacity: 0.3; }
+        }
+      `}</style>
     </>
-  );
-};
-
-// Event Card Component
-const EventCard: React.FC<{ event: Event }> = ({ event }) => {
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return '#dc2626';
-      case 'high':
-        return '#ea580c';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#84cc16';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
-
-  const eventType = eventTypesCatalog.find(et => et.codigo === event.tipo_evento_codigo);
-
-  return (
-    <div
-      style={{
-        ...styles.eventCard,
-        borderLeft: `3px solid ${getSeverityColor(event.severidade)}`,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-        <span style={{ fontSize: '20px' }}>{eventType?.icone || '•'}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ color: '#f9fafb', fontWeight: 'bold', fontSize: '13px' }}>
-              {event.tipo_evento_nome}
-            </span>
-            <span
-              style={{
-                fontSize: '10px',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                backgroundColor: getSeverityColor(event.severidade),
-                color: 'white',
-                textTransform: 'uppercase',
-              }}
-            >
-              {event.severidade}
-            </span>
-          </div>
-          <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '6px' }}>
-            <span style={{ fontWeight: 'bold' }}>{event.device_id}</span>
-            {event.nome_motorista && <span> - {event.nome_motorista}</span>}
-          </div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-            {formatTimestamp(event.timestamp)}
-            {event.velocidade !== undefined && <span> • {event.velocidade} km/h</span>}
-            {!event.processado && <span style={{ color: '#f59e0b' }}> • Não processado</span>}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -395,9 +203,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '15px 20px',
     backgroundColor: '#111827',
     borderBottom: '1px solid #374151',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
   },
   title: {
     margin: 0,
@@ -407,6 +212,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   stats: {
     fontSize: '13px',
+    marginTop: '8px',
   },
   content: {
     flex: 1,
@@ -429,7 +235,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   monitorStats: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: '10px',
     marginTop: '10px',
     paddingTop: '10px',
@@ -450,56 +256,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: '500',
-  },
-  tabs: {
-    display: 'flex',
-    gap: '5px',
-    padding: '10px 15px',
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-  },
-  tab: {
-    padding: '8px 16px',
-    backgroundColor: 'transparent',
-    color: '#9ca3af',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500',
-    transition: 'all 0.2s ease',
-  },
-  tabActive: {
-    backgroundColor: '#374151',
-    color: '#f9fafb',
+    marginBottom: '10px',
   },
   vehicleCard: {
     backgroundColor: '#374151',
     borderRadius: '6px',
     padding: '12px',
     marginBottom: '8px',
+    transition: 'all 0.2s ease',
   },
-  categoryTitle: {
-    margin: '0 0 10px 0',
-    color: '#f9fafb',
-    fontSize: '14px',
+  statusBadge: {
+    fontSize: '10px',
+    padding: '6px 12px',
+    borderRadius: '12px',
+    color: 'white',
     fontWeight: 'bold',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  categoryCount: {
-    fontSize: '12px',
-    padding: '2px 8px',
-    backgroundColor: '#374151',
-    borderRadius: '4px',
-    color: '#d1d5db',
-  },
-  eventCard: {
-    backgroundColor: '#374151',
-    borderRadius: '6px',
-    padding: '10px',
-    marginBottom: '8px',
+    textTransform: 'uppercase',
+    display: 'inline-block',
   },
 };
 

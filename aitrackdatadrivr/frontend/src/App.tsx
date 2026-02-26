@@ -4,18 +4,25 @@ import BehavioralDashboard from './components/BehavioralDashboard';
 import EventsTimeline from './components/EventsTimeline';
 import VehicleAnalytics from './components/VehicleAnalytics';
 import MonitorDashboard from './components/MonitorDashboard';
+import MonitorDetailView from './components/MonitorDetailView';
 import AlertsPanel from './components/AlertsPanel';
 import EventsCatalog from './components/EventsCatalog';
+import { mockVehiclesInMonitors } from './mockData/mockMonitors';
+import type { VehicleInMonitor } from './mockData/mockMonitors';
 import './App.css';
 
 type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'alerts' | 'events';
 
 function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);  // NEW: Dirijabem user
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [highlightedEventIndex, setHighlightedEventIndex] = useState<number | null>(null);
   const [filterEventsByVehicle, setFilterEventsByVehicle] = useState<string | null>(null);
+
+  // Monitor state
+  const [selectedMonitorId, setSelectedMonitorId] = useState<number | null>(null);
+  const [selectedMonitorVehicle, setSelectedMonitorVehicle] = useState<VehicleInMonitor | null>(null);
 
   const handleEventClick = (eventIndex: number) => {
     console.log('Clicou no evento:', eventIndex);
@@ -29,8 +36,22 @@ function App() {
     console.log('Clicou no veículo:', deviceId);
     setFilterEventsByVehicle(deviceId);
     setSelectedVehicleId(deviceId);
-    setHighlightedEventIndex(null); // Limpa evento destacado
-    setViewMode('dashboard'); // Volta para o dashboard/mapa
+    setHighlightedEventIndex(null);
+    setViewMode('dashboard');
+  };
+
+  const handleMonitorSelect = (monitorId: number | null) => {
+    setSelectedMonitorId(monitorId);
+    setSelectedMonitorVehicle(null);
+    if (!monitorId) {
+      // Clear vehicle selection when going back to monitor list
+      setSelectedVehicleId(null);
+    }
+  };
+
+  const handleMonitorVehicleSelect = (vehicle: VehicleInMonitor) => {
+    setSelectedMonitorVehicle(vehicle);
+    setSelectedVehicleId(vehicle.device_id);
   };
 
   return (
@@ -97,7 +118,11 @@ function App() {
             <VehicleAnalytics onVehicleClick={handleVehicleEventsClick} />
           )}
           {viewMode === 'monitors' && (
-            <MonitorDashboard onVehicleSelect={setSelectedVehicleId} />
+            <MonitorDashboard
+              onMonitorSelect={handleMonitorSelect}
+              onVehicleSelect={handleMonitorVehicleSelect}
+              selectedMonitorId={selectedMonitorId}
+            />
           )}
           {viewMode === 'alerts' && (
             <AlertsPanel onVehicleSelect={setSelectedVehicleId} />
@@ -107,20 +132,28 @@ function App() {
           )}
         </div>
 
-        {/* Main Map Area */}
+        {/* Main Area - Map or Monitor Detail View */}
         <div style={{ flex: 1, position: 'relative' }}>
-          <MapComponent
-            selectedVehicleId={selectedVehicleId}
-            selectedUserId={selectedUserId}
-            highlightedEventIndex={highlightedEventIndex}
-            filterEventsByVehicle={filterEventsByVehicle}
-            onClearEventHighlight={() => setHighlightedEventIndex(null)}
-            onClearFilter={() => {
-              setFilterEventsByVehicle(null);
-              setSelectedVehicleId(null);
-              setSelectedUserId(null);
-            }}
-          />
+          {viewMode === 'monitors' && selectedMonitorId ? (
+            <MonitorDetailView
+              monitorId={selectedMonitorId}
+              vehicles={mockVehiclesInMonitors.filter(v => v.monitor_id === selectedMonitorId)}
+              selectedVehicle={selectedMonitorVehicle}
+            />
+          ) : (
+            <MapComponent
+              selectedVehicleId={selectedVehicleId}
+              selectedUserId={selectedUserId}
+              highlightedEventIndex={highlightedEventIndex}
+              filterEventsByVehicle={filterEventsByVehicle}
+              onClearEventHighlight={() => setHighlightedEventIndex(null)}
+              onClearFilter={() => {
+                setFilterEventsByVehicle(null);
+                setSelectedVehicleId(null);
+                setSelectedUserId(null);
+              }}
+            />
+          )}
         </div>
       </div>
     </div>
