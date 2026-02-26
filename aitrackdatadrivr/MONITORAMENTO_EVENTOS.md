@@ -145,10 +145,10 @@ for message in pubsub.listen():  # ← Blocked I/O, acorda quando chega mensagem
 
 ## Classificação Completa de Eventos
 
-### 🚨 EVENTOS CRÍTICOS (7 eventos)
+### 🚨 EVENTOS CRÍTICOS (8 eventos)
 **Tecnologia:** Redis Pub/Sub
 **SLA:** Resposta < 30 segundos
-**Por quê?** Segurança patrimonial, risco de roubo, socorro urgente
+**Por quê?** Segurança patrimonial, risco de roubo, socorro urgente, perda de rastreamento
 
 | # | Código | Nome | Severidade | Tempo | Status |
 |---|--------|------|------------|-------|--------|
@@ -159,6 +159,7 @@ for message in pubsub.listen():  # ← Blocked I/O, acorda quando chega mensagem
 | 5 | `theft_suspected` | Suspeita de Roubo | 🔴 CRITICAL | <30s | ⚠️ A CRIAR |
 | 6 | `collision_detected` | Colisão Detectada | 🔴 CRITICAL | <30s | ⚠️ A CRIAR |
 | 7 | `towing_detected` | Reboque Não Autorizado | 🟠 HIGH | <60s | ⚠️ A CRIAR |
+| 8 | `unusual_hours` | Uso Fora de Horário | 🔴 CRITICAL | <30s | ⚠️ A CRIAR |
 
 #### Detalhamento dos Eventos Críticos
 
@@ -216,22 +217,34 @@ for message in pubsub.listen():  # ← Blocked I/O, acorda quando chega mensagem
 - **Ação:** Possível reboque não autorizado ou roubo
 - **Dados:** `{distance_moved_km, speed, ignition_status, duration}`
 
+**8. unusual_hours** (Uso Fora de Horário) ⚠️ RECLASSIFICADO
+- **Descrição:** Movimento em horário não habitual para aquele veículo
+- **Detecção:** Padrão de uso histórico (ML ou regra simples)
+- **Exemplo:** Veículo que sempre fica parado 22h-6h se move às 3h
+- **Por que CRITICAL?** Forte indicador de roubo (motorista dormindo, veículo se movendo)
+- **Ação:** Verificar imediatamente se é autorizado, possível roubo em andamento
+- **Dados:** `{usual_hours, detected_time, deviation_hours, movement_speed}`
+- **Custo do atraso:** 30min = veículo pode estar desmanchado
+
 ---
 
-### ⚠️ EVENTOS COMPORTAMENTAIS (7 eventos)
+### ⚠️ EVENTOS COMPORTAMENTAIS (10 eventos)
 **Tecnologia:** MySQL Polling
-**SLA:** Resposta de 1-30 minutos
-**Por quê?** Análise de padrão, não requer resposta imediata
+**SLA:** Resposta de 1-15 minutos
+**Por quê?** Padrão inadequado que gera custo/risco, mas não é emergência
 
 | # | Código | Nome | Severidade | Tempo | Status |
 |---|--------|------|------------|-------|--------|
-| 8 | `harsh_brake` | Frenagem Brusca | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
-| 9 | `harsh_accel` | Aceleração Brusca | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
-| 10 | `speeding` | Excesso de Velocidade | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
-| 11 | `sharp_turn` | Curva Fechada | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
-| 12 | `fatigue_suspected` | Fadiga Detectada | 🟠 HIGH | 5-15min | ⚠️ A CRIAR |
-| 13 | `distracted_driving` | Direção Distraída | 🟠 HIGH | 5-10min | ⚠️ A CRIAR |
-| 14 | `aggressive_driving` | Direção Agressiva | 🟠 HIGH | 10-30min | ⚠️ A CRIAR |
+| 9 | `harsh_brake` | Frenagem Brusca | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
+| 10 | `harsh_accel` | Aceleração Brusca | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
+| 11 | `speeding` | Excesso de Velocidade | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
+| 12 | `sharp_turn` | Curva Fechada | 🟡 MEDIUM | 1-5min | ✅ EXISTE |
+| 13 | `fatigue_suspected` | Fadiga Detectada | 🟠 HIGH | 5-15min | ⚠️ A CRIAR |
+| 14 | `distracted_driving` | Direção Distraída | 🟠 HIGH | 5-10min | ⚠️ A CRIAR |
+| 15 | `aggressive_driving` | Direção Agressiva | 🟠 HIGH | 10-15min | ⚠️ A CRIAR |
+| 16 | `excessive_idle` | Tempo Ocioso Excessivo | 🟡 MEDIUM | 5-10min | ⚠️ A CRIAR |
+| 17 | `route_deviation` | Desvio de Rota | 🟡 MEDIUM | 1-3min | ⚠️ A CRIAR |
+| 18 | `low_battery` | Bateria Fraca | 🟠 HIGH | 15-30min | ⚠️ A CRIAR |
 
 #### Detalhamento dos Eventos Comportamentais
 
@@ -281,72 +294,71 @@ for message in pubsub.listen():  # ← Blocked I/O, acorda quando chega mensagem
 - **Ação:** Alerta para prestar atenção na direção
 - **Dados:** `{speed_variation_stddev, turn_frequency, acceleration_frequency}`
 
-**14. aggressive_driving** (Direção Agressiva)
+**15. aggressive_driving** (Direção Agressiva)
 - **Descrição:** Score fuzzy < 50 (categoria AGRESSIVO)
 - **Detecção:** Sistema fuzzy `driverprofile.fcl` PERFIL > 75
 - **Critérios:** Múltiplas regras fuzzy ativadas (speeding + harsh events + turns)
 - **Ação:** Coaching, treinamento obrigatório
 - **Dados:** `{fuzzy_score, perfil_category, dominant_rule_cluster}`
 
+**16. excessive_idle** (Tempo Ocioso Excessivo) ⚠️ RECLASSIFICADO
+- **Descrição:** Motor ligado parado >15 minutos
+- **Detecção:** Ignição ON + velocidade 0 + tempo >15min
+- **Por que BEHAVIORAL?** Padrão de uso inadequado com custo direto
+- **Impacto:** Desperdício de ~0.8L/hora = R$5-10/hora
+- **Ação:** Alerta para desligar motor, treinar motorista
+- **Dados:** `{idle_duration_minutes, fuel_wasted_liters_estimated, lat, lon}`
+- **Tempo resposta:** 5-10min (não precisa ser instantâneo, mas deve alertar rápido)
+
+**17. route_deviation** (Desvio de Rota) ⚠️ RECLASSIFICADO
+- **Descrição:** Veículo fora da rota planejada
+- **Detecção:** Distância > 500m do trajeto esperado
+- **Por que BEHAVIORAL?** Pode indicar uso não autorizado ou ineficiência
+- **Severidade variável:** MEDIUM (geral) → HIGH (transporte de valores)
+- **Ação:** Notificar gestor, verificar autorização
+- **Dados:** `{planned_route_id, deviation_distance_km, extra_time_minutes, current_location}`
+- **Requer:** Tabela `rotas_planejadas`
+- **Tempo resposta:** 1-3min (quanto antes detectar, menor o desvio)
+
+**18. low_battery** (Bateria Fraca) ⚠️ RECLASSIFICADO
+- **Descrição:** Bateria do rastreador <20%
+- **Detecção:** Campo `battery_voltage` ou `battery_percent` do GPS
+- **Por que BEHAVIORAL?** Risco de perder rastreamento, requer ação preventiva
+- **Ação:** Carregar/trocar bateria backup URGENTE
+- **Dados:** `{battery_voltage, battery_percent, estimated_hours_remaining}`
+- **Tempo resposta:** 15-30min (antes que acabe completamente)
+- **Custo do atraso:** Perder rastreamento = não detectar roubo
+
 ---
 
-### 📊 EVENTOS OPERACIONAIS (6 eventos)
+### 📊 EVENTOS OPERACIONAIS (2 eventos)
 **Tecnologia:** MySQL Polling
-**SLA:** Resposta de 15min - 24 horas
-**Por quê?** Eficiência, manutenção preventiva, análise diária
+**SLA:** Resposta de 1-24 horas
+**Por quê?** Análise agregada, manutenção preventiva, não urgente
 
 | # | Código | Nome | Severidade | Tempo | Status |
 |---|--------|------|------------|-------|--------|
-| 15 | `excessive_idle` | Tempo Ocioso Excessivo | 🟢 LOW | 30-60min | ⚠️ A CRIAR |
-| 16 | `fuel_waste_detected` | Desperdício de Combustível | 🟢 LOW | 1-24h | ⚠️ A CRIAR |
-| 17 | `route_deviation` | Desvio de Rota | 🟡 MEDIUM | 5-15min | ⚠️ A CRIAR |
-| 18 | `maintenance_due` | Manutenção Vencida | 🟡 MEDIUM | 24h | ⚠️ A CRIAR |
-| 19 | `low_battery` | Bateria Fraca | 🟡 MEDIUM | 6-12h | ⚠️ A CRIAR |
-| 20 | `unusual_hours` | Uso Fora de Horário | 🟡 MEDIUM | 15-30min | ⚠️ A CRIAR |
+| 19 | `fuel_waste_detected` | Desperdício de Combustível | 🟢 LOW | 1-24h | ⚠️ A CRIAR |
+| 20 | `maintenance_due` | Manutenção Vencida | 🟡 MEDIUM | 24h | ⚠️ A CRIAR |
 
 #### Detalhamento dos Eventos Operacionais
 
-**15. excessive_idle** (Tempo Ocioso Excessivo)
-- **Descrição:** Motor ligado parado >15 minutos
-- **Detecção:** Ignição ON + velocidade 0 + tempo >15min
-- **Impacto:** Desperdício de combustível (~0.8L/hora)
-- **Ação:** Alerta para desligar motor
-- **Dados:** `{idle_duration_minutes, fuel_wasted_liters_estimated, lat, lon}`
-
-**16. fuel_waste_detected** (Desperdício de Combustível)
+**19. fuel_waste_detected** (Desperdício de Combustível)
 - **Descrição:** Consumo real > consumo esperado
 - **Detecção:** Cálculo baseado em distância + eventos
 - **Fórmula:** `consumo_base + (harsh_accel * 5%) + (harsh_brake * 3%) + (speeding * 15%)`
 - **Ação:** Sugestões de economia (smooth driving)
 - **Dados:** `{consumption_real, consumption_expected, waste_percent, cost_monthly_BRL}`
+- **Tempo resposta OK:** Análise diária, não precisa ser em tempo real
 
-**17. route_deviation** (Desvio de Rota)
-- **Descrição:** Veículo fora da rota planejada
-- **Detecção:** Distância > 500m do trajeto esperado
-- **Ação:** Notificar gestor, possível desvio não autorizado
-- **Dados:** `{planned_route_id, deviation_distance_km, extra_time_minutes, current_location}`
-- **Requer:** Tabela `rotas_planejadas`
-
-**18. maintenance_due** (Manutenção Vencida)
+**20. maintenance_due** (Manutenção Vencida)
 - **Descrição:** Km ou tempo de manutenção atingido
 - **Tipos:** Troca de óleo, pneus, revisão
 - **Detecção:** `km_atual >= km_previsto OR date >= date_prevista`
 - **Ação:** Agendar manutenção preventiva
 - **Dados:** `{maintenance_type, km_current, km_due, date_due}`
 - **Requer:** Tabela `manutencoes`
-
-**19. low_battery** (Bateria Fraca)
-- **Descrição:** Bateria do rastreador <20%
-- **Detecção:** Campo `battery_voltage` ou `battery_percent` do GPS
-- **Ação:** Carregar/trocar bateria backup
-- **Dados:** `{battery_voltage, battery_percent, estimated_hours_remaining}`
-
-**20. unusual_hours** (Uso Fora de Horário)
-- **Descrição:** Movimento em horário não habitual para aquele veículo
-- **Detecção:** Machine learning de padrão de uso ou regra simples
-- **Exemplo:** Veículo que sempre fica parado 22h-6h se move às 3h
-- **Ação:** Verificar autorização
-- **Dados:** `{usual_hours, detected_time, deviation_hours}`
+- **Tempo resposta OK:** Pode avisar com dias/semanas de antecedência
 
 ---
 
