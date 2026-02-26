@@ -364,6 +364,36 @@ for message in pubsub.listen():  # ← Blocked I/O, acorda quando chega mensagem
 
 ## Arquitetura de Detecção
 
+### ⚠️ IMPORTANTE: Diferença entre Event Agents e Monitors
+
+**Este documento foca em EVENT AGENTS (detecção de eventos).**
+
+Para a camada superior de **MONITORS AI** (análise de grupos de veículos com LLM), consulte:
+📄 **[PLAN_AI_MONITORS.md](./PLAN_AI_MONITORS.md)** - Plano completo dos monitores AI
+
+**Arquitetura completa:**
+```
+Event Agents (este documento) → Detectam eventos individuais
+         ↓
+Event Stream/Bus (este documento) → Redis Pub/Sub + MySQL
+         ↓
+Monitors AI (PLAN_AI_MONITORS.md) → Analisam padrões em grupos de veículos com LLM
+         ↓
+Alert Dispatcher → Gera alertas inteligentes
+```
+
+**Diferença:**
+- **Event Agents:** Detectam eventos INDIVIDUAIS (harsh_brake, geofence_exit, etc.) baseado em regras/thresholds
+- **Monitors AI:** Analisam PADRÕES em múltiplos eventos de múltiplos veículos usando LLM, geram insights e recomendações
+
+**Exemplo:**
+1. Event Agent detecta: `harsh_brake` às 10:30
+2. Event Agent detecta: `harsh_brake` às 10:35
+3. Event Agent detecta: `speeding` às 10:40
+4. **Monitor AI** analisa: "8 harsh_brake em 30min + speeding = direção agressiva, recomendar coaching"
+
+---
+
 ### Visão Geral em Camadas
 
 ```
@@ -997,18 +1027,66 @@ CREATE TABLE veiculo_cercas (
 
 ---
 
+## Integração com Monitors AI
+
+Este documento define a **camada de detecção de eventos** (Event Agents).
+
+Para a **camada de análise inteligente** (Monitors AI), consulte:
+
+📄 **[PLAN_AI_MONITORS.md](./PLAN_AI_MONITORS.md)** que contém:
+
+**Database Schema (4 tabelas):**
+- `monitores` - Configuração dos monitores AI (nome, tipo, prompt LLM, intervalo)
+- `veiculomonitor` - Associação veículo-monitor (qual monitor vigia quais veículos)
+- `monitor_analises` - Análises geradas pelo LLM (conclusões, padrões, recomendações)
+- `monitor_alertas` - Alertas inteligentes baseados nas análises
+
+**Monitor Engine:**
+- APScheduler rodando monitores em intervalos configuráveis (5min, 15min, etc.)
+- LLM integration (OpenAI GPT-4, Anthropic Claude)
+- Rate limiting (20 RPM)
+- Cost controls ($9/mês estimado)
+
+**Exemplos de Monitores:**
+- Aggressive Driving Detector - Analisa harsh_brake + speeding + sharp_turn
+- Fatigue Detector - Detecta aumento de taxa de eventos ao longo do tempo
+- Efficiency Coach - Analisa desperdício de combustível
+
+**Fluxo Completo:**
+```
+1. Event Agent detecta evento → Publica no Event Stream
+2. Monitor AI consome eventos → Analisa padrão com LLM
+3. LLM retorna insights → Monitor gera alerta
+4. Alert Dispatcher → Notifica gestor/motorista
+```
+
+**Interface Web:**
+- MonitorDashboard.tsx - Criar/editar monitores, alocar veículos
+- AlertsPanel.tsx - Visualizar e reconhecer alertas
+
+---
+
 ## Conclusão
 
-Este documento define a arquitetura completa do sistema de monitoramento de eventos do AITrack DataDrivr:
+Este documento define a **camada de detecção de eventos** do sistema de monitoramento AITrack DataDrivr:
 
 - **20 tipos de evento** classificados por criticidade
 - **Arquitetura híbrida** (Redis + MySQL) otimizada para latência vs complexidade
-- **7 eventos críticos** requerem resposta <30s (Redis Pub/Sub)
-- **13 eventos não-críticos** podem usar polling MySQL
+- **8 eventos críticos** requerem resposta <30s (Redis Pub/Sub)
+- **12 eventos não-críticos** podem usar polling MySQL
 - **4/20 eventos já implementados** (behavioral_engine.py)
 - **Roadmap claro** com 4 fases e estimativas
 
-**Próximo passo:** Implementar Fase 1 (finalizar behavioral) ou Fase 2 (security + Redis) dependendo da prioridade de negócio.
+**Camada superior (Monitors AI):** Ver [PLAN_AI_MONITORS.md](./PLAN_AI_MONITORS.md) para:
+- Database schema dos monitores (4 tabelas)
+- Monitor Engine com LLM integration
+- Exemplos de prompts e análises
+- Interface de alocação de veículos
+- Estimativa de custos ($9/mês)
+
+**Próximo passo:**
+1. Implementar Event Agents (este documento) - Fase 1 behavioral ou Fase 2 security
+2. Implementar Monitors AI (PLAN_AI_MONITORS.md) - 21 horas estimadas
 
 ---
 
