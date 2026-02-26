@@ -1,0 +1,5 @@
+conda activate aitrack
+simulator.py
+run.py
+frontend
+yarn start

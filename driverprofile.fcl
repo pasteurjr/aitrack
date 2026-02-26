@@ -1,0 +1,172 @@
+/*
+	Example: A tip calculation FIS (fuzzy inference system)
+	Calculates tip based on 'servie' and 'food'
+
+	If you want to about this example (and fuzzy logic), please 
+	read Matlab's tutorial on fuzzy logic toolbox 
+	http://www.mathworks.com/access/helpdesk/help/pdf_doc/fuzzy/fuzzy.pdf
+
+									Pablo Cingolani 
+									pcingola@users.sourceforge.net
+*/
+
+FUNCTION_BLOCK tipper	// Block definition (there may be more than one block per file)
+
+VAR_INPUT				// Define input variables
+	OST : REAL; // Tempo em excesso de velocidade
+	OSA : REAL; //Excesso de velocidade m�dio
+	OSP : REAL; //Pico de excesso de velocidade 
+	SAM : REAL; // N�mero de eventos de acelera��o moderada
+	SAA : REAL; // N�mero de eventos de acelera��o agressiva
+	BRP : REAL; // M�xima Varia��o de dire��o (Bearing)
+	BRM : REAL; // Eventos de mudan�a moderada de dire��o
+	BRA : REAL; // Eventos de mudan�a agressiva de dire��o
+	GAP : REAL; // Acelera��o m�xima positiva
+	GAN : REAL; // Acelera��o m�xima negativa
+	GAM : REAL; // Eventos de acelera��o moderada por km
+	GAA : REAL; // Eventos de acelera��o agressiva por km
+	
+	
+	
+END_VAR
+
+VAR_OUTPUT				// Define output variable
+	PERFIL : REAL;
+END_VAR
+
+FUZZIFY OST			
+	TERM LOW := (0, 1) (0.1, 0) (0.3,0) ; 
+	TERM MEDIUM := (0, 0) (0.1,1) (0.3,0) ;
+	TERM HIGH := (0, 0) (0.1, 0) (0.3,1);
+END_FUZZIFY
+
+FUZZIFY OSA 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (6,0) ; 
+	TERM MEDIUM := (0, 0) (1, 0) (2,1) (4,1) (6,0) ;
+	TERM HIGH := (0, 0) (4, 0) (6,1);
+END_FUZZIFY
+
+FUZZIFY OSP 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (6,0) ; 
+	TERM MEDIUM := (0, 0) (1, 0) (2,1) (4,1) (6,0) ;
+	TERM HIGH := (0, 0) (4, 0) (6,1);
+END_FUZZIFY
+
+
+FUZZIFY SAM 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (6,0) ; 
+	TERM MEDIUM := (0, 0) (1, 0) (2,1) (4,1) (6,0) ;
+	TERM HIGH := (0, 0) (4, 0) (6,1);
+END_FUZZIFY
+
+FUZZIFY SAA 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (6,0) ; 
+	TERM MEDIUM :=(0, 0) (1, 0) (2,1) (4,1) (6,0) ;
+	TERM HIGH := (0, 0) (4, 0) (6,1);
+END_FUZZIFY
+
+//modifiquei o BRP, quadrupliquei os limites
+FUZZIFY BRP
+
+  /*  TERM LOW := (0, 1) (5, 1) (10,0) (20,0) ;
+	TERM MEDIUM :=(0, 0) (5, 0) (10,1) (15,1) (20,0) ;
+	TERM HIGH := (0, 0) (15, 0) (20,1);*/
+
+	    TERM LOW := (0, 1) (20, 1) (40,0) (80,0) ;
+    	TERM MEDIUM :=(0, 0) (20, 0) (40,1) (60,1) (80,0) ;
+    	TERM HIGH := (0, 0) (60, 0) (80,1);
+
+END_FUZZIFY
+
+
+FUZZIFY BRM 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ; 
+	TERM MEDIUM := (0, 0) (1, 0) (2,1) (3,0) (4,0) ;
+	TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+END_FUZZIFY
+
+FUZZIFY BRA 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ; 
+	TERM MEDIUM :=(0, 0)  (1, 0) (2,1) (3,0) (4,0) ;
+	TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+END_FUZZIFY
+
+FUZZIFY GAM 			
+	TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ; 
+	TERM MEDIUM :=(0, 0) (1, 0) (2,1) (3,0) (4,0) ;
+	TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+END_FUZZIFY
+
+FUZZIFY GAA 			
+
+	    TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ;
+    	TERM MEDIUM :=(0, 0) (1, 0) (2,1) (3,0) (4,0) ;
+    	TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+END_FUZZIFY
+
+
+
+FUZZIFY GAN
+	    TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ;
+    	TERM MEDIUM :=(0, 0) (1, 0) (2,1) (3,0) (4,0) ;
+    	TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+
+END_FUZZIFY
+
+FUZZIFY GAP 			
+       	    TERM LOW := (0, 1) (1, 1) (2,0) (4,0) ;
+            TERM MEDIUM :=(0, 0) (1, 0) (2,1) (3,0) (4,0) ;
+            TERM HIGH := (0, 0) (2, 0) (3,1) (4,1);
+
+END_FUZZIFY
+
+
+DEFUZZIFY PERFIL			// Defzzzify output variable 'tip' : {'cheap', 'average', 'generous' }
+	TERM NORMAL := (0,1) (15,1) (30,0) (100,0);
+	TERM MODERADO := (15,0) (30,1) (60,1) (75,0) (100,0);
+	TERM AGRESSIVO := (0,0) (60,0) (75,1) (100,1);
+	METHOD : COG;		// Use 'Center Of Gravity' defuzzification method
+	DEFAULT := 0;		// Default value is 0 (if no rule activates defuzzifier)
+END_DEFUZZIFY
+
+RULEBLOCK No1
+	AND : MIN;			// Use 'min' for 'and' (also implicit use 'max' for 'or' to fulfill DeMorgan's Law)
+	ACT : MIN;			// Use 'min' activation method
+	ACCU : MAX;			// Use 'max' accumulation method
+      
+   RULE 1 : IF OST IS LOW  AND  OSA IS LOW AND OSP IS LOW THEN PERFIL IS NORMAL;
+   RULE 2 : IF OST IS MEDIUM  AND  OSA IS MEDIUM AND OSP IS MEDIUM THEN PERFIL IS MODERADO;
+   RULE 3 : IF OST IS HIGH  AND  OSA IS HIGH AND OSP IS HIGH THEN PERFIL IS AGRESSIVO;
+   RULE 4 : IF (SAM IS LOW  OR  SAM IS MEDIUM) AND SAA IS LOW THEN PERFIL IS NORMAL;
+   RULE 5 : IF SAM IS MEDIUM  AND  SAM IS HIGH AND SAA IS LOW THEN PERFIL IS MODERADO;
+   RULE 6 : IF SAA IS MEDIUM  AND  SAA IS HIGH AND SAM IS HIGH THEN PERFIL IS AGRESSIVO;
+   RULE 7 : IF GAM IS LOW  AND  GAM IS MEDIUM AND GAA IS LOW THEN PERFIL IS NORMAL;
+   RULE 8 : IF GAM IS MEDIUM  AND  GAM IS HIGH AND GAA IS LOW THEN PERFIL IS MODERADO;
+   RULE 9 : IF (GAA IS MEDIUM  OR  GAA IS HIGH) AND GAM IS HIGH THEN PERFIL IS AGRESSIVO;
+   RULE 10: IF GAP IS LOW  AND  GAN IS LOW THEN PERFIL IS NORMAL;
+   RULE 11: IF GAP IS MEDIUM  AND  GAN IS MEDIUM THEN PERFIL IS MODERADO;
+   RULE 12: IF GAP IS HIGH  AND  GAN IS HIGH THEN PERFIL IS AGRESSIVO;
+   RULE 13 :IF (BRM IS LOW  OR  BRM IS MEDIUM) AND BRA IS LOW THEN PERFIL IS NORMAL;
+   RULE 14 :IF (BRM IS MEDIUM  OR  BRM IS HIGH) AND BRA IS LOW THEN PERFIL IS MODERADO;
+   RULE 15 :IF (BRA IS MEDIUM  OR  BRA IS HIGH) AND BRM IS HIGH THEN PERFIL IS AGRESSIVO;
+   RULE 16 :IF BRP IS LOW   THEN PERFIL IS NORMAL;
+   // RULE 17 :IF BRP IS MEDIUM   THEN PERFIL IS MODERADO;
+     RULE 17 :IF BRP IS MEDIUM  AND (OSP IS MEDIUM OR OSP IS HIGH) THEN PERFIL IS MODERADO;
+   //RULE 18 :IF BRP IS HIGH   THEN PERFIL IS AGRESSIVO; //ORIGINAL
+      RULE 18 :IF BRP IS HIGH AND (OSP IS MEDIUM OR OSP IS HIGH)    THEN PERFIL IS AGRESSIVO;
+//REGRAS SUGERIDAS PELO LEO
+
+   RULE 19 : IF OST IS LOW  AND  OSA IS LOW AND OSP IS MEDIUM THEN PERFIL IS MODERADO;
+   RULE 20 : IF OST IS LOW  AND  OSA IS MEDIUM AND OSP IS LOW THEN PERFIL IS MODERADO;
+   RULE 21 : IF OST IS MEDIUM  AND  OSA IS LOW AND OSP IS LOW THEN PERFIL IS MODERADO;
+
+
+
+   
+//	RULE 1 : IF service IS poor OR food IS rancid THEN tip IS cheap;
+//	RULE 2 : IF service IS good THEN tip IS average; 
+//	RULE 3 : IF service IS excellent AND food IS delicious THEN tip IS generous;
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+

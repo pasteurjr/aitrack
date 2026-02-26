@@ -3,9 +3,12 @@ import MapComponent from './components/MapComponent';
 import BehavioralDashboard from './components/BehavioralDashboard';
 import EventsTimeline from './components/EventsTimeline';
 import VehicleAnalytics from './components/VehicleAnalytics';
+import MonitorDashboard from './components/MonitorDashboard';
+import AlertsPanel from './components/AlertsPanel';
+import EventsCatalog from './components/EventsCatalog';
 import './App.css';
 
-type ViewMode = 'dashboard' | 'timeline' | 'analytics';
+type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'alerts' | 'events';
 
 function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -54,6 +57,24 @@ function App() {
           >
             📈 Análises
           </button>
+          <button
+            style={{...styles.navTab, ...(viewMode === 'monitors' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('monitors')}
+          >
+            🤖 Monitores AI
+          </button>
+          <button
+            style={{...styles.navTab, ...(viewMode === 'alerts' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('alerts')}
+          >
+            🔔 Alertas
+          </button>
+          <button
+            style={{...styles.navTab, ...(viewMode === 'events' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('events')}
+          >
+            📋 Eventos
+          </button>
         </div>
       </div>
 
@@ -74,6 +95,15 @@ function App() {
           )}
           {viewMode === 'analytics' && (
             <VehicleAnalytics onVehicleClick={handleVehicleEventsClick} />
+          )}
+          {viewMode === 'monitors' && (
+            <MonitorDashboard onVehicleSelect={setSelectedVehicleId} />
+          )}
+          {viewMode === 'alerts' && (
+            <AlertsPanel onVehicleSelect={setSelectedVehicleId} />
+          )}
+          {viewMode === 'events' && (
+            <EventsCatalog />
           )}
         </div>
 

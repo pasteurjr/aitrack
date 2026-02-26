@@ -1,0 +1,318 @@
+python3 run.py
+Iniciando todos os serviços AITrack + Dirijabem...
+Iniciando o Servidor de Socket AITrack...
+Iniciando o Servidor da API Flask em http://0.0.0.0:5009...
+Servidor (versão reconstruída final) escutando em 0.0.0.0:9000
+ * Serving Flask app 'server.api'
+ * Debug mode: off
+Iniciando o Simulador Dirijabem...
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5009
+ * Running on http://192.168.68.68:5009
+Press CTRL+C to quit
+[DIRIJABEM] Starting replay loop
+[DIRIJABEM] Replay manager started
+Simulador Dirijabem pronto e aguardando requisições...
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:45] "GET /api/fleet/scores HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1900.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:46] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:46] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1894.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1895.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1901.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1896.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1897.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1902.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1898.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1899.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1903.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/dirijabem/users HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/dirijabem/users HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:48] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:49] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/scores HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1900.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1894.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1895.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1901.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1896.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1897.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1902.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1898.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:51] "GET /api/fleet/scores HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1899.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1903.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:52] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:52] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:54] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:55] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:55] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1900.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1894.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1895.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1901.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1896.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1897.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1902.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1898.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1899.
+   └─ Behavioral Score: 83.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1903.
+   └─ Behavioral Score: 82.0/100
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:57] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:58] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:58] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+[DIRIJABEM] Created new trip CODVIA=6116 for user 1 (original: 3769)
+[DIRIJABEM] Starting new trip for Pasteur Jr. (route 3769 → CODVIA=6116)
+127.0.0.1 - - [28/Jan/2026 12:04:58] "POST /api/dirijabem/user/1/start HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 1/1981
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Found 1 points
+[API-ROUTE] User 1: Returning 1 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:04:58] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:04:59] "GET /api/posicoes HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 2/1981
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:00] "GET /api/fleet/scores HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 3/1981
+SUCESSO: Posição salva para o veículo FK_VEICOD=1900.
+   └─ Behavioral Score: 85.0/100
+127.0.0.1 - - [28/Jan/2026 12:05:01] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:01] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+SUCESSO: Posição salva para o veículo FK_VEICOD=1894.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1895.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1901.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1896.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1897.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1902.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1898.
+   └─ Behavioral Score: 85.0/100
+SUCESSO: Posição salva para o veículo FK_VEICOD=1899.
+   └─ Behavioral Score: 83.0/100
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Found 3 points
+[API-ROUTE] User 1: Returning 3 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:01] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 4/1981
+SUCESSO: Posição salva para o veículo FK_VEICOD=1903.
+   └─ Behavioral Score: 82.0/100
+[DIRIJABEM] User 1: Emitted point 5/1981
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+^C
+Recebido sinal de interrupção. Encerrando os servidores...
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/events?limit=50 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/events?limit=50 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/events?limit=50 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/positions/latest/1901 HTTP/1.1" 200 -
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Found 5 points
+[API-ROUTE] User 1: Found 5 points
+[API-ROUTE] User 1: Returning 5 formatted points
+[API-ROUTE] User 1: Returning 5 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+[API-ROUTE] User 614: Active trip = None
+[API-ROUTE] User 614: No active trip found
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/dirijabem/user/614/route HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/positions/latest/1894 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Found 5 points
+[API-ROUTE] User 1: Returning 5 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:03] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+[API-ROUTE] User 1: Found 5 points
+[API-ROUTE] User 1: Returning 5 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 6/1981
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/stats HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/scores HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+[API-ROUTE] User 1: Active trip = {'CODVIA': 6116, 'DATAHORFIN': datetime.datetime(1900, 1, 1, 0, 0)}
+[API-ROUTE] User 1: Fetching points for CODVIA=6116
+[API-ROUTE] User 1: Found 6 points
+[API-ROUTE] User 1: Returning 6 formatted points
+[API-ROUTE] First point: lat=-19.9557, lon=-43.9209
+127.0.0.1 - - [28/Jan/2026 12:05:04] "GET /api/dirijabem/user/1/route HTTP/1.1" 200 -
+[DIRIJABEM] User 1: Emitted point 7/1981
+127.0.0.1 - - [28/Jan/2026 12:05:05] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:05] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:05] "GET /api/posicoes HTTP/1.1" 200 -
+127.0.0.1 - - [28/Jan/2026 12:05:05] "GET /api/fleet/events?limit=20 HTTP/1.1" 200 -
+^CTraceback (most recent call last):
+  File "/home/pasteurjr/progreact/aitrack/aitrackdatadrivr/run.py", line 61, in <module>
+    api_thread.join(timeout=2)
+  File "/home/pasteurjr/miniconda3/envs/aitrack/lib/python3.9/threading.py", line 1064, in join
+    self._wait_for_tstate_lock(timeout=max(timeout, 0))
+  File "/home/pasteurjr/miniconda3/envs/aitrack/lib/python3.9/threading.py", line 1080, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+KeyboardInterrupt
