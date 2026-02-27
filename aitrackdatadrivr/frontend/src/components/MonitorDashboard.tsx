@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { mockMonitors, mockVehiclesInMonitors } from '../mockData/mockMonitors';
+import React, { useState, useEffect } from 'react';
+import { monitorService } from '../services/apiService';
 import type { Monitor, VehicleInMonitor } from '../mockData/mockMonitors';
 
 interface MonitorDashboardProps {
@@ -13,19 +13,66 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
   onVehicleSelect,
   selectedMonitorId,
 }) => {
-  const selectedMonitor = selectedMonitorId ? mockMonitors.find(m => m.id === selectedMonitorId) : null;
-  const vehiclesInMonitor = selectedMonitorId
-    ? mockVehiclesInMonitors.filter(v => v.monitor_id === selectedMonitorId)
-    : [];
+  const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
+  const [vehiclesInMonitor, setVehiclesInMonitor] = useState<VehicleInMonitor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load all monitors on mount
+  useEffect(() => {
+    loadMonitors();
+  }, []);
+
+  // Load vehicles when monitor is selected
+  useEffect(() => {
+    if (selectedMonitorId) {
+      loadMonitorDetails(selectedMonitorId);
+    } else {
+      setSelectedMonitor(null);
+      setVehiclesInMonitor([]);
+    }
+  }, [selectedMonitorId]);
+
+  const loadMonitors = async () => {
+    try {
+      const response = await monitorService.getAll();
+      setMonitors(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Erro carregando monitores:', error);
+      setLoading(false);
+    }
+  };
+
+  const loadMonitorDetails = async (monitorId: number) => {
+    try {
+      const [monitorResponse, vehiclesResponse] = await Promise.all([
+        monitorService.getById(monitorId),
+        monitorService.getVehicles(monitorId)
+      ]);
+      setSelectedMonitor(monitorResponse.data);
+      setVehiclesInMonitor(vehiclesResponse.data);
+    } catch (error) {
+      console.error('Erro carregando detalhes do monitor:', error);
+    }
+  };
 
   const handleBack = () => {
     onMonitorSelect(null as any);
   };
 
+  if (loading) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }}>
+        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando monitores...</div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
       {!selectedMonitor ? (
-        <MonitorList monitors={mockMonitors} onMonitorClick={onMonitorSelect} />
+        <MonitorList monitors={monitors} onMonitorClick={onMonitorSelect} />
       ) : (
         <VehicleList
           monitor={selectedMonitor}

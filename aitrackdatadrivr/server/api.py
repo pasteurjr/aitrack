@@ -165,6 +165,12 @@ from . import behavioral_engine
 from .dirijabem_api import dirijabem_bp
 app.register_blueprint(dirijabem_bp)
 
+# ============================================
+# AI MONITOR ENDPOINTS (DataDrivr Integration)
+# ============================================
+from .monitor_api import monitor_bp
+app.register_blueprint(monitor_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """

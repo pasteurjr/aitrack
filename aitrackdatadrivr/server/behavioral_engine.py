@@ -5,6 +5,8 @@ Detecta eventos comportamentais e calcula scores de direção
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from collections import deque
+import mysql.connector
+import json
 
 # Histórico de posições por veículo (últimas 5)
 vehicle_history: Dict[str, deque] = {}
@@ -23,6 +25,100 @@ SHARP_TURN_THRESHOLD = 45.0    # graus em 5 segundos
 
 MAX_HISTORY_SIZE = 5
 INITIAL_SCORE = 85.0
+
+# Database configuration for event persistence
+DB_CONFIG = {
+    'host': 'camerascasas.no-ip.info',
+    'port': 3307,
+    'user': 'scadabr',
+    'password': 'scadabr',
+    'database': 'tracker'
+}
+
+
+def save_event_to_db(event: Dict, veicod: int):
+    """
+    Salva evento no banco de dados para persistência
+
+    Args:
+        event: Evento detectado com type, device_id, timestamp, etc
+        veicod: VEICOD do veículo no banco de dados
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+
+        # Buscar tipo_evento_id pelo código
+        cursor.execute("SELECT id FROM tipo_evento WHERE codigo = %s", (event['type'],))
+        tipo_result = cursor.fetchone()
+
+        if not tipo_result:
+            # Tipo não existe no catálogo, skip
+            cursor.close()
+            conn.close()
+            return
+
+        tipo_evento_id = tipo_result['id']
+
+        # Preparar dados adicionais (tudo que não é campo direto)
+        dados_adicionais = {k: v for k, v in event.items()
+                          if k not in ['device_id', 'type', 'lat', 'lon', 'timestamp', 'severity']}
+
+        # Converter timestamp se necessário
+        if isinstance(event['timestamp'], str):
+            timestamp = datetime.fromisoformat(event['timestamp'])
+        else:
+            timestamp = event['timestamp']
+
+        # Insert evento
+        insert_sql = """
+        INSERT INTO eventos (tipo_evento_id, veicod, device_id, timestamp,
+                           latitude, longitude, velocidade, dados_adicionais, severidade)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        cursor.execute(insert_sql, (
+            tipo_evento_id,
+            veicod,
+            event['device_id'],
+            timestamp,
+            event.get('lat'),
+            event.get('lon'),
+            event.get('speed', event.get('speed_after', 0)),
+            json.dumps(dados_adicionais),
+            event.get('severity', 'medium')
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        # Falha silenciosa - evento ainda fica in-memory
+        print(f"[WARN] Erro salvando evento no banco: {e}")
+
+
+def get_veicod_from_device_id(device_id: str) -> Optional[int]:
+    """
+    Busca VEICOD no banco de dados a partir do device_id
+
+    Args:
+        device_id: VEI_DEVICE_ID do veículo
+
+    Returns:
+        VEICOD ou None se não encontrado
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT VEICOD FROM veiculos WHERE VEI_DEVICE_ID = %s", (device_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return result['VEICOD'] if result else None
+    except Exception as e:
+        print(f"[WARN] Erro buscando VEICOD: {e}")
+        return None
 
 
 def init_vehicle(device_id: str):
@@ -56,11 +152,16 @@ def add_position(device_id: str, data: Dict):
         events = detect_events(device_id, data, history)
 
         for event in events:
-            # Adiciona à lista global
+            # Adiciona à lista global (mantém in-memory para performance)
             vehicle_events.append(event)
 
             # Atualiza score
             update_score(device_id, event)
+
+            # NOVO: Salva no banco de dados para persistência
+            veicod = get_veicod_from_device_id(device_id)
+            if veicod:
+                save_event_to_db(event, veicod)
 
 
 def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
