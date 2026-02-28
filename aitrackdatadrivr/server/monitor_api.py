@@ -4,7 +4,7 @@ Provides REST API for monitors, vehicles, analyses, and alerts
 """
 
 from flask import Blueprint, request, jsonify
-import monitor_db
+from . import monitor_db
 
 monitor_bp = Blueprint('monitor', __name__)
 

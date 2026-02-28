@@ -7,8 +7,8 @@ Simplified version without LLM (rule-based analysis)
 import time
 import schedule
 from datetime import datetime, timedelta
-import monitor_db
-from behavioral_engine import get_vehicle_score, get_recent_events
+from . import monitor_db
+from .behavioral_engine import get_vehicle_score, get_recent_events
 
 
 def analyze_monitor(monitor_id: int):
