@@ -1,0 +1,9 @@
+# Test Dependencies
+# Install with: pip install -r requirements-tests.txt
+
+requests>=2.31.0
+playwright>=1.40.0
+
+# Optional: for advanced testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
