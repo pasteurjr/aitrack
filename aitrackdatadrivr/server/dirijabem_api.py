@@ -56,6 +56,42 @@ def start_user_trip(codusu):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@dirijabem_bp.route('/user/<int:codusu>/start-synthetic', methods=['POST'])
+def start_synthetic_trip(codusu):
+    """
+    Inicia uma viagem sintética (não replay) para um usuário
+
+    Body params (optional):
+        - profile: 'excellent', 'good', 'average', 'poor', 'aggressive'
+    """
+    try:
+        manager = get_replay_manager()
+
+        # Get driver profile from request body (optional)
+        data = request.get_json() or {}
+        driver_profile = data.get('profile', None)
+
+        # Start synthetic trip
+        codvia, actual_profile = manager.start_synthetic_trip(codusu, driver_profile)
+
+        if codvia:
+            return jsonify({
+                "status": "started",
+                "type": "synthetic",
+                "codusu": codusu,
+                "codvia": codvia,
+                "profile": actual_profile,
+                "message": f"Viagem sintética iniciada (perfil: {actual_profile})"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Falha ao criar viagem sintética"
+            }), 500
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @dirijabem_bp.route('/user/<int:codusu>/stop', methods=['POST'])
 def stop_user_trip(codusu):
     """Stops active trip for user"""
