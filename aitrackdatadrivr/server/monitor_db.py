@@ -216,6 +216,71 @@ def get_monitor_vehicles(monitor_id: int) -> List[Dict]:
     return vehicles
 
 
+def get_monitor_vehicles_unified(monitor_id: int) -> List[Dict]:
+    """
+    Lista veículos de um monitor com dados UNIFICADOS (tracker + dirijabem)
+    Retorna informações de ambas as fontes quando disponível
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Buscar veículos do monitor com JOIN na tabela unificada
+    cursor.execute("""
+        SELECT
+            vm.id as veiculomonitor_id,
+            vm.monitor_id,
+            vm.device_id,
+            vm.ativo,
+            vu.id as veiculo_unificado_id,
+            vu.placa,
+            vu.tipo as fonte,
+            vu.descricao,
+            vu.device_id as vu_device_id,
+            vu.codusu
+        FROM veiculomonitor vm
+        LEFT JOIN veiculo_unificado vu ON (
+            vm.device_id = vu.device_id OR
+            vm.codusu_dirijabem = vu.codusu
+        )
+        WHERE vm.monitor_id = %s AND vm.ativo = TRUE
+        ORDER BY vu.placa
+    """, (monitor_id,))
+
+    vehicles = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return vehicles
+
+
+def get_all_unified_vehicles() -> List[Dict]:
+    """
+    Retorna TODOS os veículos unificados disponíveis para monitoramento
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            id,
+            device_id,
+            codusu,
+            placa,
+            tipo,
+            descricao,
+            ativo
+        FROM veiculo_unificado
+        WHERE ativo = TRUE
+        ORDER BY placa
+    """)
+
+    vehicles = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return vehicles
+
+
 def add_vehicle_to_monitor(monitor_id: int, veicod: int, device_id: str) -> int:
     """Adiciona veículo ao monitor"""
     conn = get_connection()

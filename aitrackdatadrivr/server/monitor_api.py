@@ -387,3 +387,39 @@ def get_events():
         return jsonify(events)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ==================== UNIFIED VEHICLES ====================
+
+@monitor_bp.route('/api/vehicles/unified', methods=['GET'])
+def get_unified_vehicles():
+    """
+    Retorna todos os veículos unificados (tracker + dirijabem) disponíveis
+    para serem adicionados aos monitores
+    """
+    try:
+        vehicles = monitor_db.get_all_unified_vehicles()
+        return jsonify({
+            'success': True,
+            'total': len(vehicles),
+            'vehicles': vehicles
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitor_bp.route('/api/monitors/<int:monitor_id>/vehicles/unified', methods=['GET'])
+def get_monitor_vehicles_unified_endpoint(monitor_id):
+    """
+    Retorna veículos de um monitor com dados unificados (tracker + dirijabem)
+    """
+    try:
+        vehicles = monitor_db.get_monitor_vehicles_unified(monitor_id)
+        return jsonify({
+            'success': True,
+            'monitor_id': monitor_id,
+            'total': len(vehicles),
+            'vehicles': vehicles
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
