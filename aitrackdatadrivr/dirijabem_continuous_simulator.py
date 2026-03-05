@@ -211,6 +211,9 @@ class VirtualDriver:
 class DirijabemContinuousSimulator:
     """Simulador contínuo de múltiplos motoristas"""
 
+    # Usuários reais do banco dirijabem (existem na tabela usuario)
+    REAL_USERS = [1, 614, 17, 411, 21, 239, 617, 608, 36, 70]
+
     def __init__(self, num_drivers=10, speed_multiplier=1):
         """
         Args:
@@ -232,8 +235,8 @@ class DirijabemContinuousSimulator:
         print(f"{'='*70}\n")
 
         for i in range(num_drivers):
-            # CODUSU entre 1-10 (distribui motoristas)
-            codusu = (i % 10) + 1
+            # Usar CODUSU de usuários REAIS que existem no banco
+            codusu = self.REAL_USERS[i % len(self.REAL_USERS)]
 
             # Perfil aleatório com distribuição realista
             profile = DriverProfile.get_random_profile()
