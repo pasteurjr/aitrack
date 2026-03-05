@@ -171,6 +171,12 @@ app.register_blueprint(dirijabem_bp)
 from .monitor_api import monitor_bp
 app.register_blueprint(monitor_bp)
 
+# ============================================
+# UNIFIED API (Tracker + Dirijabem Integration)
+# ============================================
+from .unified_api import unified_bp
+app.register_blueprint(unified_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """
