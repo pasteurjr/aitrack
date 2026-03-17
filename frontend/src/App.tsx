@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import MapComponent from './components/MapComponent';
 import './App.css'; // Usaremos para alguns estilos customizados
 
-import VehicleList from './components/VehicleList';
+import VehicleListUnified from './components/VehicleListUnified';
 
 function App() {
-  // No futuro, o ID do veículo selecionado será guardado aqui
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [selectedPlaca, setSelectedPlaca] = useState<string | null>(null);
+
+  const handleVehicleSelect = (id: number, placa: string) => {
+    setSelectedVehicleId(id);
+    setSelectedPlaca(placa);
+  };
 
   return (
     <div className="container-fluid vh-100 d-flex flex-column">
@@ -16,15 +21,15 @@ function App() {
       <div className="row flex-grow-1 g-0">
         {/* Coluna da Barra Lateral */}
         <div className="col-md-3 bg-light border-end overflow-auto">
-          <div className="p-3">
-            <h5>Veículos Online</h5>
-            <VehicleList selectedVehicleId={selectedVehicleId} onVehicleSelect={setSelectedVehicleId} />
+          <div className="p-2 border-bottom">
+            <h6 className="mb-0">Veículos</h6>
           </div>
+          <VehicleListUnified selectedVehicleId={selectedVehicleId} onVehicleSelect={handleVehicleSelect} />
         </div>
 
         {/* Coluna do Mapa */}
         <div className="col-md-9">
-          <MapComponent selectedVehicleId={selectedVehicleId} />
+          <MapComponent selectedVehicleId={selectedVehicleId} selectedPlaca={selectedPlaca} />
         </div>
       </div>
     </div>

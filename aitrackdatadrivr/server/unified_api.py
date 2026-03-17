@@ -317,6 +317,90 @@ def get_dirijabem_data_full(codusu):
         return None
 
 
+@unified_bp.route('/position/<placa>', methods=['GET'])
+def get_unified_position(placa):
+    """
+    Retorna última posição de um veículo (tracker ou dirijabem)
+    Formato unificado: {latitude, longitude, velocidade_kmh, DATAHORA}
+    """
+    try:
+        conn = get_tracker_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT device_id, codusu
+            FROM veiculo_unificado
+            WHERE placa = %s AND ativo = TRUE
+        """, (placa,))
+
+        vehicle = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not vehicle:
+            return jsonify({'success': False, 'error': 'Veículo não encontrado'}), 404
+
+        position = None
+
+        # Prioriza tracker (GPS em tempo real)
+        if vehicle['device_id']:
+            try:
+                conn = get_tracker_connection()
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute("""
+                    SELECT
+                        ST_Y(l.LOCLATLONG) as latitude,
+                        ST_X(l.LOCLATLONG) as longitude,
+                        l.VELATU as velocidade_kmh,
+                        l.DATAHORA
+                    FROM localizacao l
+                    JOIN veiculos v ON l.FK_VEICOD = v.VEICOD
+                    WHERE v.VEI_DEVICE_ID = %s
+                    ORDER BY l.DATAHORA DESC
+                    LIMIT 1
+                """, (vehicle['device_id'],))
+                position = cursor.fetchone()
+                cursor.close()
+                conn.close()
+            except:
+                pass
+
+        # Fallback: dados do dirijabem
+        if not position and vehicle['codusu']:
+            try:
+                conn = get_dirijabem_connection()
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute("""
+                    SELECT
+                        ST_Y(ld.coords) as latitude,
+                        ST_X(ld.coords) as longitude,
+                        ld.VELATU as velocidade_kmh,
+                        ld.DATAHORA
+                    FROM localizacaodados ld
+                    JOIN viagem v ON ld.CODVIA = v.CODVIA
+                    WHERE v.CODUSU = %s
+                    ORDER BY ld.DATAHORA DESC
+                    LIMIT 1
+                """, (vehicle['codusu'],))
+                position = cursor.fetchone()
+                cursor.close()
+                conn.close()
+            except:
+                pass
+
+        if not position:
+            return jsonify({'success': True, 'position': None})
+
+        # Serializar datetime
+        if position.get('DATAHORA'):
+            position['DATAHORA'] = position['DATAHORA'].isoformat()
+
+        return jsonify({'success': True, 'position': position})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @unified_bp.route('/stats', methods=['GET'])
 def get_unified_stats():
     """Estatísticas gerais do sistema unificado"""

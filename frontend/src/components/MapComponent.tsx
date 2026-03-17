@@ -14,25 +14,35 @@ interface TrailPoint {
 
 interface MapComponentProps {
     selectedVehicleId: number | null;
+    selectedPlaca?: string | null;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ selectedVehicleId }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ selectedVehicleId, selectedPlaca }) => {
     const [trail, setTrail] = useState<TrailPoint[]>([]);
 
     useEffect(() => {
         setTrail([]);
 
-        if (selectedVehicleId === null) return;
-
         const fetchLatestPosition = async () => {
             try {
-                const response = await axios.get<TrailPoint>(`http://localhost:5009/api/positions/latest/${selectedVehicleId}`);
-                const latestPoint = response.data;
+                let latestPoint: TrailPoint | null = null;
+
+                if (selectedPlaca) {
+                    // Veículo da lista unificada (tracker ou dirijabem)
+                    const response = await axios.get(`http://localhost:5009/api/unified/position/${selectedPlaca}`);
+                    if (response.data.success && response.data.position) {
+                        latestPoint = response.data.position;
+                    }
+                } else if (selectedVehicleId !== null) {
+                    // Veículo tracker clássico (retrocompatibilidade)
+                    const response = await axios.get<TrailPoint>(`http://localhost:5009/api/positions/latest/${selectedVehicleId}`);
+                    latestPoint = response.data;
+                }
+
                 if (latestPoint) {
                     setTrail(prevTrail => {
-                        // só adiciona se mudou o timestamp
-                        if (prevTrail.length === 0 || prevTrail[prevTrail.length - 1].DATAHORA !== latestPoint.DATAHORA) {
-                            return [...prevTrail, latestPoint];
+                        if (prevTrail.length === 0 || prevTrail[prevTrail.length - 1].DATAHORA !== latestPoint!.DATAHORA) {
+                            return [...prevTrail, latestPoint!];
                         }
                         return prevTrail;
                     });
@@ -42,10 +52,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ selectedVehicleId }) => {
             }
         };
 
+        if (!selectedPlaca && selectedVehicleId === null) return;
+
+        fetchLatestPosition();
         const intervalId = setInterval(fetchLatestPosition, 5000);
         return () => clearInterval(intervalId);
 
-    }, [selectedVehicleId]);
+    }, [selectedVehicleId, selectedPlaca]);
 
     const lastPoint = trail.length > 0 ? trail[trail.length - 1] : null;
 
