@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+
+> **ATENÇÃO — estado atual (16/09/2026):** a fonte de verdade para trabalhar neste repositório é o **`AGENTS.md`**, com `AUDITORIA_APP2_DATADRIVR.md` (diagnóstico) e `HANDOFF_MONITORES_IA.md` (plano de execução).
+> As seções abaixo descrevem a **arquitetura original**. O backend ativo hoje é **`aitrackdatadrivr/`**: `aitrackdatadrivr/run.py` sobe threads com API na porta **5009** e socket 9000.
+> O `run.py` e a pasta `server/` da **raiz** são legados. O `run.py` da raiz está quebrado: importa `server.monitor_engine`, que não existe.
+
 ## Project Overview
 
 AITrack is a vehicle tracking and monitoring system with AI-powered analytics. The system receives GPS data from multiple tracker protocols (Maxtrack, Suntech, Queclink), stores it in a MySQL database, and displays real-time vehicle positions on a web interface. The long-term vision includes intelligent agents for route analysis, theft detection, predictive maintenance, and fleet optimization (see ESPECIFICACAO_AITRACK.md).
@@ -12,14 +17,14 @@ AITrack is a vehicle tracking and monitoring system with AI-powered analytics. T
 1. **Socket Server** (`server/socket_server.py`): TCP server listening on port 9000, receives raw GPS packets from trackers
 2. **Protocol Layer** (`server/protocol_parsers.py`): Parses Maxtrack, Suntech, and Queclink protocols into standardized JSON
 3. **Database Layer** (`server/db_handler.py`): Saves parsed data to MySQL with connection pooling
-4. **REST API** (`server/api.py`): Flask API on port 5000 serving vehicle positions to frontend
+4. **REST API** (`server/api.py`): Flask API on port 5009 serving vehicle positions to frontend
 5. **Frontend** (`frontend/`): React + TypeScript app with Leaflet maps for real-time vehicle visualization
 
 **Data Flow:**
 ```
 Trackers → Socket Server (port 9000) → Protocol Parsers → DB Handler → MySQL
                                                                           ↑
-Frontend (React) ← REST API (Flask, port 5000) ←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+Frontend (React) ← REST API (Flask, port 5009) ←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 ```
 
 ## Common Commands
@@ -47,7 +52,7 @@ npm run build      # Production build
 cd frontend && npm start
 
 # Backend API only (without socket server)
-python -c "from server.api import app; app.run(host='0.0.0.0', port=5000, debug=True)"
+python -c "from server.api import app; app.run(host='0.0.0.0', port=5009, debug=True)"
 
 # Socket server only
 python -c "from server.socket_server import start_server; start_server()"
@@ -98,7 +103,7 @@ The frontend polls the API for position updates and displays vehicles with custo
 2. **Auto-vehicle creation**: If a tracker sends data for an unknown device_id, a new vehicle record is automatically created
 3. **Concurrent handling**: Socket server uses ThreadPoolExecutor (20 workers) to handle multiple simultaneous tracker connections
 4. **CORS enabled**: API allows cross-origin requests from any origin for development
-5. **Process management**: `run.py` uses multiprocessing to run socket server and API in parallel processes with automatic restart on failure
+5. **Process management**: (legado) o `run.py` da raiz usava multiprocessing. O backend ativo, `aitrackdatadrivr/run.py`, usa threads num único processo. Ver `AGENTS.md`.
 
 ## Testing
 
