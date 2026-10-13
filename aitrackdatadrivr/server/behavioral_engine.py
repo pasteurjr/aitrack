@@ -2,7 +2,7 @@
 Behavioral Engine - DataDrivr Integration
 Detecta eventos comportamentais e calcula scores de direção
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 from collections import deque
 import mysql.connector
@@ -26,7 +26,8 @@ SPEEDING_THRESHOLD = 80.0      # km/h
 SHARP_TURN_THRESHOLD_DEG_PER_SEC = 45.0 / 5.0  # equivalente a 45 graus em 5 s
 
 MAX_HISTORY_SIZE = 5
-INITIAL_SCORE = 85.0
+INITIAL_SCORE = 100.0
+SCORE_WINDOW_SECONDS = 60 * 60
 
 
 def _timestamp_seconds(value) -> Optional[float]:
@@ -303,38 +304,54 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
 
 def update_score(device_id: str, event: Dict):
     """
-    Atualiza score do veículo baseado em evento detectado
-    Score vai de 0-100, começa em 85
+    Recalcula o score usando os eventos ativos da última hora.
+
+    O score é uma janela deslizante: quando um evento envelhece, sua
+    penalidade deixa de participar do cálculo e o veículo se recupera.
     """
-    current_score = vehicle_scores.get(device_id, INITIAL_SCORE)
+    vehicle_scores[device_id] = calculate_vehicle_score(device_id)
 
-    # Penalidades por tipo de evento
+
+def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> float:
+    """Calcula o score sem depender de quantas posições foram recebidas."""
+    now_seconds = _timestamp_seconds(now or datetime.now(timezone.utc))
     penalties = {
-        'harsh_accel': -2,
-        'harsh_brake': -3,
-        'speeding': -1,
-        'sharp_turn': -2
+        'harsh_accel': 2.0,
+        'harsh_brake': 3.0,
+        'speeding': 1.0,
+        'sharp_turn': 2.0,
     }
+    total_penalty = 0.0
 
-    # Aplica penalidade baseada na severidade
-    penalty = penalties.get(event['type'], -1)
-    if event.get('severity') == 'high':
-        penalty *= 1.5
-    elif event.get('severity') == 'critical':
-        penalty *= 2
+    for event in vehicle_events:
+        if event.get('device_id') != device_id:
+            continue
+        event_seconds = _timestamp_seconds(event.get('timestamp'))
+        if event_seconds is None or event_seconds > now_seconds:
+            continue
+        age = now_seconds - event_seconds
+        if age <= SCORE_WINDOW_SECONDS:
+            penalty = penalties.get(event.get('type'), 1.0)
+            if event.get('severity') == 'high':
+                penalty *= 1.5
+            elif event.get('severity') == 'critical':
+                penalty *= 2
+            total_penalty += penalty
 
-    # Score mínimo de 10 (motorista extremamente ruim mas ainda mensurável)
-    new_score = max(10, min(100, current_score + penalty))
-    vehicle_scores[device_id] = round(new_score, 1)
+    return round(max(0.0, min(100.0, INITIAL_SCORE - total_penalty)), 1)
 
 
 def get_vehicle_score(device_id: str) -> float:
     """Retorna score atual do veículo"""
-    return vehicle_scores.get(device_id, INITIAL_SCORE)
+    score = calculate_vehicle_score(device_id)
+    vehicle_scores[device_id] = score
+    return score
 
 
 def get_all_scores() -> Dict[str, float]:
     """Retorna todos os scores"""
+    for device_id in list(vehicle_scores):
+        vehicle_scores[device_id] = calculate_vehicle_score(device_id)
     return vehicle_scores.copy()
 
 
@@ -377,7 +394,7 @@ def get_fleet_stats() -> Dict:
             'bottom3': []
         }
 
-    scores = list(vehicle_scores.items())
+    scores = list(get_all_scores().items())
     fleet_avg = sum(s for _, s in scores) / len(scores)
 
     # Ordena por score

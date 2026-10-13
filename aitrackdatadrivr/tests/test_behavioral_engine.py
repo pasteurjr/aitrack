@@ -83,3 +83,42 @@ def test_heading_wrap_around_uses_shortest_angle():
     turn = next(event for event in events if event["type"] == "sharp_turn")
     assert turn["heading_change"] == 11
     assert turn["turn_rate_deg_per_sec"] == 11.0
+
+
+def test_score_uses_only_events_from_last_hour():
+    engine.reset_all()
+    now = datetime(2026, 10, 13, 12, 0, tzinfo=timezone.utc)
+    engine.vehicle_scores["SIM-1"] = engine.INITIAL_SCORE
+    engine.vehicle_events.extend([
+        {
+            "device_id": "SIM-1",
+            "type": "harsh_brake",
+            "severity": "high",
+            "timestamp": (now - timedelta(minutes=30)).isoformat(),
+        },
+        {
+            "device_id": "SIM-1",
+            "type": "speeding",
+            "severity": "high",
+            "timestamp": (now - timedelta(hours=2)).isoformat(),
+        },
+    ])
+
+    assert engine.calculate_vehicle_score("SIM-1", now=now) == 95.5
+
+
+def test_score_recovers_after_event_expires():
+    engine.reset_all()
+    now = datetime(2026, 10, 13, 12, 0, tzinfo=timezone.utc)
+    engine.vehicle_scores["SIM-1"] = engine.INITIAL_SCORE
+    engine.vehicle_events.append({
+        "device_id": "SIM-1",
+        "type": "harsh_brake",
+        "severity": "medium",
+        "timestamp": (now - timedelta(minutes=30)).isoformat(),
+    })
+
+    assert engine.calculate_vehicle_score("SIM-1", now=now) == 97.0
+    assert engine.calculate_vehicle_score(
+        "SIM-1", now=now + timedelta(hours=2)
+    ) == 100.0
