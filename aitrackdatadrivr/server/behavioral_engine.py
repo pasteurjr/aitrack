@@ -18,13 +18,44 @@ vehicle_scores: Dict[str, float] = {}
 vehicle_events: List[Dict] = []
 
 # Thresholds de detecção
-HARSH_ACCEL_THRESHOLD = 15.0  # km/h em 3 segundos
-HARSH_BRAKE_THRESHOLD = 20.0  # km/h em 3 segundos
+# Os limites são aceleração/desaceleração física. A janela é calculada pelo
+# timestamp das amostras; nunca assumimos que cada pacote representa 1 segundo.
+HARSH_ACCEL_THRESHOLD_MS2 = 15.0 / 3.6 / 3.0  # equivalente a 15 km/h em 3 s
+HARSH_BRAKE_THRESHOLD_MS2 = 20.0 / 3.6 / 3.0  # equivalente a 20 km/h em 3 s
 SPEEDING_THRESHOLD = 80.0      # km/h
-SHARP_TURN_THRESHOLD = 45.0    # graus em 5 segundos
+SHARP_TURN_THRESHOLD_DEG_PER_SEC = 45.0 / 5.0  # equivalente a 45 graus em 5 s
 
 MAX_HISTORY_SIZE = 5
 INITIAL_SCORE = 85.0
+
+
+def _timestamp_seconds(value) -> Optional[float]:
+    """Converte timestamps aceitos pelo Tracker em segundos desde epoch."""
+    if isinstance(value, datetime):
+        return value.timestamp()
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+        except ValueError:
+            return None
+    return None
+
+
+def _elapsed_seconds(previous: Dict, current: Dict) -> Optional[float]:
+    """Retorna o intervalo positivo entre duas posições, ou None se inválido."""
+    previous_ts = _timestamp_seconds(previous.get('timestamp'))
+    current_ts = _timestamp_seconds(current.get('timestamp'))
+    if previous_ts is None or current_ts is None or current_ts <= previous_ts:
+        return None
+    return current_ts - previous_ts
+
+
+def _heading_delta(previous_heading: float, current_heading: float) -> float:
+    """Calcula a menor variação angular, inclusive na passagem 359→0."""
+    change = abs(current_heading - previous_heading) % 360
+    return min(change, 360 - change)
 
 # Database configuration for event persistence
 DB_CONFIG = {
@@ -173,15 +204,17 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
     """
     events = []
 
-    # 1. ACELERAÇÃO BRUSCA
+    # 1. ACELERAÇÃO BRUSCA: compara a aceleração real, não a quantidade de
+    # pacotes. Isso evita classificar incorretamente frequências diferentes.
     if len(history) >= 3:
-        speed_3s_ago = list(history)[-3]['speed']
+        reference = list(history)[-3]
+        speed_3s_ago = reference['speed']
         speed_now = current['speed']
-
         speed_delta = speed_now - speed_3s_ago
+        elapsed = _elapsed_seconds(reference, current)
+        acceleration = speed_delta / 3.6 / elapsed if elapsed else None
 
-        if speed_delta > HARSH_ACCEL_THRESHOLD:
-            acceleration = speed_delta / 3.6 / 3  # converte para m/s²
+        if acceleration is not None and acceleration > HARSH_ACCEL_THRESHOLD_MS2:
             events.append({
                 'device_id': device_id,
                 'type': 'harsh_accel',
@@ -192,19 +225,21 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
                 'speed_before': speed_3s_ago,
                 'speed_after': speed_now,
                 'delta': speed_delta,
+                'elapsed_seconds': round(elapsed, 3),
                 'acceleration_ms2': round(acceleration, 2),
                 'icon': '⚡'
             })
 
     # 2. FRENAGEM BRUSCA
     if len(history) >= 3:
-        speed_3s_ago = list(history)[-3]['speed']
+        reference = list(history)[-3]
+        speed_3s_ago = reference['speed']
         speed_now = current['speed']
-
         speed_delta = speed_3s_ago - speed_now  # invertido para desaceleração
+        elapsed = _elapsed_seconds(reference, current)
+        deceleration = speed_delta / 3.6 / elapsed if elapsed else None
 
-        if speed_delta > HARSH_BRAKE_THRESHOLD:
-            deceleration = speed_delta / 3.6 / 3  # converte para m/s²
+        if deceleration is not None and deceleration > HARSH_BRAKE_THRESHOLD_MS2:
             events.append({
                 'device_id': device_id,
                 'type': 'harsh_brake',
@@ -215,6 +250,7 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
                 'speed_before': speed_3s_ago,
                 'speed_after': speed_now,
                 'delta': speed_delta,
+                'elapsed_seconds': round(elapsed, 3),
                 'deceleration_ms2': round(deceleration, 2),
                 'icon': '🛑'
             })
@@ -235,19 +271,17 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
             'icon': '🚨'
         })
 
-    # 4. CURVA BRUSCA
+    # 4. CURVA BRUSCA: a mudança angular também depende do tempo real.
     if len(history) >= 5:
-        heading_5s_ago = list(history)[-5]['heading']
+        reference = list(history)[-5]
+        heading_5s_ago = reference['heading']
         heading_now = current['heading']
-
-        # Calcula menor ângulo entre as direções
-        heading_change = abs(heading_now - heading_5s_ago)
-        if heading_change > 180:
-            heading_change = 360 - heading_change
-
+        elapsed = _elapsed_seconds(reference, current)
+        heading_change = _heading_delta(heading_5s_ago, heading_now)
+        turn_rate = heading_change / elapsed if elapsed else None
         speed = current['speed']
 
-        if heading_change > SHARP_TURN_THRESHOLD and speed > 30:
+        if turn_rate is not None and turn_rate > SHARP_TURN_THRESHOLD_DEG_PER_SEC and speed > 30:
             events.append({
                 'device_id': device_id,
                 'type': 'sharp_turn',
@@ -258,6 +292,8 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
                 'heading_before': heading_5s_ago,
                 'heading_after': heading_now,
                 'heading_change': round(heading_change, 1),
+                'elapsed_seconds': round(elapsed, 3),
+                'turn_rate_deg_per_sec': round(turn_rate, 2),
                 'speed': speed,
                 'icon': '↪️'
             })
