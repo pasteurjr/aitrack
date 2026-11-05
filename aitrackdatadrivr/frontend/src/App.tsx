@@ -7,6 +7,7 @@ import MonitorDashboard from './components/MonitorDashboard';
 import MonitorDetailView from './components/MonitorDetailView';
 import AlertsPanel from './components/AlertsPanel';
 import EventsCatalog from './components/EventsCatalog';
+import OperationModeBadge from './components/OperationModeBadge';
 import { mockVehiclesInMonitors } from './mockData/mockMonitors';
 import type { VehicleInMonitor } from './mockData/mockMonitors';
 import './App.css';
@@ -58,7 +59,10 @@ function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
       {/* Top Navigation Bar */}
       <div style={styles.navbar}>
-        <h1 style={styles.logo}>AITrack + DataDrivr</h1>
+        <div style={styles.brand}>
+          <h1 style={styles.logo}>AITrack + DataDrivr</h1>
+          <OperationModeBadge />
+        </div>
         <div style={styles.navTabs}>
           <button
             style={{...styles.navTab, ...(viewMode === 'dashboard' ? styles.navTabActive : {})}}
@@ -179,6 +183,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
+  },
+  brand: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexShrink: 0,
   },
   navTabs: {
     display: 'flex',
