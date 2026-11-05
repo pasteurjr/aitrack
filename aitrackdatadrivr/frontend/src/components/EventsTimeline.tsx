@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import AsyncDataState from './AsyncDataState';
 
 interface Event {
     device_id: string;
@@ -17,21 +18,37 @@ interface EventsTimelineProps {
 
 const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
     const [events, setEvents] = useState<Event[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [stale, setStale] = useState(false);
+    const lastUpdatedRef = useRef<Date | null>(null);
+    const hasSuccessfulResponse = useRef(false);
+
+    const fetchEvents = useCallback(async () => {
+        try {
+            const response = await axios.get('http://localhost:5009/api/fleet/events?limit=50');
+            setEvents(response.data);
+            setError(false);
+            setStale(false);
+            hasSuccessfulResponse.current = true;
+            lastUpdatedRef.current = new Date();
+        } catch (requestError) {
+            console.error("Erro ao buscar eventos:", requestError);
+            if (hasSuccessfulResponse.current) {
+                setStale(true);
+            } else {
+                setError(true);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await axios.get('http://localhost:5009/api/fleet/events?limit=50');
-                setEvents(response.data);
-            } catch (error) {
-                console.error("Erro ao buscar eventos:", error);
-            }
-        };
-
         fetchEvents();
         const intervalId = setInterval(fetchEvents, 5000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [fetchEvents]);
 
     const eventLabels: {[key: string]: string} = {
         'harsh_accel': 'Aceleração Brusca',
@@ -50,7 +67,27 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
         <div style={styles.container}>
             <h3 style={styles.title}>⏱️ TIMELINE DE EVENTOS</h3>
 
-            <div style={styles.timeline}>
+            {loading ? (
+                <AsyncDataState variant="loading" message="Consultando eventos recentes..." />
+            ) : error ? (
+                <AsyncDataState
+                    variant="error"
+                    message="Não foi possível consultar a timeline. Nenhum evento foi presumido."
+                    onRetry={fetchEvents}
+                />
+            ) : events.length === 0 ? (
+                <AsyncDataState variant="empty" message="Nenhum evento foi registrado no período consultado." />
+            ) : (
+              <>
+                {stale && (
+                    <AsyncDataState
+                        variant="stale"
+                        compact
+                        message={`Falha na atualização. Exibindo a última resposta válida${lastUpdatedRef.current ? ` das ${lastUpdatedRef.current.toLocaleTimeString('pt-BR')}` : ''}.`}
+                        onRetry={fetchEvents}
+                    />
+                )}
+                <div style={styles.timeline}>
                 {events.map((event, index) => (
                     <div
                         key={index}
@@ -87,12 +124,8 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
                         </div>
                     </div>
                 ))}
-            </div>
-
-            {events.length === 0 && (
-                <div style={styles.emptyState}>
-                    Aguardando eventos...
                 </div>
+              </>
             )}
         </div>
     );
@@ -167,12 +200,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: '10px',
         fontWeight: 'bold',
         color: 'white',
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        color: '#6b7280',
-        fontSize: '14px',
     },
 };
 

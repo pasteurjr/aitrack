@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import AsyncDataState from './AsyncDataState';
 
 interface Event {
     device_id: string;
@@ -14,24 +15,41 @@ interface VehicleAnalyticsProps {
 const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) => {
     const [scores, setScores] = useState<{[key: string]: number}>({});
     const [events, setEvents] = useState<Event[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [stale, setStale] = useState(false);
+    const hasSuccessfulResponse = useRef(false);
+    const lastUpdatedRef = useRef<Date | null>(null);
+
+    const fetchData = useCallback(async () => {
+        try {
+            const [scoresResponse, eventsResponse] = await Promise.all([
+                axios.get('http://localhost:5009/api/fleet/scores'),
+                axios.get('http://localhost:5009/api/fleet/events?limit=100'),
+            ]);
+            setScores(scoresResponse.data);
+            setEvents(eventsResponse.data);
+            setError(false);
+            setStale(false);
+            hasSuccessfulResponse.current = true;
+            lastUpdatedRef.current = new Date();
+        } catch (requestError) {
+            console.error("Erro ao buscar dados:", requestError);
+            if (hasSuccessfulResponse.current) {
+                setStale(true);
+            } else {
+                setError(true);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const scoresResponse = await axios.get('http://localhost:5009/api/fleet/scores');
-                setScores(scoresResponse.data);
-
-                const eventsResponse = await axios.get('http://localhost:5009/api/fleet/events?limit=100');
-                setEvents(eventsResponse.data);
-            } catch (error) {
-                console.error("Erro ao buscar dados:", error);
-            }
-        };
-
         fetchData();
         const intervalId = setInterval(fetchData, 5000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [fetchData]);
 
     // Calcular distribuição de eventos por tipo
     const eventsByType = events.reduce((acc, event) => {
@@ -69,6 +87,27 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     return (
         <div style={styles.container}>
             <h3 style={styles.title}>📈 ANÁLISES COMPORTAMENTAIS</h3>
+
+            {loading ? (
+                <AsyncDataState variant="loading" message="Calculando indicadores comportamentais..." />
+            ) : error ? (
+                <AsyncDataState
+                    variant="error"
+                    message="Não foi possível carregar scores e eventos. Nenhum indicador foi calculado com dados incompletos."
+                    onRetry={fetchData}
+                />
+            ) : totalEvents === 0 && Object.keys(scores).length === 0 ? (
+                <AsyncDataState variant="empty" message="Não existem scores ou eventos disponíveis para análise." />
+            ) : (
+              <>
+                {stale && (
+                    <AsyncDataState
+                        variant="stale"
+                        compact
+                        message={`Falha na atualização. Exibindo a última resposta válida${lastUpdatedRef.current ? ` das ${lastUpdatedRef.current.toLocaleTimeString('pt-BR')}` : ''}.`}
+                        onRetry={fetchData}
+                    />
+                )}
 
             {/* Distribuição de Eventos por Tipo */}
             <div style={styles.section}>
@@ -168,10 +207,7 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                 </div>
             </div>
 
-            {totalEvents === 0 && (
-                <div style={styles.emptyState}>
-                    Aguardando dados de eventos...
-                </div>
+              </>
             )}
         </div>
     );
@@ -316,12 +352,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     miniBar: {
         height: '100%',
         transition: 'width 0.3s ease',
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        color: '#6b7280',
-        fontSize: '14px',
     },
 };
 

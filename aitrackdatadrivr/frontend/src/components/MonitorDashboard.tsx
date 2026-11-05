@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { monitorService } from '../services/apiService';
 import type { Monitor, VehicleInMonitor } from '../mockData/mockMonitors';
+import AsyncDataState from './AsyncDataState';
 
 interface MonitorDashboardProps {
   onMonitorSelect: (monitorId: number | null) => void;
@@ -77,25 +78,26 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
   };
 
   if (loading) {
-    return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' }}>
-        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando monitores...</div>
-      </div>
-    );
+    return <AsyncDataState variant="loading" message="Consultando monitores configurados..." />;
   }
 
   if (listError && !selectedMonitorId) {
-    return <LoadErrorState message={listError} onRetry={loadMonitors} />;
+    return <AsyncDataState variant="error" message={listError} onRetry={loadMonitors} />;
   }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
       {!selectedMonitorId ? (
-        <MonitorList monitors={monitors} onMonitorClick={onMonitorSelect} />
+        monitors.length === 0 ? (
+          <AsyncDataState variant="empty" message="Nenhum monitor foi configurado para esta operação." />
+        ) : (
+          <MonitorList monitors={monitors} onMonitorClick={onMonitorSelect} />
+        )
       ) : detailsLoading ? (
-        <LoadingState message="Carregando dados reais do monitor..." />
+        <AsyncDataState variant="loading" message="Carregando dados reais do monitor..." />
       ) : detailsError ? (
-        <LoadErrorState
+        <AsyncDataState
+          variant="error"
           message={detailsError}
           onRetry={() => loadMonitorDetails(selectedMonitorId)}
           onBack={handleBack}
@@ -108,7 +110,8 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
           onBack={handleBack}
         />
       ) : (
-        <LoadErrorState
+        <AsyncDataState
+          variant="error"
           message="A resposta do monitor está incompleta. Nenhum valor padrão foi exibido."
           onRetry={() => loadMonitorDetails(selectedMonitorId)}
           onBack={handleBack}
@@ -117,36 +120,6 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
     </div>
   );
 };
-
-const LoadingState: React.FC<{ message: string }> = ({ message }) => (
-  <div style={styles.feedbackState} role="status">
-    <div style={{ color: '#d1d5db', fontSize: '14px' }}>{message}</div>
-  </div>
-);
-
-const LoadErrorState: React.FC<{
-  message: string;
-  onRetry: () => void;
-  onBack?: () => void;
-}> = ({ message, onRetry, onBack }) => (
-  <div style={styles.feedbackState} role="alert">
-    <div style={{ color: '#fca5a5', fontSize: '28px' }}>⚠</div>
-    <strong style={{ color: '#f9fafb', fontSize: '15px' }}>Informação indisponível</strong>
-    <p style={{ color: '#d1d5db', fontSize: '12px', lineHeight: 1.5, margin: 0, textAlign: 'center' }}>
-      {message}
-    </p>
-    <div style={{ display: 'flex', gap: '8px' }}>
-      {onBack && (
-        <button type="button" onClick={onBack} style={styles.secondaryButton}>
-          Voltar
-        </button>
-      )}
-      <button type="button" onClick={onRetry} style={styles.retryButton}>
-        Tentar novamente
-      </button>
-    </div>
-  </div>
-);
 
 // Monitor List View
 const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (id: number) => void }> = ({
@@ -383,35 +356,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     textTransform: 'uppercase',
     display: 'inline-block',
-  },
-  feedbackState: {
-    alignItems: 'center',
-    backgroundColor: '#1f2937',
-    display: 'flex',
-    flex: 1,
-    flexDirection: 'column',
-    gap: '12px',
-    justifyContent: 'center',
-    padding: '24px',
-  },
-  retryButton: {
-    backgroundColor: '#b91c1c',
-    border: 'none',
-    borderRadius: '6px',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: 700,
-    padding: '8px 12px',
-  },
-  secondaryButton: {
-    backgroundColor: '#374151',
-    border: 'none',
-    borderRadius: '6px',
-    color: '#f9fafb',
-    cursor: 'pointer',
-    fontSize: '12px',
-    padding: '8px 12px',
   },
 };
 

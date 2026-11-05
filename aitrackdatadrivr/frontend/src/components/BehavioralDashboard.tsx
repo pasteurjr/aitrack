@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import AsyncDataState from './AsyncDataState';
 
 interface FleetStats {
     fleet_avg: number;
@@ -41,6 +42,11 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     const [allVehicles, setAllVehicles] = useState<VehicleScores>({});
     const [trackerVehicles, setTrackerVehicles] = useState<TrackerVehicle[]>([]);
     const [dirijabemUsers, setDirijabemUsers] = useState<DirijabemUser[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [stale, setStale] = useState(false);
+    const hasSuccessfulStats = useRef(false);
+    const lastUpdatedRef = useRef<Date | null>(null);
 
     // Buscar veículos TRACKER
     useEffect(() => {
@@ -75,31 +81,53 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
         fetchDirijabemUsers();
     }, []);
 
+    const fetchData = useCallback(async () => {
+        try {
+            const [statsResponse, scoresResponse] = await Promise.all([
+                axios.get<FleetStats>('http://localhost:5009/api/fleet/stats'),
+                axios.get<VehicleScores>('http://localhost:5009/api/fleet/scores'),
+            ]);
+            setStats(statsResponse.data);
+            setAllVehicles(scoresResponse.data);
+            setError(false);
+            setStale(false);
+            hasSuccessfulStats.current = true;
+            lastUpdatedRef.current = new Date();
+        } catch (requestError) {
+            console.error("Erro ao buscar dados:", requestError);
+            if (hasSuccessfulStats.current) {
+                setStale(true);
+            } else {
+                setError(true);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Buscar stats e scores
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Buscar estatísticas
-                const statsResponse = await axios.get<FleetStats>('http://localhost:5009/api/fleet/stats');
-                setStats(statsResponse.data);
-
-                // Buscar todos os veículos com scores
-                const scoresResponse = await axios.get<VehicleScores>('http://localhost:5009/api/fleet/scores');
-                setAllVehicles(scoresResponse.data);
-            } catch (error) {
-                console.error("Erro ao buscar dados:", error);
-            }
-        };
-
         fetchData();
         const intervalId = setInterval(fetchData, 3000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [fetchData]);
 
-    if (!stats) {
+    if (loading) {
         return (
             <div style={styles.container}>
-                <div style={styles.loading}>Carregando...</div>
+                <AsyncDataState variant="loading" message="Consultando indicadores da frota..." />
+            </div>
+        );
+    }
+
+    if (error || !stats) {
+        return (
+            <div style={styles.container}>
+                <AsyncDataState
+                    variant="error"
+                    message="Não foi possível carregar os indicadores da frota. Nenhum valor padrão foi exibido."
+                    onRetry={fetchData}
+                />
             </div>
         );
     }
@@ -142,6 +170,15 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     return (
         <div style={styles.container}>
             <h2 style={styles.title}>📊 Fleet Behavioral Dashboard</h2>
+
+            {stale && (
+                <AsyncDataState
+                    variant="stale"
+                    compact
+                    message={`Falha na atualização. Exibindo a última resposta válida${lastUpdatedRef.current ? ` das ${lastUpdatedRef.current.toLocaleTimeString('pt-BR')}` : ''}.`}
+                    onRetry={fetchData}
+                />
+            )}
 
             {/* TRACKER Section */}
             <div style={styles.selectSection}>
@@ -288,11 +325,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: '20px',
         overflowY: 'auto',
         height: '100%',
-    },
-    loading: {
-        textAlign: 'center',
-        padding: '20px',
-        color: '#9ca3af',
     },
     title: {
         fontSize: '18px',
