@@ -3,10 +3,15 @@ Flask Blueprint for AI Monitor API endpoints
 Provides REST API for monitors, vehicles, analyses, and alerts
 """
 
+import logging
+from datetime import datetime
+
 from flask import Blueprint, request, jsonify
 from . import monitor_db
+from .behavioral_engine import get_recent_events, get_vehicle_score
 
 monitor_bp = Blueprint('monitor', __name__)
+logger = logging.getLogger(__name__)
 
 
 # ==================== Monitores ====================
@@ -81,27 +86,20 @@ def get_monitor_vehicles(monitor_id):
     try:
         vehicles = monitor_db.get_monitor_vehicles(monitor_id)
 
-        # Enriquecer com status do behavioral_engine
+        # O enriquecimento precisa falhar explicitamente. Valores plausíveis de
+        # fallback fariam o operador interpretar indisponibilidade como normalidade.
         try:
-            from behavioral_engine import get_vehicle_score, get_recent_events
-            from datetime import datetime, timedelta
-
-            # Get events from today
             today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
             for vehicle in vehicles:
                 device_id = vehicle['device_id']
-
-                # Get score
                 vehicle['score_atual'] = get_vehicle_score(device_id)
 
-                # Count events today
                 all_events = get_recent_events(limit=1000, device_id=device_id)
                 events_today = [e for e in all_events if
                                datetime.fromisoformat(e['timestamp']) >= today_start]
                 vehicle['total_eventos_hoje'] = len(events_today)
 
-                # Determine status based on score
                 score = vehicle['score_atual']
                 if score >= 70:
                     vehicle['status'] = 'ok'
@@ -109,16 +107,19 @@ def get_monitor_vehicles(monitor_id):
                     vehicle['status'] = 'warning'
                 else:
                     vehicle['status'] = 'critical'
-
-        except ImportError:
-            # Behavioral engine not available, use defaults
-            for vehicle in vehicles:
-                vehicle['score_atual'] = 85.0
-                vehicle['total_eventos_hoje'] = 0
-                vehicle['status'] = 'ok'
+        except Exception:
+            logger.exception(
+                "Dados comportamentais indisponíveis para o monitor %s",
+                monitor_id,
+            )
+            return jsonify({
+                'error': 'Dados comportamentais temporariamente indisponíveis',
+                'code': 'BEHAVIORAL_DATA_UNAVAILABLE',
+            }), 503
 
         return jsonify(vehicles)
     except Exception as e:
+        logger.exception("Erro ao listar veículos do monitor %s", monitor_id)
         return jsonify({'error': str(e)}), 500
 
 

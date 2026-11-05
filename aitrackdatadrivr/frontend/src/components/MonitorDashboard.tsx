@@ -3,7 +3,7 @@ import { monitorService } from '../services/apiService';
 import type { Monitor, VehicleInMonitor } from '../mockData/mockMonitors';
 
 interface MonitorDashboardProps {
-  onMonitorSelect: (monitorId: number) => void;
+  onMonitorSelect: (monitorId: number | null) => void;
   onVehicleSelect: (vehicle: VehicleInMonitor) => void;
   selectedMonitorId: number | null;
 }
@@ -17,6 +17,9 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
   const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
   const [vehiclesInMonitor, setVehiclesInMonitor] = useState<VehicleInMonitor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   // Load all monitors on mount
   useEffect(() => {
@@ -30,21 +33,30 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
     } else {
       setSelectedMonitor(null);
       setVehiclesInMonitor([]);
+      setDetailsError(null);
     }
   }, [selectedMonitorId]);
 
   const loadMonitors = async () => {
+    setLoading(true);
+    setListError(null);
     try {
       const response = await monitorService.getAll();
       setMonitors(response.data);
-      setLoading(false);
     } catch (error) {
       console.error('Erro carregando monitores:', error);
+      setMonitors([]);
+      setListError('Não foi possível consultar os monitores. Nenhum dado foi substituído por valores de demonstração.');
+    } finally {
       setLoading(false);
     }
   };
 
   const loadMonitorDetails = async (monitorId: number) => {
+    setDetailsLoading(true);
+    setDetailsError(null);
+    setSelectedMonitor(null);
+    setVehiclesInMonitor([]);
     try {
       const [monitorResponse, vehiclesResponse] = await Promise.all([
         monitorService.getById(monitorId),
@@ -54,11 +66,14 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
       setVehiclesInMonitor(vehiclesResponse.data);
     } catch (error) {
       console.error('Erro carregando detalhes do monitor:', error);
+      setDetailsError('Dados do monitor indisponíveis. Scores, eventos e estados não foram inventados.');
+    } finally {
+      setDetailsLoading(false);
     }
   };
 
   const handleBack = () => {
-    onMonitorSelect(null as any);
+    onMonitorSelect(null);
   };
 
   if (loading) {
@@ -69,21 +84,69 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
     );
   }
 
+  if (listError && !selectedMonitorId) {
+    return <LoadErrorState message={listError} onRetry={loadMonitors} />;
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
-      {!selectedMonitor ? (
+      {!selectedMonitorId ? (
         <MonitorList monitors={monitors} onMonitorClick={onMonitorSelect} />
-      ) : (
+      ) : detailsLoading ? (
+        <LoadingState message="Carregando dados reais do monitor..." />
+      ) : detailsError ? (
+        <LoadErrorState
+          message={detailsError}
+          onRetry={() => loadMonitorDetails(selectedMonitorId)}
+          onBack={handleBack}
+        />
+      ) : selectedMonitor ? (
         <VehicleList
           monitor={selectedMonitor}
           vehicles={vehiclesInMonitor}
           onVehicleClick={onVehicleSelect}
           onBack={handleBack}
         />
+      ) : (
+        <LoadErrorState
+          message="A resposta do monitor está incompleta. Nenhum valor padrão foi exibido."
+          onRetry={() => loadMonitorDetails(selectedMonitorId)}
+          onBack={handleBack}
+        />
       )}
     </div>
   );
 };
+
+const LoadingState: React.FC<{ message: string }> = ({ message }) => (
+  <div style={styles.feedbackState} role="status">
+    <div style={{ color: '#d1d5db', fontSize: '14px' }}>{message}</div>
+  </div>
+);
+
+const LoadErrorState: React.FC<{
+  message: string;
+  onRetry: () => void;
+  onBack?: () => void;
+}> = ({ message, onRetry, onBack }) => (
+  <div style={styles.feedbackState} role="alert">
+    <div style={{ color: '#fca5a5', fontSize: '28px' }}>⚠</div>
+    <strong style={{ color: '#f9fafb', fontSize: '15px' }}>Informação indisponível</strong>
+    <p style={{ color: '#d1d5db', fontSize: '12px', lineHeight: 1.5, margin: 0, textAlign: 'center' }}>
+      {message}
+    </p>
+    <div style={{ display: 'flex', gap: '8px' }}>
+      {onBack && (
+        <button type="button" onClick={onBack} style={styles.secondaryButton}>
+          Voltar
+        </button>
+      )}
+      <button type="button" onClick={onRetry} style={styles.retryButton}>
+        Tentar novamente
+      </button>
+    </div>
+  </div>
+);
 
 // Monitor List View
 const MonitorList: React.FC<{ monitors: Monitor[]; onMonitorClick: (id: number) => void }> = ({
@@ -320,6 +383,35 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     textTransform: 'uppercase',
     display: 'inline-block',
+  },
+  feedbackState: {
+    alignItems: 'center',
+    backgroundColor: '#1f2937',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: '12px',
+    justifyContent: 'center',
+    padding: '24px',
+  },
+  retryButton: {
+    backgroundColor: '#b91c1c',
+    border: 'none',
+    borderRadius: '6px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 700,
+    padding: '8px 12px',
+  },
+  secondaryButton: {
+    backgroundColor: '#374151',
+    border: 'none',
+    borderRadius: '6px',
+    color: '#f9fafb',
+    cursor: 'pointer',
+    fontSize: '12px',
+    padding: '8px 12px',
   },
 };
 
