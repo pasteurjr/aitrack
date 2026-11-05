@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
-import axios from 'axios';
 import MapViewUpdater from './MapViewUpdater';
 import L from 'leaflet';
+import { dirijabemService, fleetService, positionService, trackerService } from '../services/apiService';
 
 // Controlador para seguir a rota Dirijabem automaticamente
 const DirijabemMapViewUpdater: React.FC<{
@@ -125,7 +125,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
     const [trail, setTrail] = useState<TrailPoint[]>([]);
     const [selectedVeicod, setSelectedVeicod] = useState<number | null>(null);
     const [dirijabemRoute, setDirijabemRoute] = useState<Array<{lat: number, lon: number, timestamp: string, speed: number}>>([]);
-    const [lastSelectedUserId, setLastSelectedUserId] = useState<number | null>(null);
 
     // Debug logs
     React.useEffect(() => {
@@ -143,7 +142,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             console.log('🔍 Buscando eventos para modo timeline...');
             const fetchEvents = async () => {
                 try {
-                    const eventsResponse = await axios.get('http://localhost:5009/api/fleet/events?limit=50');
+                    const eventsResponse = await fleetService.getEvents<BehavioralEvent[]>(50);
                     setEvents(eventsResponse.data);
                     console.log('✅ Eventos carregados:', eventsResponse.data.length);
                 } catch (error) {
@@ -235,11 +234,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const scoresResponse = await axios.get('http://localhost:5009/api/fleet/scores');
+                const scoresResponse = await fleetService.getScores();
                 const scores = scoresResponse.data;
 
                 // Buscar veículos do banco
-                const positionsResponse = await axios.get('http://localhost:5009/api/posicoes');
+                const positionsResponse = await trackerService.getPositions<any[]>();
                 const vehiclesFromDB = positionsResponse.data;
 
                 const vehiclesWithScores: Vehicle[] = vehiclesFromDB.map((v: any) => ({
@@ -255,7 +254,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
                 // IMPORTANTE: Só busca novos eventos se NÃO tem evento destacado
                 if (highlightedEventIndex === null || highlightedEventIndex === undefined) {
-                    const eventsResponse = await axios.get('http://localhost:5009/api/fleet/events?limit=20');
+                    const eventsResponse = await fleetService.getEvents<BehavioralEvent[]>(20);
                     setEvents(eventsResponse.data);
                 }
 
@@ -292,7 +291,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
         const fetchLatestPosition = async () => {
             try {
-                const response = await axios.get<TrailPoint>(`http://localhost:5009/api/positions/latest/${selectedVeicod}`);
+                const response = await positionService.getLatest<TrailPoint>(selectedVeicod);
                 const latestPoint = response.data;
                 if (latestPoint) {
                     setTrail(prevTrail => {
@@ -322,21 +321,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
         if (selectedUserId === null || selectedUserId === undefined) {
             console.log('[MAP-DIRIJABEM] No user selected, clearing route');
             setDirijabemRoute([]);
-            setLastSelectedUserId(null);
             return;
         }
 
         // Case 2: Different user selected - fetch full route from backend
         console.log('[MAP-DIRIJABEM] Loading user', selectedUserId, '- fetching full route from backend');
         setDirijabemRoute([]);  // Clear previous route
-        setLastSelectedUserId(selectedUserId);
 
         // Fetch full route from backend (includes all existing points)
         const fetchFullRoute = async () => {
             try {
                 console.log('[MAP-DIRIJABEM] 📡 Calling /route endpoint for user:', selectedUserId);
-                const response = await axios.get<Array<{lat: number, lon: number, timestamp: string, speed: number}>>(
-                    `http://localhost:5009/api/dirijabem/user/${selectedUserId}/route`
+                const response = await dirijabemService.getUserRoute<Array<{lat: number, lon: number, timestamp: string, speed: number}>>(
+                    selectedUserId
                 );
                 const points = response.data;
 
@@ -361,8 +358,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
         // Define fetchLastPoint for incremental polling
         const fetchLastPoint = async () => {
             try {
-                const response = await axios.get<{lat: number, lon: number, timestamp: string, speed: number} | null>(
-                    `http://localhost:5009/api/dirijabem/user/${selectedUserId}/last-point`
+                const response = await dirijabemService.getUserLastPoint<{lat: number, lon: number, timestamp: string, speed: number} | null>(
+                    selectedUserId
                 );
                 const latestPoint = response.data;
 

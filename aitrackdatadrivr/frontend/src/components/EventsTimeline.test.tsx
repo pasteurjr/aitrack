@@ -1,16 +1,15 @@
 import React from 'react';
-import axios from 'axios';
 import { fireEvent, render, screen } from '@testing-library/react';
 import EventsTimeline from './EventsTimeline';
+import { fleetService } from '../services/apiService';
 
-jest.mock('axios', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
+jest.mock('../services/apiService', () => ({
+  fleetService: {
+    getEvents: jest.fn(),
   },
 }));
 
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const mockedGetEvents = fleetService.getEvents as jest.Mock;
 let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
@@ -23,7 +22,7 @@ afterEach(() => {
 });
 
 test('diferencia resposta vazia de falha da timeline', async () => {
-  mockedAxios.get.mockResolvedValue({ data: [] });
+  mockedGetEvents.mockResolvedValue({ data: [] });
 
   render(<EventsTimeline onEventClick={jest.fn()} />);
 
@@ -32,7 +31,7 @@ test('diferencia resposta vazia de falha da timeline', async () => {
 });
 
 test('mostra erro e permite repetir a consulta', async () => {
-  mockedAxios.get
+  mockedGetEvents
     .mockRejectedValueOnce(new Error('API indisponível'))
     .mockResolvedValue({ data: [] });
 
@@ -41,5 +40,5 @@ test('mostra erro e permite repetir a consulta', async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Tentar novamente' }));
 
   expect(await screen.findByText('Nenhum evento foi registrado no período consultado.')).toBeInTheDocument();
-  expect(mockedAxios.get).toHaveBeenCalledTimes(2);
+  expect(mockedGetEvents).toHaveBeenCalledTimes(2);
 });

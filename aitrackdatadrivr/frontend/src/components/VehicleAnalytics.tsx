@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import AsyncDataState from './AsyncDataState';
+import { fleetService } from '../services/apiService';
 
 interface Event {
     device_id: string;
@@ -24,8 +24,8 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     const fetchData = useCallback(async () => {
         try {
             const [scoresResponse, eventsResponse] = await Promise.all([
-                axios.get('http://localhost:5009/api/fleet/scores'),
-                axios.get('http://localhost:5009/api/fleet/events?limit=100'),
+                fleetService.getScores<{[key: string]: number}>(),
+                fleetService.getEvents<Event[]>(100),
             ]);
             setScores(scoresResponse.data);
             setEvents(eventsResponse.data);

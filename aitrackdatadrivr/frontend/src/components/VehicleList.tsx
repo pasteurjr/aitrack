@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { dirijabemService, trackerService } from '../services/apiService';
 
 interface Vehicle {
     VEICOD: number;
@@ -33,7 +33,7 @@ const VehicleList: React.FC<VehicleListProps> = ({
     useEffect(() => {
         const fetchTrackerVehicles = async () => {
             try {
-                const response = await axios.get<Vehicle[]>('http://localhost:5009/api/posicoes');
+                const response = await trackerService.getPositions<Vehicle[]>();
                 const uniqueVehicles = Array.from(
                     new Map(response.data.map(v => [v.VEICOD, v])).values()
                 );
@@ -53,7 +53,7 @@ const VehicleList: React.FC<VehicleListProps> = ({
     useEffect(() => {
         const fetchDirijabemUsers = async () => {
             try {
-                const response = await axios.get<DirijabemUser[]>('http://localhost:5009/api/dirijabem/users');
+                const response = await dirijabemService.getUsers<DirijabemUser[]>();
                 setDirijabemUsers(response.data);
             } catch (err) {
                 console.error('Error fetching dirijabem users:', err);
@@ -75,7 +75,7 @@ const VehicleList: React.FC<VehicleListProps> = ({
         if (userId) {
             try {
                 // Start/resume trip for selected user
-                await axios.post(`http://localhost:5009/api/dirijabem/user/${userId}/start`);
+                await dirijabemService.startUserTrip(userId);
                 onUserSelect(userId);
             } catch (err) {
                 console.error('Error starting trip:', err);

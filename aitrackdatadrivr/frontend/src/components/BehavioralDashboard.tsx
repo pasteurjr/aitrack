@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import AsyncDataState from './AsyncDataState';
+import { dirijabemService, fleetService, trackerService } from '../services/apiService';
 
 interface FleetStats {
     fleet_avg: number;
@@ -52,7 +52,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     useEffect(() => {
         const fetchTrackerVehicles = async () => {
             try {
-                const response = await axios.get<TrackerVehicle[]>('http://localhost:5009/api/posicoes');
+                const response = await trackerService.getPositions<TrackerVehicle[]>();
                 const uniqueVehicles = Array.from(
                     new Map(response.data.map(v => [v.VEICOD, v])).values()
                 );
@@ -71,7 +71,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     useEffect(() => {
         const fetchDirijabemUsers = async () => {
             try {
-                const response = await axios.get<DirijabemUser[]>('http://localhost:5009/api/dirijabem/users');
+                const response = await dirijabemService.getUsers<DirijabemUser[]>();
                 setDirijabemUsers(response.data);
             } catch (error) {
                 console.error('Erro ao buscar usuários DIRIJABEM:', error);
@@ -84,8 +84,8 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     const fetchData = useCallback(async () => {
         try {
             const [statsResponse, scoresResponse] = await Promise.all([
-                axios.get<FleetStats>('http://localhost:5009/api/fleet/stats'),
-                axios.get<VehicleScores>('http://localhost:5009/api/fleet/scores'),
+                fleetService.getStats<FleetStats>(),
+                fleetService.getScores<VehicleScores>(),
             ]);
             setStats(statsResponse.data);
             setAllVehicles(scoresResponse.data);
@@ -146,7 +146,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
             try {
                 // Start/resume trip for selected user
                 console.log('[DIRIJABEM] Iniciando viagem para usuário:', userId);
-                const response = await axios.post(`http://localhost:5009/api/dirijabem/user/${userId}/start`);
+                const response = await dirijabemService.startUserTrip(userId);
                 console.log('[DIRIJABEM] Resposta do servidor:', response.data);
                 onUserSelect(userId);
             } catch (error) {

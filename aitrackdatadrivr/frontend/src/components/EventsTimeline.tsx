@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import AsyncDataState from './AsyncDataState';
+import { fleetService } from '../services/apiService';
 
 interface Event {
     device_id: string;
@@ -26,7 +26,7 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
 
     const fetchEvents = useCallback(async () => {
         try {
-            const response = await axios.get('http://localhost:5009/api/fleet/events?limit=50');
+            const response = await fleetService.getEvents<Event[]>(50);
             setEvents(response.data);
             setError(false);
             setStale(false);
