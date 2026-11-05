@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { mockAlerts, mockAlertStats } from '../mockData/mockAlerts';
 import type { Alert } from '../mockData/mockAlerts';
+import DemoDataNotice from './DemoDataNotice';
 
 interface AlertsPanelProps {
   onVehicleSelect?: (deviceId: string) => void;
@@ -39,6 +40,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
+      <DemoDataNotice detail="Alertas, análises de IA, estatísticas e ações desta tela são exemplos locais e não persistem." />
       {!selectedAlert ? (
         <>
           <AlertsHeader stats={mockAlertStats} />

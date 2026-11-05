@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { eventTypesCatalog, mockEventStats } from '../mockData/mockEvents';
 import type { EventType } from '../mockData/mockEvents';
+import DemoDataNotice from './DemoDataNotice';
 
 const EventsCatalog: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -18,6 +19,7 @@ const EventsCatalog: React.FC = () => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
+      <DemoDataNotice detail="O catálogo, as estatísticas e as capacidades apresentadas nesta tela ainda são exemplos locais." />
       {!selectedEvent ? (
         <>
           <CatalogHeader stats={mockEventStats} />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import MapComponent from './MapComponent';
 import { mockEvents, eventTypesCatalog } from '../mockData/mockEvents';
 import type { VehicleInMonitor } from '../mockData/mockMonitors';
+import DemoDataNotice from './DemoDataNotice';
 
 interface MonitorDetailViewProps {
   monitorId: number;
@@ -30,8 +31,9 @@ const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicl
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+      <DemoDataNotice detail="Veículos e eventos desta visão são exemplos locais, não resultados produzidos pelo monitor ou por uma IA." />
       {/* TOP: Map Area */}
-      <div style={{ height: '50%', position: 'relative', borderBottom: '2px solid #374151' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', borderBottom: '2px solid #374151' }}>
         <MapComponent
           selectedVehicleId={selectedVehicle?.device_id || null}
           selectedUserId={null}
@@ -43,7 +45,7 @@ const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicl
       </div>
 
       {/* BOTTOM: Event Analyzers */}
-      <div style={{ height: '50%', overflowY: 'auto', backgroundColor: '#111827', padding: '15px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', backgroundColor: '#111827', padding: '15px' }}>
         <h3 style={{ margin: '0 0 15px 0', color: '#f9fafb', fontSize: '16px' }}>
           📊 Analisadores de Eventos - Monitor #{monitorId}
         </h3>
