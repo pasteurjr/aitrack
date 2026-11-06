@@ -193,3 +193,30 @@ para os índices da tabela de eventos previstos no plano.
 | `/api/v1/vehicles` | HTTP 200, 20 veículos |
 | `/api/unified/vehicles` | HTTP 200, 20 veículos |
 | erros no log | 0 |
+
+## UI-1.8 — Contadores e scores por episódio
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `e638fee`
+
+### Contrato implementado
+
+- `episode_id` é a unidade de penalização e contagem.
+- Duplicatas do mesmo episódio são ignoradas no score, contador diário e
+  retorno da timeline.
+- `events_today` considera somente episódios cuja ocorrência é do dia atual.
+- Eventos legados sem `episode_id` permanecem individuais.
+
+### Evidências
+
+- Episódio duplicado aplica uma única penalidade.
+- Episódio duplicado conta uma única vez no dia.
+- Evento do dia anterior não entra em `events_today`.
+- Eventos legados continuam compatíveis.
+- Teste focal do motor: `16 passed`.
+- Suíte completa do backend: `32 passed`.
+- Compilação dos módulos Python: sem erros.
+- Após reinício: `/api/fleet/stats`, `/api/fleet/scores` e
+  `/api/fleet/events?limit=50` responderam HTTP 200.
+- Sem simuladores ativos, o contrato retornou legitimamente 0 veículos e 0
+  episódios, sem criar valores de demonstração.

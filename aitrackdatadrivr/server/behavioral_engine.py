@@ -571,17 +571,32 @@ def update_score(device_id: str, event: Dict):
     vehicle_scores[device_id] = calculate_vehicle_score(device_id)
 
 
+def _dedupe_episode_events(events) -> List[Dict]:
+    """Remove somente duplicatas com identidade explícita de episódio."""
+    unique = []
+    seen_episode_ids = set()
+    for event in events:
+        episode_id = event.get('episode_id')
+        if episode_id:
+            if episode_id in seen_episode_ids:
+                continue
+            seen_episode_ids.add(episode_id)
+        unique.append(event)
+    return unique
+
+
 def _count_events_in_score_window(
     device_id: str,
     now: Optional[datetime] = None,
 ) -> int:
     now_seconds = _timestamp_seconds(now or datetime.now(timezone.utc))
-    return sum(
-        1 for event in vehicle_events
+    active_events = (
+        event for event in vehicle_events
         if event.get('device_id') == device_id
         and (event_seconds := _timestamp_seconds(event.get('timestamp'))) is not None
         and 0 <= now_seconds - event_seconds <= SCORE_WINDOW_SECONDS
     )
+    return len(_dedupe_episode_events(active_events))
 
 
 def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> float:
@@ -595,9 +610,11 @@ def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> f
     }
     total_penalty = 0.0
 
-    for event in vehicle_events:
-        if event.get('device_id') != device_id:
-            continue
+    device_events = _dedupe_episode_events(
+        event for event in vehicle_events
+        if event.get('device_id') == device_id
+    )
+    for event in device_events:
         event_seconds = _timestamp_seconds(event.get('timestamp'))
         if event_seconds is None or event_seconds > now_seconds:
             continue
@@ -635,16 +652,17 @@ def get_recent_events(limit: int = 50, device_id: Optional[str] = None) -> List[
         limit: Número máximo de eventos
         device_id: Filtrar por veículo específico (opcional)
     """
-    events = vehicle_events
+    events = list(vehicle_events)
 
     if device_id:
         events = [e for e in events if e['device_id'] == device_id]
 
     # Retorna os mais recentes primeiro
-    return list(reversed(events[-limit:]))
+    episodes = _dedupe_episode_events(events)
+    return list(reversed(episodes[-limit:]))
 
 
-def get_fleet_stats() -> Dict:
+def get_fleet_stats(now: Optional[datetime] = None) -> Dict:
     """
     Calcula estatísticas da frota
 
@@ -682,10 +700,19 @@ def get_fleet_stats() -> Dict:
         for device_id, score in sorted_scores[-3:]
     ]
 
+    reference_date = (now or datetime.now()).date()
+    episodes_today = _dedupe_episode_events(
+        event for event in vehicle_events
+        if (
+            (event_seconds := _timestamp_seconds(event.get('timestamp'))) is not None
+            and datetime.fromtimestamp(event_seconds).date() == reference_date
+        )
+    )
+
     return {
         'fleet_avg': round(fleet_avg, 1),
         'total_vehicles': len(vehicle_scores),
-        'events_today': len(vehicle_events),
+        'events_today': len(episodes_today),
         'top3': top3,
         'bottom3': bottom3
     }

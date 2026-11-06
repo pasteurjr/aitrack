@@ -331,3 +331,56 @@ def test_persisted_state_restores_events_score_and_detector_without_duplicates()
     assert engine.vehicle_events[0]['episode_id'] == 'episode-321'
     assert engine.vehicle_detector_state['SIM-1']['harsh_brake']['active'] is True
     assert engine.vehicle_scores['SIM-1'] == 95.5
+
+
+def test_score_counts_each_episode_only_once():
+    engine.reset_all()
+    now = datetime(2026, 11, 6, 12, 0)
+    duplicate = {
+        'device_id': 'SIM-1',
+        'type': 'harsh_brake',
+        'severity': 'high',
+        'timestamp': (now - timedelta(minutes=1)).isoformat(),
+        'episode_id': 'same-episode',
+    }
+    engine.vehicle_scores['SIM-1'] = 100.0
+    engine.vehicle_events.extend([
+        duplicate,
+        {**duplicate, 'timestamp': (now - timedelta(seconds=30)).isoformat()},
+    ])
+
+    assert engine.calculate_vehicle_score('SIM-1', now=now) == 95.5
+    assert engine._count_events_in_score_window('SIM-1', now=now) == 1
+
+
+def test_fleet_stats_count_unique_episodes_from_today():
+    engine.reset_all()
+    now = datetime(2026, 11, 6, 12, 0)
+    engine.vehicle_scores['SIM-1'] = 100.0
+    engine.vehicle_events.extend([
+        {
+            'device_id': 'SIM-1', 'type': 'speeding', 'severity': 'high',
+            'timestamp': now.isoformat(), 'episode_id': 'today-1',
+        },
+        {
+            'device_id': 'SIM-1', 'type': 'speeding', 'severity': 'high',
+            'timestamp': now.isoformat(), 'episode_id': 'today-1',
+        },
+        {
+            'device_id': 'SIM-1', 'type': 'speeding', 'severity': 'high',
+            'timestamp': (now - timedelta(days=1)).isoformat(),
+            'episode_id': 'yesterday-1',
+        },
+    ])
+
+    assert engine.get_fleet_stats(now=now)['events_today'] == 1
+    assert len(engine.get_recent_events(limit=50)) == 2
+
+
+def test_legacy_events_without_episode_id_remain_individual():
+    events = [
+        {'type': 'speeding', 'timestamp': '2026-11-06T12:00:00'},
+        {'type': 'speeding', 'timestamp': '2026-11-06T12:00:00'},
+    ]
+
+    assert engine._dedupe_episode_events(events) == events
