@@ -1066,6 +1066,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.2 | este commit | `incident_timeline` aplicada: 19 colunas, 2 FKs, idempotência provada, rollback limpo e 40 testes backend. |
 | 2026-11-06 | UI-2.3 | este commit | API de lista/detalhe com filtros e timeline; 47 testes e validação runtime passaram. |
 | 2026-11-06 | UI-2.4 | este commit | Máquina de estados transacional, concorrência otimista e idempotência; 65 testes e ciclo real com rollback passaram. |
+| 2026-11-06 | UI-2.5 | este commit | Episódios Tracker correlacionados atomicamente; contrato multifuente fundiu Tracker/Dirija Bem em um incidente; 74 testes e rollback limpo. |
 
 ---
 

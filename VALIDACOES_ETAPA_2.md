@@ -160,3 +160,51 @@ UI-2.4 garante o núcleo transacional usado por humanos e agentes. Autenticaçã
 autorização e comandos públicos não pertencem à máquina em si. A API de leitura
 de UI-2.3 permanece inalterada; reconhecer, assumir, comentar, resolver e marcar
 falso positivo entram em UI-2.7/UI-2.8.
+
+## UI-2.5 — Correlação de episódios com incidentes
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `43f40b4`
+
+### Contrato implementado
+
+- Todo episódio comportamental Tracker persistido passa pelo correlacionador na
+  mesma transação do evento e do score.
+- A identidade operacional sempre é resolvida em
+  `tracker.veiculo_unificado`; eventos sem identidade não abrem incidente.
+- A chave `vehicle_id + correlation_group` é independente da fonte. Tracker e
+  Dirija Bem podem anexar episódios diferentes ao mesmo incidente.
+- Na ausência de `correlation_group`, o `episode_id` é usado como agrupamento.
+- A primeira evidência cria o incidente e as seguintes atualizam severidade,
+  risco, fonte e quantidade de eventos.
+- Fontes distintas convertem `primary_source` para `fused`.
+- Cada evidência gera timeline auditável com fonte, registro de origem,
+  episódio, tipo, severidade e horário observado.
+- Repetir a mesma evidência não incrementa contadores nem duplica timeline.
+- Chaves acima dos limites do schema recebem hash SHA-256 determinístico.
+- Cada evidência nova incrementa `version`, preservando o controle de
+  concorrência da máquina de estados.
+- Falha inesperada na correlação desfaz evento, score e incidente juntos.
+
+### Evidências
+
+- Testes focais do correlacionador, motor e máquina de estados: `43 passed`.
+- Suíte completa do backend: `74 passed`.
+- Compilação dos módulos Python: sem erros.
+- Prova no MariaDB associou uma evidência Tracker e uma evidência Dirija Bem,
+  com `episode_id` distintos, ao mesmo `correlation_group` e `vehicle_id`.
+- Resultado real: um incidente, fonte `fused`, severidade `critical`, risco
+  30, duas evidências e dois atores de integração.
+- Replays Tracker e Dirija Bem não criaram timeline nem incrementaram
+  `event_count`.
+- Toda a prova foi desfeita; segunda conexão confirmou zero incidentes,
+  identidades temporárias e eventos residuais.
+
+### Limite explícito
+
+O Tracker já chama o correlacionador automaticamente ao persistir episódios.
+O contrato Dirija Bem (`source`, `codusu`, `source_record_id`, `episode_id` e
+`correlation_group`) está implementado e foi validado no banco, mas o consumidor
+contínuo que transforma métricas/viagens do banco Dirija Bem em episódios ainda
+pertence à etapa específica de integração dessa fonte. Até lá, não se afirma que
+toda viagem Dirija Bem abre incidentes automaticamente.

@@ -12,6 +12,8 @@ import mysql.connector
 import json
 import uuid
 
+from .incident_correlator import correlate_episode
+
 logger = logging.getLogger(__name__)
 
 # Histórico de posições por veículo (últimas 5)
@@ -225,6 +227,16 @@ def save_event_to_db(
             json.dumps(dados_adicionais),
             event.get('severity', 'medium')
         ))
+        persisted_event_id = cursor.lastrowid
+
+        # O evento e seu incidente são gravados na mesma transação. Ausência de
+        # identidade unificada é tratada pelo correlacionador sem perder o evento.
+        correlation = correlate_episode(
+            cursor,
+            event,
+            tracker_event_id=persisted_event_id,
+            score_after=score_after,
+        )
 
         if score_after is not None:
             cursor.execute("""
@@ -248,6 +260,8 @@ def save_event_to_db(
             ))
 
         conn.commit()
+        event['_persisted_event_id'] = persisted_event_id
+        event['_incident_id'] = correlation.get('incident_id')
 
     except Exception as e:
         if conn:

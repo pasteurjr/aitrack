@@ -256,6 +256,7 @@ def test_event_and_score_are_persisted_in_the_same_transaction(monkeypatch):
     class FakeCursor:
         def __init__(self):
             self.statements = []
+            self.lastrowid = 321
 
         def execute(self, sql, params=None):
             self.statements.append((sql, params))
@@ -286,9 +287,20 @@ def test_event_and_score_are_persisted_in_the_same_transaction(monkeypatch):
 
     connection = FakeConnection()
     monkeypatch.setattr(engine.mysql.connector, 'connect', lambda **_kwargs: connection)
+    correlation_calls = []
+    monkeypatch.setattr(
+        engine,
+        'correlate_episode',
+        lambda cursor, event, tracker_event_id, score_after: correlation_calls.append({
+            'cursor': cursor,
+            'event': event,
+            'tracker_event_id': tracker_event_id,
+            'score_after': score_after,
+        }) or {'incident_id': 77},
+    )
     now = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
 
-    engine.save_event_to_db({
+    event = {
         'device_id': 'SIM-1',
         'type': 'speeding',
         'lat': -23.55,
@@ -297,13 +309,73 @@ def test_event_and_score_are_persisted_in_the_same_transaction(monkeypatch):
         'severity': 'high',
         'speed': 90,
         'episode_id': 'episode-1',
-    }, veicod=1, score_after=98.5, events_in_window=1)
+    }
+    engine.save_event_to_db(event, veicod=1, score_after=98.5, events_in_window=1)
 
     statements = [sql for sql, _params in connection.cursor_instance.statements]
     assert any('INSERT INTO eventos' in sql for sql in statements)
     assert any('INSERT INTO tracker.behavioral_scores' in sql for sql in statements)
+    assert correlation_calls == [{
+        'cursor': connection.cursor_instance,
+        'event': event,
+        'tracker_event_id': 321,
+        'score_after': 98.5,
+    }]
+    assert event['_persisted_event_id'] == 321
+    assert event['_incident_id'] == 77
     assert connection.commits == 1
     assert connection.rollbacks == 0
+
+
+def test_incident_correlation_failure_rolls_back_event_and_score(monkeypatch):
+    class FakeCursor:
+        lastrowid = 321
+
+        def execute(self, _sql, _params=None):
+            pass
+
+        def fetchone(self):
+            return {'id': 7}
+
+        def close(self):
+            pass
+
+    class FakeConnection:
+        def __init__(self):
+            self.commits = 0
+            self.rollbacks = 0
+
+        def cursor(self, dictionary=False):
+            return FakeCursor()
+
+        def commit(self):
+            self.commits += 1
+
+        def rollback(self):
+            self.rollbacks += 1
+
+        def close(self):
+            pass
+
+    connection = FakeConnection()
+    monkeypatch.setattr(engine.mysql.connector, 'connect', lambda **_kwargs: connection)
+    monkeypatch.setattr(
+        engine,
+        'correlate_episode',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('correlation failed')),
+    )
+    event = {
+        'device_id': 'SIM-1', 'type': 'speeding', 'lat': -23.55, 'lon': -46.63,
+        'timestamp': '2026-11-06T12:00:00', 'severity': 'high',
+        'speed': 90, 'episode_id': 'episode-rollback',
+    }
+
+    engine.save_event_to_db(event, veicod=1, score_after=90, events_in_window=1)
+
+    assert connection.commits == 0
+    assert connection.rollbacks == 1
+    assert '_persisted_event_id' not in event
+    assert '_incident_id' not in event
 
 
 def test_persisted_state_restores_events_score_and_detector_without_duplicates():
