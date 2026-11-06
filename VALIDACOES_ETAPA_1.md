@@ -91,3 +91,28 @@ O cabeçalho usa o mesmo contrato versionado da frota unificada e fica acima do
 mapa durante a seleção. Nenhum score, modo ou horário ausente é fabricado. A
 captura da prova visual foi gerada em
 `/tmp/aitrack-ui-1.4-vehicle-header.png` durante a validação local.
+
+## UI-1.5 — Episódio de excesso de velocidade
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `562a313`
+
+### Contrato implementado
+
+- O episódio inicia no primeiro pacote acima de 80 km/h.
+- Pacotes seguintes acima do limite não criam novos eventos.
+- O detector rearma somente abaixo de 75 km/h.
+- Cada início recebe `episode_id` determinístico e `episode_state: started`.
+- Estado independente por veículo e protegido por lock.
+- Persistência no banco ocorre fora do lock do motor.
+
+### Evidências
+
+- Teste de condição contínua: um único evento.
+- Teste de recuperação abaixo de 75 km/h: novo episódio permitido.
+- Teste na fronteira de 75 km/h: detector permanece armado e não duplica.
+- Teste focal: `8 passed`.
+- Suíte completa do backend: `24 passed`.
+- Compilação dos módulos Python: sem erros.
+- O `.venv` descrito no handoff ainda não existe; nenhum pacote foi instalado
+  no Python global e a suíte foi executada com o interpretador já configurado.

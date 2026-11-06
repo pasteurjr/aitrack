@@ -122,3 +122,54 @@ def test_score_recovers_after_event_expires():
     assert engine.calculate_vehicle_score(
         "SIM-1", now=now + timedelta(hours=2)
     ) == 100.0
+
+
+def test_speeding_emits_one_event_per_episode_and_rearms_below_hysteresis():
+    start = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    state = {}
+
+    first = engine.detect_events(
+        "SIM-1",
+        position(start, speed=81),
+        history(position(start - timedelta(seconds=1), speed=79)),
+        state,
+    )
+    continuous = engine.detect_events(
+        "SIM-1",
+        position(start + timedelta(seconds=1), speed=110),
+        history(position(start, speed=81)),
+        state,
+    )
+    engine.detect_events(
+        "SIM-1",
+        position(start + timedelta(seconds=2), speed=74),
+        history(position(start + timedelta(seconds=1), speed=110)),
+        state,
+    )
+    second = engine.detect_events(
+        "SIM-1",
+        position(start + timedelta(seconds=3), speed=85),
+        history(position(start + timedelta(seconds=2), speed=74)),
+        state,
+    )
+
+    first_speeding = [event for event in first if event['type'] == 'speeding']
+    second_speeding = [event for event in second if event['type'] == 'speeding']
+    assert len(first_speeding) == 1
+    assert not any(event['type'] == 'speeding' for event in continuous)
+    assert len(second_speeding) == 1
+    assert first_speeding[0]['episode_state'] == 'started'
+    assert first_speeding[0]['episode_id'] != second_speeding[0]['episode_id']
+
+
+def test_speeding_does_not_rearm_at_release_boundary():
+    start = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    state = {}
+    engine._detect_speeding_episode("SIM-1", position(start, speed=90), state)
+
+    assert engine._detect_speeding_episode(
+        "SIM-1", position(start + timedelta(seconds=1), speed=75), state
+    ) is None
+    assert engine._detect_speeding_episode(
+        "SIM-1", position(start + timedelta(seconds=2), speed=90), state
+    ) is None

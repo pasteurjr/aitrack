@@ -659,11 +659,11 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 
 ### Etapa 1 — Estabilizar eventos e identidade
 
-- [ ] **1.1** Definir DTO de veículo unificado.
-- [ ] **1.2** Expor origem, modo e última comunicação no DTO.
-- [ ] **1.3** Criar lista unificada pesquisável.
-- [ ] **1.4** Criar cabeçalho de detalhe do veículo.
-- [ ] **1.5** Implementar episódio de excesso de velocidade.
+- [x] **1.1** Definir DTO de veículo unificado.
+- [x] **1.2** Expor origem, modo e última comunicação no DTO.
+- [x] **1.3** Criar lista unificada pesquisável.
+- [x] **1.4** Criar cabeçalho de detalhe do veículo.
+- [x] **1.5** Implementar episódio de excesso de velocidade.
 - [ ] **1.6** Implementar cooldown/histerese dos demais detectores.
 - [ ] **1.7** Persistir eventos e scores essenciais.
 - [ ] **1.8** Corrigir contadores e scores para usar episódios.

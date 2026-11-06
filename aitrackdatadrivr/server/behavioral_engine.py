@@ -5,8 +5,10 @@ Detecta eventos comportamentais e calcula scores de direção
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 from collections import deque
+import threading
 import mysql.connector
 import json
+import uuid
 
 # Histórico de posições por veículo (últimas 5)
 vehicle_history: Dict[str, deque] = {}
@@ -17,12 +19,18 @@ vehicle_scores: Dict[str, float] = {}
 # Eventos detectados
 vehicle_events: List[Dict] = []
 
+# Estado dos detectores por veículo. Episódios impedem que uma condição
+# contínua gere um evento novo a cada pacote recebido.
+vehicle_detector_state: Dict[str, Dict] = {}
+_state_lock = threading.RLock()
+
 # Thresholds de detecção
 # Os limites são aceleração/desaceleração física. A janela é calculada pelo
 # timestamp das amostras; nunca assumimos que cada pacote representa 1 segundo.
 HARSH_ACCEL_THRESHOLD_MS2 = 15.0 / 3.6 / 3.0  # equivalente a 15 km/h em 3 s
 HARSH_BRAKE_THRESHOLD_MS2 = 20.0 / 3.6 / 3.0  # equivalente a 20 km/h em 3 s
 SPEEDING_THRESHOLD = 80.0      # km/h
+SPEEDING_RELEASE_THRESHOLD = 75.0  # km/h; histerese para encerrar o episódio
 SHARP_TURN_THRESHOLD_DEG_PER_SEC = 45.0 / 5.0  # equivalente a 45 graus em 5 s
 
 MAX_HISTORY_SIZE = 5
@@ -57,6 +65,54 @@ def _heading_delta(previous_heading: float, current_heading: float) -> float:
     """Calcula a menor variação angular, inclusive na passagem 359→0."""
     change = abs(current_heading - previous_heading) % 360
     return min(change, 360 - change)
+
+
+def _event_timestamp(current: Dict):
+    value = current['timestamp']
+    return value.isoformat() if isinstance(value, datetime) else value
+
+
+def _episode_id(device_id: str, event_type: str, timestamp) -> str:
+    """Gera identidade determinística para permitir deduplicação posterior."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"aitrack:{device_id}:{event_type}:{timestamp}"))
+
+
+def _detect_speeding_episode(
+    device_id: str,
+    current: Dict,
+    detector_state: Dict,
+) -> Optional[Dict]:
+    """Emite somente o início de cada episódio contínuo de velocidade."""
+    state = detector_state.setdefault('speeding', {'active': False, 'episode_id': None})
+    speed = float(current.get('speed') or 0)
+
+    if speed < SPEEDING_RELEASE_THRESHOLD:
+        state['active'] = False
+        state['episode_id'] = None
+        return None
+
+    if speed <= SPEEDING_THRESHOLD or state['active']:
+        return None
+
+    timestamp = _event_timestamp(current)
+    episode_id = _episode_id(device_id, 'speeding', timestamp)
+    state['active'] = True
+    state['episode_id'] = episode_id
+    excess = speed - SPEEDING_THRESHOLD
+    return {
+        'device_id': device_id,
+        'type': 'speeding',
+        'lat': current['lat'],
+        'lon': current['lon'],
+        'timestamp': timestamp,
+        'severity': 'critical' if excess > 30 else 'high',
+        'speed': speed,
+        'speed_limit': SPEEDING_THRESHOLD,
+        'excess': excess,
+        'episode_id': episode_id,
+        'episode_state': 'started',
+        'icon': '🚨'
+    }
 
 # Database configuration for event persistence
 DB_CONFIG = {
@@ -158,6 +214,7 @@ def init_vehicle(device_id: str):
     if device_id not in vehicle_history:
         vehicle_history[device_id] = deque(maxlen=MAX_HISTORY_SIZE)
         vehicle_scores[device_id] = INITIAL_SCORE
+        vehicle_detector_state[device_id] = {}
 
 
 def add_position(device_id: str, data: Dict):
@@ -174,29 +231,38 @@ def add_position(device_id: str, data: Dict):
             'timestamp': datetime
         }
     """
-    init_vehicle(device_id)
+    events: List[Dict] = []
+    with _state_lock:
+        init_vehicle(device_id)
+        history = vehicle_history[device_id]
+        history.append(data)
 
-    history = vehicle_history[device_id]
-    history.append(data)
+        # Precisa de pelo menos 2 posições para detectar eventos
+        if len(history) >= 2:
+            events = detect_events(
+                device_id,
+                data,
+                history,
+                vehicle_detector_state[device_id],
+            )
+            for event in events:
+                vehicle_events.append(event)
+                update_score(device_id, event)
 
-    # Precisa de pelo menos 2 posições para detectar eventos
-    if len(history) >= 2:
-        events = detect_events(device_id, data, history)
-
-        for event in events:
-            # Adiciona à lista global (mantém in-memory para performance)
-            vehicle_events.append(event)
-
-            # Atualiza score
-            update_score(device_id, event)
-
-            # NOVO: Salva no banco de dados para persistência
-            veicod = get_veicod_from_device_id(device_id)
-            if veicod:
+    # I/O não ocorre sob o lock do estado do motor.
+    if events:
+        veicod = get_veicod_from_device_id(device_id)
+        if veicod:
+            for event in events:
                 save_event_to_db(event, veicod)
 
 
-def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
+def detect_events(
+    device_id: str,
+    current: Dict,
+    history: deque,
+    detector_state: Optional[Dict] = None,
+) -> List[Dict]:
     """
     Detecta eventos comportamentais comparando posição atual com histórico
 
@@ -204,6 +270,7 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
         Lista de eventos detectados
     """
     events = []
+    detector_state = detector_state if detector_state is not None else {}
 
     # 1. ACELERAÇÃO BRUSCA: compara a aceleração real, não a quantidade de
     # pacotes. Isso evita classificar incorretamente frequências diferentes.
@@ -256,21 +323,11 @@ def detect_events(device_id: str, current: Dict, history: deque) -> List[Dict]:
                 'icon': '🛑'
             })
 
-    # 3. EXCESSO DE VELOCIDADE
-    if current['speed'] > SPEEDING_THRESHOLD:
-        excess = current['speed'] - SPEEDING_THRESHOLD
-        events.append({
-            'device_id': device_id,
-            'type': 'speeding',
-            'lat': current['lat'],
-            'lon': current['lon'],
-            'timestamp': current['timestamp'].isoformat() if isinstance(current['timestamp'], datetime) else current['timestamp'],
-            'severity': 'critical' if excess > 30 else 'high',
-            'speed': current['speed'],
-            'speed_limit': SPEEDING_THRESHOLD,
-            'excess': excess,
-            'icon': '🚨'
-        })
+    # 3. EXCESSO DE VELOCIDADE: um evento por episódio. O detector só rearma
+    # abaixo de 75 km/h, evitando oscilações na fronteira de 80 km/h.
+    speeding_event = _detect_speeding_episode(device_id, current, detector_state)
+    if speeding_event:
+        events.append(speeding_event)
 
     # 4. CURVA BRUSCA: a mudança angular também depende do tempo real.
     if len(history) >= 5:
@@ -421,6 +478,8 @@ def get_fleet_stats() -> Dict:
 
 def reset_all():
     """Limpa todos os dados (útil para testes)"""
-    vehicle_history.clear()
-    vehicle_scores.clear()
-    vehicle_events.clear()
+    with _state_lock:
+        vehicle_history.clear()
+        vehicle_scores.clear()
+        vehicle_events.clear()
+        vehicle_detector_state.clear()

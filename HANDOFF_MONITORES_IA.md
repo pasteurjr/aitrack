@@ -1056,6 +1056,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | Data | Tarefa | Commit | Resultado / medições / desvios |
 |---|---|---|---|
 | 2026-09-16 | Handoff | — | Documento criado. Estado inicial: ver `AUDITORIA_APP2_DATADRIVR.md`. Nenhuma tarefa iniciada. |
+| 2026-11-06 | UI-1.5 | este commit | Excesso de velocidade consolidado em episódio 80/75 km/h; 24 testes backend passaram. |
 
 ---
 
