@@ -123,6 +123,23 @@ Selecionar um usuário não é uma operação somente leitura. A interface inici
 
 O estado é perdido quando o backend reinicia. Os KPIs também não informam origem, modo, janela ou versão da regra usada no cálculo.
 
+### 3.5 Frota unificada por fonte
+
+| Item | Comportamento atual |
+|---|---|
+| Componente | `UnifiedFleetPanel.tsx` |
+| Visões | Todos, Tracker e Dirija Bem |
+| Tracker | posições recentes de `/api/posicoes`, complementadas pelos identificadores com score em memória |
+| Dirija Bem | usuários retornados por `/api/dirijabem/users` |
+| Identificação | badge e cor específicos por fonte |
+| Score Tracker | exibido somente quando existe no motor |
+| Score Dirija Bem | `Score indisponível`; nenhum valor é inventado |
+| Seleção Tracker | limpa a seleção Dirija Bem e centraliza o veículo |
+| Seleção Dirija Bem | limpa a seleção Tracker e consulta viagem já ativa |
+| Efeito colateral | a visão unificada não chama `POST /start` |
+
+Os seletores específicos foram preservados. O seletor Dirija Bem antigo ainda inicia replay; a lista unificada é somente seleção/consulta e torna a origem visível em cada item.
+
 ---
 
 ## 4. Mapa

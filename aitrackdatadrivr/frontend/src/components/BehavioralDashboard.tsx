@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
+import UnifiedFleetPanel from './UnifiedFleetPanel';
+import type { UnifiedFleetItem } from './UnifiedFleetPanel';
 import { dirijabemService, fleetService, trackerService } from '../services/apiService';
 
 interface FleetStats {
@@ -134,6 +136,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
 
     const handleTrackerSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const deviceId = event.target.value || null;
+        if (deviceId) onUserSelect(null);
         onVehicleSelect(deviceId);
     };
 
@@ -148,6 +151,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
                 console.log('[DIRIJABEM] Iniciando viagem para usuário:', userId);
                 const response = await dirijabemService.startUserTrip(userId);
                 console.log('[DIRIJABEM] Resposta do servidor:', response.data);
+                onVehicleSelect(null);
                 onUserSelect(userId);
             } catch (error) {
                 console.error('[DIRIJABEM] Erro ao iniciar viagem:', error);
@@ -166,6 +170,51 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     const greenCount = Object.values(stats).filter((v: any) => typeof v === 'number' && v >= 75).length;
     const yellowCount = Object.values(stats).filter((v: any) => typeof v === 'number' && v >= 50 && v < 75).length;
     const redCount = stats.total_vehicles - greenCount - yellowCount;
+    const trackerByDeviceId = new Map(
+        trackerVehicles.map(vehicle => [vehicle.VEI_DEVICE_ID || `VEI-${vehicle.VEICOD}`, vehicle])
+    );
+    const trackerIds = Array.from(new Set([
+        ...Array.from(trackerByDeviceId.keys()),
+        ...Object.keys(allVehicles),
+    ])).sort();
+    const unifiedFleetItems: UnifiedFleetItem[] = [
+        ...trackerIds.map(deviceId => {
+            const vehicle = trackerByDeviceId.get(deviceId);
+            return {
+                id: `tracker:${deviceId}`,
+                source: 'tracker' as const,
+                primaryLabel: vehicle?.VEIPLACA || deviceId,
+                secondaryLabel: deviceId,
+                score: allVehicles[deviceId] ?? null,
+                sourceId: deviceId,
+            };
+        }),
+        ...dirijabemUsers.map(user => ({
+            id: `dirijabem:${user.codusu}`,
+            source: 'dirijabem' as const,
+            primaryLabel: user.name,
+            secondaryLabel: `Usuário ${user.codusu}`,
+            score: null,
+            sourceId: user.codusu,
+        })),
+    ];
+    const selectedUnifiedItemId = selectedVehicleId
+        ? `tracker:${selectedVehicleId}`
+        : selectedUserId
+            ? `dirijabem:${selectedUserId}`
+            : null;
+
+    const handleUnifiedItemSelect = (item: UnifiedFleetItem) => {
+        if (item.source === 'tracker') {
+            onUserSelect(null);
+            onVehicleSelect(String(item.sourceId));
+            return;
+        }
+
+        // A visão unificada apenas consulta uma viagem já ativa; não inicia replay.
+        onVehicleSelect(null);
+        onUserSelect(Number(item.sourceId));
+    };
 
     return (
         <div style={styles.container}>
@@ -229,7 +278,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
                 </div>
 
                 <div style={styles.kpiCard}>
-                    <div style={styles.kpiLabel}>Veículos</div>
+                    <div style={styles.kpiLabel}>Veículos com score</div>
                     <div style={styles.kpiValue}>{stats.total_vehicles}</div>
                 </div>
             </div>
@@ -288,32 +337,11 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
                 </div>
             </div>
 
-            {/* Lista de Todos os Veículos */}
-            <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>🚗 TODOS OS VEÍCULOS</h3>
-                {Object.entries(allVehicles)
-                    .sort((a, b) => b[1] - a[1]) // Ordenar por score (maior primeiro)
-                    .map(([device_id, score]) => (
-                        <div
-                            key={device_id}
-                            style={{
-                                ...styles.vehicleRow,
-                                cursor: 'pointer',
-                                backgroundColor: selectedVehicleId === device_id ? '#4b5563' : '#374151',
-                                border: selectedVehicleId === device_id ? '2px solid #10b981' : 'none'
-                            }}
-                            onClick={() => onVehicleSelect(device_id)}
-                        >
-                            <span style={styles.deviceId}>{device_id}</span>
-                            <span style={{ ...styles.score, color: getScoreColor(score) }}>
-                                {score.toFixed(1)}
-                            </span>
-                            <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '5px' }}>
-                                {score >= 75 ? '🟢' : score >= 50 ? '🟡' : '🔴'}
-                            </span>
-                        </div>
-                    ))}
-            </div>
+            <UnifiedFleetPanel
+                items={unifiedFleetItems}
+                selectedItemId={selectedUnifiedItemId}
+                onItemSelect={handleUnifiedItemSelect}
+            />
         </div>
     );
 };
