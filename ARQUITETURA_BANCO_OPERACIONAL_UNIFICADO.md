@@ -42,6 +42,8 @@ indisponibilidade ou mudança de um sistema de origem corrompa a operação comu
    O runner registra nome e SHA-256 em `tracker.schema_migrations`, confirma o
    baseline legado antes de registrá-lo e nunca expõe a senha na linha de comando.
 3. **UI-3.0C:** copiar identidades para o modelo novo, sem apagar a tabela antiga.
+   `CODUSU` gera motorista; as placas das viagens geram veículos e vínculos
+   temporais. A placa normalizada permite fusão futura com outra fonte.
 4. **UI-3.0D:** fazer APIs lerem o modelo novo com fallback controlado.
 5. **UI-3.0E:** mover incidentes, timeline e monitores preservando IDs e FKs.
 6. **UI-3.0F:** retirar o fallback depois dos testes dos dois simuladores e apps.
@@ -52,6 +54,6 @@ destrutiva nas fontes durante essa transição.
 
 ## Estado da implantação
 
-Em 06/11/2026, as etapas UI-3.0A e UI-3.0B foram concluídas. O schema e suas
-seis tabelas existem, mas ainda não contêm veículos ou motoristas. A aplicação
-continua lendo as estruturas antigas até o backfill compatível da UI-3.0C.
+Em 06/11/2026, as etapas UI-3.0A, UI-3.0B e UI-3.0C foram concluídas. O schema
+contém 26 veículos canônicos, 10 motoristas e 27 vínculos históricos. A aplicação
+continua lendo as estruturas antigas até a troca compatível da UI-3.0D.
