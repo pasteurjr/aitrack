@@ -75,7 +75,7 @@ test('filtra por período e limpa todos os filtros', async () => {
   expect(screen.getByText('3 de 3 episódios exibidos')).toBeInTheDocument();
 });
 
-test('mantém o índice original ao selecionar resultado filtrado', async () => {
+test('entrega o episódio completo ao selecionar resultado filtrado', async () => {
   const onEventClick = jest.fn();
   mockedGetEvents.mockResolvedValue({ data: recentEvents });
   render(<EventsTimeline onEventClick={onEventClick} />);
@@ -83,5 +83,5 @@ test('mantém o índice original ao selecionar resultado filtrado', async () => 
   fireEvent.change(screen.getByRole('textbox', { name: 'Filtrar por veículo' }), { target: { value: '1001' } });
   fireEvent.click(screen.getByRole('button', { name: 'Abrir episódio Frenagem Brusca de SIM-1001' }));
 
-  expect(onEventClick).toHaveBeenCalledWith(1);
+  expect(onEventClick).toHaveBeenCalledWith(recentEvents[1]);
 });

@@ -4,6 +4,8 @@ import { divIcon } from 'leaflet';
 import MapViewUpdater from './MapViewUpdater';
 import L from 'leaflet';
 import { dirijabemService, fleetService, positionService, trackerService } from '../services/apiService';
+import { behavioralEventId } from '../types/behavioralEvent';
+import type { BehavioralEvent } from '../types/behavioralEvent';
 
 // Controlador para seguir a rota Dirijabem automaticamente
 const DirijabemMapViewUpdater: React.FC<{
@@ -27,33 +29,29 @@ const DirijabemMapViewUpdater: React.FC<{
 
 // Controlador para centralizar no evento destacado
 const EventMapController: React.FC<{
-    events: BehavioralEvent[],
-    highlightedIndex: number | null,
+    highlightedEvent: BehavioralEvent | null,
     filterByVehicle: string | null,
     vehicles: Vehicle[]
-}> = ({ events, highlightedIndex, filterByVehicle, vehicles }) => {
+}> = ({ highlightedEvent, filterByVehicle, vehicles }) => {
     const map = useMap();
-    const [lastHighlightedIndex, setLastHighlightedIndex] = React.useState<number | null>(null);
+    const [lastHighlightedId, setLastHighlightedId] = React.useState<string | null>(null);
     const [lastFilteredVehicle, setLastFilteredVehicle] = React.useState<string | null>(null);
 
     // Centralizar quando destaca um evento - APENAS UMA VEZ
     useEffect(() => {
-        if (highlightedIndex !== null && highlightedIndex !== undefined && events.length > 0) {
+        if (highlightedEvent) {
+            const eventId = behavioralEventId(highlightedEvent);
             // Só centraliza se mudou o evento
-            if (highlightedIndex !== lastHighlightedIndex) {
-                const event = events[highlightedIndex];
-                console.log('🎯 Centralizando ESTATICAMENTE no evento:', event);
-                if (event) {
-                    setTimeout(() => {
-                        map.setView([event.lat, event.lon], 17, { animate: true });
-                        setLastHighlightedIndex(highlightedIndex);
-                    }, 100);
-                }
+            if (eventId !== lastHighlightedId) {
+                setTimeout(() => {
+                    map.setView([highlightedEvent.lat, highlightedEvent.lon], 17, { animate: true });
+                    setLastHighlightedId(eventId);
+                }, 100);
             }
-        } else if (highlightedIndex === null) {
-            setLastHighlightedIndex(null);
+        } else {
+            setLastHighlightedId(null);
         }
-    }, [highlightedIndex, events, map, lastHighlightedIndex]);
+    }, [highlightedEvent, map, lastHighlightedId]);
 
     // Centralizar quando filtra por veículo - APENAS UMA VEZ
     useEffect(() => {
@@ -93,20 +91,10 @@ interface Vehicle {
     score: number;
 }
 
-interface BehavioralEvent {
-    device_id: string;
-    type: string;
-    lat: number;
-    lon: number;
-    timestamp: string;
-    severity: string;
-    icon: string;
-}
-
 interface MapComponentProps {
     selectedVehicleId?: string | null;
     selectedUserId?: number | null;
-    highlightedEventIndex?: number | null;
+    highlightedEvent?: BehavioralEvent | null;
     filterEventsByVehicle?: string | null;
     onClearEventHighlight?: () => void;
     onClearFilter?: () => void;
@@ -115,7 +103,7 @@ interface MapComponentProps {
 const MapComponent: React.FC<MapComponentProps> = ({
     selectedVehicleId,
     selectedUserId,
-    highlightedEventIndex,
+    highlightedEvent,
     filterEventsByVehicle,
     onClearEventHighlight,
     onClearFilter
@@ -130,28 +118,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
     React.useEffect(() => {
         console.log('MapComponent recebeu:', {
             selectedVehicleId,
-            highlightedEventIndex,
+            highlightedEventId: highlightedEvent ? behavioralEventId(highlightedEvent) : null,
             filterEventsByVehicle,
             eventsCount: events.length
         });
-    }, [selectedVehicleId, highlightedEventIndex, filterEventsByVehicle, events.length]);
-
-    // Quando destaca evento, busca TODOS os eventos UMA VEZ e mantém
-    React.useEffect(() => {
-        if (highlightedEventIndex !== null && highlightedEventIndex !== undefined && events.length === 0) {
-            console.log('🔍 Buscando eventos para modo timeline...');
-            const fetchEvents = async () => {
-                try {
-                    const eventsResponse = await fleetService.getEvents<BehavioralEvent[]>(50);
-                    setEvents(eventsResponse.data);
-                    console.log('✅ Eventos carregados:', eventsResponse.data.length);
-                } catch (error) {
-                    console.error("Erro ao buscar eventos:", error);
-                }
-            };
-            fetchEvents();
-        }
-    }, [highlightedEventIndex, events.length]);
+    }, [selectedVehicleId, highlightedEvent, filterEventsByVehicle, events.length]);
 
     const getMarkerColor = (score: number): string => {
         if (score >= 75) return '#10b981';
@@ -253,7 +224,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 setVehicles(vehiclesWithScores);
 
                 // IMPORTANTE: Só busca novos eventos se NÃO tem evento destacado
-                if (highlightedEventIndex === null || highlightedEventIndex === undefined) {
+                if (!highlightedEvent) {
                     const eventsResponse = await fleetService.getEvents<BehavioralEvent[]>(20);
                     setEvents(eventsResponse.data);
                 }
@@ -265,11 +236,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
         fetchData();
         // Só atualiza automaticamente se NÃO tem evento destacado
-        if (highlightedEventIndex === null || highlightedEventIndex === undefined) {
+        if (!highlightedEvent) {
             const intervalId = setInterval(fetchData, 3000);
             return () => clearInterval(intervalId);
         }
-    }, [highlightedEventIndex]);
+    }, [highlightedEvent]);
 
     // Quando seleciona veículo, mapear device_id -> veicod
     useEffect(() => {
@@ -408,22 +379,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
     const displayedEventsCount = filterEventsByVehicle
         ? events.filter(e => e.device_id === filterEventsByVehicle).length
         : events.length;
-
-    // Debug: contar eventos visíveis
-    React.useEffect(() => {
-        if (highlightedEventIndex !== null && highlightedEventIndex !== undefined) {
-            console.log('👁️ Modo Timeline ativo:', {
-                highlightedEventIndex,
-                totalEvents: events.length,
-                eventoDestacado: events[highlightedEventIndex]
-            });
-        }
-    }, [highlightedEventIndex, events]);
+    const renderedEvents = highlightedEvent ? [highlightedEvent] : events;
 
     return (
         <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             {/* Banner - Evento único destacado */}
-            {highlightedEventIndex !== null && highlightedEventIndex !== undefined && events[highlightedEventIndex] && (
+            {highlightedEvent && (
                 <div style={{
                     position: 'absolute',
                     top: '10px',
@@ -441,7 +402,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                     fontSize: '14px',
                     fontWeight: 'bold'
                 }}>
-                    <span>{events[highlightedEventIndex].icon} Visualizando evento específico</span>
+                    <span>{highlightedEvent.icon} Visualizando episódio específico</span>
                     <span style={{
                         backgroundColor: 'white',
                         color: '#ef4444',
@@ -449,7 +410,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                         borderRadius: '12px',
                         fontSize: '12px'
                     }}>
-                        {events[highlightedEventIndex].device_id}
+                        {highlightedEvent.device_id}
                     </span>
                     <button
                         onClick={onClearEventHighlight}
@@ -475,7 +436,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             )}
 
             {/* Filtro ativo - Banner informativo - NÃO mostra se tem evento destacado */}
-            {filterEventsByVehicle && !highlightedEventIndex && (
+            {filterEventsByVehicle && !highlightedEvent && (
                 <div style={{
                     position: 'absolute',
                     top: '10px',
@@ -533,21 +494,20 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 />
 
                 {/* MapViewUpdater DESABILITADO quando tem evento destacado */}
-                {!highlightedEventIndex && <MapViewUpdater points={trail} />}
+                {!highlightedEvent && <MapViewUpdater points={trail} />}
 
                 <EventMapController
-                    events={events}
-                    highlightedIndex={highlightedEventIndex || null}
+                    highlightedEvent={highlightedEvent || null}
                     filterByVehicle={filterEventsByVehicle || null}
                     vehicles={vehicles}
                 />
 
-                {dirijabemRoute.length > 0 && !highlightedEventIndex && (
+                {dirijabemRoute.length > 0 && !highlightedEvent && (
                     <DirijabemMapViewUpdater route={dirijabemRoute} />
                 )}
 
             {/* Marcadores de Veículos (se NÃO tem selecionado E NÃO tem filtro E NÃO tem evento destacado) */}
-            {!selectedVehicleId && !filterEventsByVehicle && !highlightedEventIndex && vehicles.map((vehicle) => (
+            {!selectedVehicleId && !filterEventsByVehicle && !highlightedEvent && vehicles.map((vehicle) => (
                 <Marker
                     key={vehicle.device_id}
                     position={[vehicle.lat, vehicle.lon]}
@@ -577,23 +537,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
             ))}
 
             {/* Marcadores de Eventos */}
-            {events.map((event, index) => {
-                // MODO: Evento único destacado (Timeline) - mostra APENAS esse evento
-                if (highlightedEventIndex !== null && highlightedEventIndex !== undefined) {
-                    if (index !== highlightedEventIndex) {
-                        return null; // Não mostra outros eventos
-                    }
-                    console.log('🎯 Renderizando evento destacado:', {
-                        index,
-                        event,
-                        lat: event.lat,
-                        lon: event.lon,
-                        type: event.type
-                    });
-                }
-
+            {renderedEvents.map((event) => {
                 // Se tem veículo selecionado E NÃO tem filtro, não mostra eventos (mostra trilha)
-                if (selectedVehicleId && !filterEventsByVehicle && !highlightedEventIndex) {
+                if (selectedVehicleId && !filterEventsByVehicle && !highlightedEvent) {
                     return null;
                 }
 
@@ -603,11 +549,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 }
 
                 const eventVehicle = vehicles.find(v => v.device_id === event.device_id);
-                const isHighlighted = highlightedEventIndex === index;
+                const isHighlighted = Boolean(highlightedEvent);
 
                 return (
                     <Marker
-                        key={`event-${index}`}
+                        key={`event-${behavioralEventId(event)}`}
                         position={[event.lat, event.lon]}
                         icon={getEventIcon(event, isHighlighted)}
                     >
@@ -724,7 +670,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             })}
 
             {/* TRILHA EM TEMPO REAL (IGUAL AO ORIGINAL) - só mostra se NÃO tem evento destacado */}
-            {trail.length > 0 && !highlightedEventIndex && (
+            {trail.length > 0 && !highlightedEvent && (
                 <>
                     <Polyline
                         positions={trail.map(p => [p.latitude, p.longitude])}
@@ -832,7 +778,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             )}
 
             {/* DIRIJABEM ROUTE (GREEN) - só mostra se NÃO tem evento destacado */}
-            {dirijabemRoute.length > 0 && !highlightedEventIndex && (
+            {dirijabemRoute.length > 0 && !highlightedEvent && (
                 <>
                     <Polyline
                         positions={dirijabemRoute.map(p => [p.lat, p.lon])}

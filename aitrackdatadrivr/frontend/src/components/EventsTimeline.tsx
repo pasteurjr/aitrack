@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
 import { fleetService } from '../services/apiService';
+import { behavioralEventId } from '../types/behavioralEvent';
 import type { BehavioralEvent } from '../types/behavioralEvent';
 
 interface EventsTimelineProps {
-    onEventClick: (eventIndex: number) => void;
+    onEventClick: (event: BehavioralEvent) => void;
 }
 
 const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
@@ -67,8 +68,7 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
             : periodFilter === '24h' ? 24 * 60 * 60 * 1000 : null;
 
         return events
-            .map((event, originalIndex) => ({ event, originalIndex }))
-            .filter(({ event }) => {
+            .filter(event => {
                 const timestamp = new Date(event.timestamp).getTime();
                 return (!normalizedDevice || event.device_id.toLocaleLowerCase('pt-BR').includes(normalizedDevice))
                     && (typeFilter === 'all' || event.type === typeFilter)
@@ -146,13 +146,13 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
                     {filteredEvents.length} de {events.length} episódios exibidos
                 </div>
                 <div style={styles.timeline}>
-                {filteredEvents.map(({ event, originalIndex }) => (
+                {filteredEvents.map(event => (
                     <button
                         type="button"
                         aria-label={`Abrir episódio ${eventLabels[event.type] ?? event.type} de ${event.device_id}`}
-                        key={event.episode_id ?? `${event.device_id}-${event.timestamp}-${event.type}-${originalIndex}`}
+                        key={behavioralEventId(event)}
                         style={{...styles.eventRow, cursor: 'pointer'}}
-                        onClick={() => onEventClick(originalIndex)}
+                        onClick={() => onEventClick(event)}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4b5563'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
                     >

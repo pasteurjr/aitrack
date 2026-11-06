@@ -11,8 +11,6 @@ interface MonitorDetailViewProps {
 }
 
 const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicles, selectedVehicle }) => {
-  const [highlightedEventIndex, setHighlightedEventIndex] = useState<number | null>(null);
-
   // Get events for selected vehicle or all vehicles in monitor
   const getEventsForDisplay = () => {
     if (selectedVehicle) {
@@ -37,9 +35,9 @@ const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicl
         <MapComponent
           selectedVehicleId={selectedVehicle?.device_id || null}
           selectedUserId={null}
-          highlightedEventIndex={highlightedEventIndex}
+          highlightedEvent={null}
           filterEventsByVehicle={selectedVehicle?.device_id || null}
-          onClearEventHighlight={() => setHighlightedEventIndex(null)}
+          onClearEventHighlight={() => {}}
           onClearFilter={() => {}}
         />
       </div>

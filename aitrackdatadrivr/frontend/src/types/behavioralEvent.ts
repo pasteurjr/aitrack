@@ -9,3 +9,8 @@ export interface BehavioralEvent {
   episode_id?: string;
   episode_state?: string;
 }
+
+export function behavioralEventId(event: BehavioralEvent): string {
+  return event.episode_id
+    ?? `${event.device_id}:${event.type}:${event.timestamp}:${event.lat}:${event.lon}`;
+}

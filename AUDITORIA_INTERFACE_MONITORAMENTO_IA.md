@@ -668,7 +668,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **1.7** Persistir eventos e scores essenciais.
 - [x] **1.8** Corrigir contadores e scores para usar episódios.
 - [x] **1.9** Adicionar filtros à timeline.
-- [ ] **1.10** Adicionar drill-down evento → posição/veículo.
+- [x] **1.10** Adicionar drill-down evento → posição/veículo.
 
 **Aceite:** condição contínua gera um episódio, e Tracker/Dirija Bem aparecem com identidade e origem inequívocas.
 

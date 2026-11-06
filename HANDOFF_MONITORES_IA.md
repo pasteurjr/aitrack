@@ -1061,6 +1061,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-1.7 | este commit | Eventos e scores persistidos atomicamente, estado restaurado no startup; migration 006 aplicada; 29 testes backend passaram. |
 | 2026-11-06 | UI-1.8 | este commit | Score, contador diário e timeline deduplicam por `episode_id`; 32 testes backend e contratos HTTP passaram. |
 | 2026-11-06 | UI-1.9 | este commit | Timeline com filtros combináveis; 38 testes, build e validação visual sem erros. |
+| 2026-11-06 | UI-1.10 | este commit | Drill-down por identidade estável; 39 testes, build e fluxo real no navegador passaram. |
 
 ---
 

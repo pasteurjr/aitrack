@@ -53,7 +53,7 @@ Indica como o dado foi produzido:
 | Dashboard | `BehavioralDashboard` | veículos, usuários, scores e KPIs | Tracker DB, lista fixa Dirija Bem e memória do motor | Não por registro | ⚠️ |
 | Contexto do veículo | `VehicleDetailHeader` | identidade, fonte, modo e última comunicação | cadastro unificado | Sim, conforme metadados disponíveis | ✅ |
 | Mapa | `MapComponent` | posições, scores, eventos, trilha e rota | Tracker DB, Dirija Bem DB e memória | Não por registro | ⚠️ |
-| Timeline | `EventsTimeline` | eventos comportamentais recentes | memória do motor | Não | ⚠️ |
+| Timeline | `EventsTimeline` | episódios comportamentais recentes | motor reidratado de `tracker.eventos` | Não | ✅ |
 | Análises | `VehicleAnalytics` | scores, distribuição e rankings | memória do motor | Não | ⚠️ |
 | Lista de monitores | `MonitorDashboard` | monitores e vínculos | Monitor DB | Não aplicável ao cadastro | ✅ |
 | Veículos do monitor | `MonitorDashboard` | veículo, score, eventos e estado | Monitor DB + memória do motor | Não | ⚠️ |
@@ -185,15 +185,20 @@ eventos do veículo.
 | Componente | `EventsTimeline.tsx` |
 | Serviço | `fleetService.getEvents(50)` |
 | Endpoint | `GET /api/fleet/events?limit=50` |
-| Fonte | lista em memória do `behavioral_engine` |
+| Fonte | motor em memória reidratado de `tracker.eventos` no startup |
 | Atualização | 5 segundos |
-| Persistência | não garantida; reinício limpa o estado |
+| Persistência | eventos e score persistidos; janela ativa restaurada no startup |
 | Detectores reais | aceleração, frenagem, curva brusca e excesso de velocidade |
+| Filtros | veículo, tipo, severidade e período, combináveis |
+| Drill-down | episódio completo → coordenadas exatas no mapa + contexto do veículo |
 | Modo | indeterminado |
 | Estado de falha | explícito, com nova tentativa e aviso de dado desatualizado |
 | Situação | ⚠️ real e volátil |
 
-Eventos contínuos ainda podem aparecer repetidamente. A tela não trabalha com episódios nem incidentes.
+Os eventos comportamentais trabalham como episódios desde a UI-1.5 e a
+timeline deduplica por `episode_id`. A seleção entrega o episódio completo ao
+mapa, evitando que polling ou filtros apontem para outra posição. A tela ainda
+não trabalha com incidentes operacionais.
 
 ---
 

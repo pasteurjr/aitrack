@@ -251,3 +251,33 @@ para os índices da tabela de eventos previstos no plano.
 - Dados da validação visual foram interceptados no navegador; nenhum evento
   artificial foi escrito no banco.
 - Captura: `/tmp/aitrack-ui-1.9-timeline-filters.png`.
+
+## UI-1.10 — Drill-down episódio → posição e veículo
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `b9d3ae1`
+
+### Contrato implementado
+
+- A timeline entrega o episódio completo, não a posição em uma lista volátil.
+- O mapa usa `episode_id` ou identidade composta estável como chave.
+- Coordenadas do episódio selecionado são usadas diretamente na centralização.
+- O veículo do episódio é selecionado e seu cabeçalho contextual é resolvido.
+- Atualizações e filtros da timeline não alteram o episódio destacado.
+- Fechar o cabeçalho também encerra o destaque do episódio.
+
+### Evidências
+
+- Seleção filtrada entrega o objeto completo.
+- App encaminha `device_id` e `episode_id` exatos ao mapa.
+- Mapa não refaz a consulta para tentar resolver um índice.
+- Navegador exibe episódio e veículo corretos e permite limpar o destaque.
+- Frontend: `39 passed` em 11 suítes.
+- TypeScript: sem erros.
+- Build de produção: concluído com sucesso.
+- Navegador: um único banner do episódio `ep-drilldown` foi exibido.
+- Cabeçalho resolvido: `Veículo simulado rastreador GPS 2` (`SIM-1001`).
+- Limpar o destaque removeu o banner e preservou o contexto do veículo.
+- Fechar o contexto limpa simultaneamente episódio e veículo, coberto por teste.
+- Erros de página: 0; requisições da aplicação com falha: 0.
+- Captura: `/tmp/aitrack-ui-1.10-event-drilldown.png`.
