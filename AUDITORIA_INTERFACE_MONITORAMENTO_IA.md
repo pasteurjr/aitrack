@@ -680,7 +680,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **2.4** Criar máquina de estados e validar transições.
 - [x] **2.5** Correlacionar episódios ao incidente.
 - [x] **2.6** Substituir Alertas mock por fila real de incidentes.
-- [ ] **2.7** Implementar reconhecer, assumir e comentar.
+- [x] **2.7** Implementar reconhecer, assumir e comentar.
 - [ ] **2.8** Implementar resolver e classificar falso positivo.
 - [ ] **2.9** Adicionar SLA e escalonamento visual.
 - [ ] **2.10** Criar testes de concorrência e idempotência.

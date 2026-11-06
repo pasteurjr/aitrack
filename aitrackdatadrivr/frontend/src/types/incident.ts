@@ -74,3 +74,14 @@ export interface IncidentDetailResponse {
   schema_version: 'incident-detail.v1';
   incident: IncidentDetail;
 }
+
+export interface IncidentOperator {
+  id: string;
+  name: string;
+}
+
+export interface IncidentCommandBody {
+  expected_version: number;
+  idempotency_key: string;
+  operator: IncidentOperator;
+}

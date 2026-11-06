@@ -230,3 +230,85 @@ def transition_incident(
         cursor.close()
         if owns_connection:
             conn.close()
+
+
+def add_incident_comment(
+    incident_id: int,
+    comment: str,
+    actor: Dict,
+    expected_version: int,
+    idempotency_key: str,
+    connection=None,
+) -> Dict:
+    """Acrescenta comentário auditável e atualiza a versão atomicamente."""
+    comment = str(comment or '').strip()
+    if not 2 <= len(comment) <= 2000:
+        raise ValueError('Comentário deve ter entre 2 e 2000 caracteres')
+    if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
+        raise ValueError('expected_version deve ser inteiro positivo')
+    if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
+        raise ValueError('idempotency_key deve ter entre 1 e 150 caracteres')
+    if not isinstance(actor, dict) or actor.get('type') != 'human':
+        raise ValueError('Comentário operacional exige ator humano')
+    if not actor.get('id') or not actor.get('name'):
+        raise ValueError('Ator deve possuir id e nome')
+
+    idempotency_key = idempotency_key.strip()
+    owns_connection = connection is None
+    conn = connection or get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            (idempotency_key,),
+        )
+        replay = cursor.fetchone()
+        if replay:
+            if int(replay['incident_id']) != incident_id:
+                raise IncidentConflict('Chave de idempotência pertence a outro incidente')
+            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+            result = serialize_record(cursor.fetchone())
+            result['idempotent_replay'] = True
+            return result
+
+        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE', (incident_id,))
+        incident = cursor.fetchone()
+        if not incident:
+            raise IncidentNotFound()
+        if int(incident['version']) != expected_version:
+            raise IncidentConflict(
+                f'Versão divergente: atual={incident["version"]}, esperada={expected_version}'
+            )
+
+        cursor.execute(
+            'UPDATE tracker.incidents SET version = version + 1, '
+            'updated_at = CURRENT_TIMESTAMP(6) WHERE id = %s AND version = %s',
+            (incident_id, expected_version),
+        )
+        if cursor.rowcount != 1:
+            raise IncidentConflict('Incidente foi alterado por outro processo')
+        cursor.execute("""
+            INSERT INTO tracker.incident_timeline
+                (incident_id, idempotency_key, entry_type, actor_type,
+                 actor_id, actor_name, summary, details, occurred_at)
+            VALUES (%s, %s, 'comment', 'human', %s, %s, %s, %s,
+                    CURRENT_TIMESTAMP(6))
+        """, (
+            incident_id, idempotency_key, str(actor['id'])[:100],
+            str(actor['name'])[:150], comment[:300],
+            json.dumps({'comment': comment}, ensure_ascii=False),
+        ))
+        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        result = serialize_record(cursor.fetchone())
+        result['idempotent_replay'] = False
+        if owns_connection:
+            conn.commit()
+        return result
+    except Exception:
+        if owns_connection:
+            conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        if owns_connection:
+            conn.close()

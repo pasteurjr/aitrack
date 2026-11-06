@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type {
   IncidentDetailResponse,
+  IncidentCommandBody,
   IncidentListResponse,
   IncidentSeverity,
   IncidentStatus,
@@ -116,6 +117,15 @@ export const incidentService = {
     apiClient.get<IncidentDetailResponse>(`/incidents/${id}`, {
       params: { timeline_limit: timelineLimit },
     }),
+
+  acknowledge: (id: number, body: IncidentCommandBody) =>
+    apiClient.post(`/incidents/${id}/acknowledge`, body),
+
+  assume: (id: number, body: IncidentCommandBody) =>
+    apiClient.post(`/incidents/${id}/assume`, body),
+
+  comment: (id: number, body: IncidentCommandBody & { comment: string }) =>
+    apiClient.post(`/incidents/${id}/comments`, body),
 };
 
 // ==================== Event Services ====================

@@ -1068,6 +1068,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.4 | este commit | Máquina de estados transacional, concorrência otimista e idempotência; 65 testes e ciclo real com rollback passaram. |
 | 2026-11-06 | UI-2.5 | este commit | Episódios Tracker correlacionados atomicamente; contrato multifuente fundiu Tracker/Dirija Bem em um incidente; 74 testes e rollback limpo. |
 | 2026-11-06 | UI-2.6 | este commit | Alertas mock removidos e substituídos pela fila real de incidentes; 42 testes frontend, build e Playwright passaram. |
+| 2026-11-06 | UI-2.7 | este commit | Reconhecer, assumir e comentar persistem com versão/idempotência; 82 testes backend, 42 frontend e E2E real passaram. |
 
 ---
 
@@ -1112,6 +1113,9 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | GET/POST/DELETE | `/api/geofences` | T4.3 |
 | GET | `/api/incidents` | UI-2.3 |
 | GET | `/api/incidents/<id>` | UI-2.3 |
+| POST | `/api/incidents/<id>/acknowledge` | UI-2.7 |
+| POST | `/api/incidents/<id>/assume` | UI-2.7 |
+| POST | `/api/incidents/<id>/comments` | UI-2.7 |
 
 ---
 

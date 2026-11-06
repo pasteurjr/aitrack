@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
+import pytest
 from flask import Flask
 
 from server import incident_api, incident_db
+from server.incident_state_machine import InvalidTransition
 
 
 def _client():
@@ -139,3 +141,102 @@ def test_repository_builds_filters_only_from_whitelist():
 
     assert where == " WHERE i.status = %s AND i.vehicle_id = %s AND i.status NOT IN ('resolved', 'closed')"
     assert params == ['new', 4]
+
+
+def _command_payload(**overrides):
+    return {
+        'expected_version': 2,
+        'idempotency_key': 'browser-command-1',
+        'operator': {'id': 'operator-7', 'name': 'Maria Operadora'},
+        **overrides,
+    }
+
+
+def test_acknowledges_incident_with_audited_human_actor(monkeypatch):
+    captured = {}
+
+    def fake_transition(*args):
+        captured['args'] = args
+        return {'id': 9, 'status': 'triage', 'version': 3}
+
+    monkeypatch.setattr(incident_api.incident_db, 'transition_incident', fake_transition)
+    response = _client().post('/api/incidents/9/acknowledge', json=_command_payload())
+
+    assert response.status_code == 200
+    assert response.get_json()['schema_version'] == 'incident-command.v1'
+    assert captured['args'][0:2] == (9, 'triage')
+    assert captured['args'][3] == {
+        'type': 'human', 'id': 'operator-7', 'name': 'Maria Operadora',
+    }
+    assert captured['args'][4:] == (2, 'browser-command-1')
+
+
+def test_assumes_incident_and_assigns_operator(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        incident_api.incident_db,
+        'transition_incident',
+        lambda *args: captured.setdefault('args', args) or {},
+    )
+
+    response = _client().post('/api/incidents/9/assume', json=_command_payload())
+
+    assert response.status_code == 200
+    assert captured['args'][1] == 'start_service'
+    assert captured['args'][2]['assigned_type'] == 'human'
+    assert captured['args'][2]['assigned_to'] == 'operator-7'
+
+
+def test_adds_persistent_comment(monkeypatch):
+    captured = {}
+
+    def fake_comment(*args):
+        captured['args'] = args
+        return {'id': 9, 'version': 3}
+
+    monkeypatch.setattr(incident_api.incident_db, 'add_incident_comment', fake_comment)
+    response = _client().post(
+        '/api/incidents/9/comments',
+        json=_command_payload(comment='Proprietário contatado por telefone.'),
+    )
+
+    assert response.status_code == 200
+    assert captured['args'][0:2] == (9, 'Proprietário contatado por telefone.')
+    assert captured['args'][2]['type'] == 'human'
+    assert captured['args'][3:] == (2, 'browser-command-1')
+
+
+def test_rejects_malformed_command_before_repository(monkeypatch):
+    monkeypatch.setattr(
+        incident_api.incident_db,
+        'transition_incident',
+        lambda *_args: (_ for _ in ()).throw(AssertionError('não deve executar')),
+    )
+
+    response = _client().post('/api/incidents/9/acknowledge', json={'expected_version': True})
+
+    assert response.status_code == 400
+    assert response.get_json()['code'] == 'INVALID_INCIDENT_COMMAND'
+
+
+@pytest.mark.parametrize(
+    ('exception', 'status', 'code'),
+    [
+        (incident_db.IncidentNotFound(), 404, 'INCIDENT_NOT_FOUND'),
+        (incident_db.IncidentConflict('stale'), 409, 'INCIDENT_VERSION_CONFLICT'),
+        (InvalidTransition('inválida'), 422, 'INVALID_INCIDENT_TRANSITION'),
+        (RuntimeError('segredo'), 500, 'INCIDENT_COMMAND_UNAVAILABLE'),
+    ],
+)
+def test_maps_command_failures_without_leaking_details(monkeypatch, exception, status, code):
+    monkeypatch.setattr(
+        incident_api.incident_db,
+        'transition_incident',
+        lambda *_args: (_ for _ in ()).throw(exception),
+    )
+
+    response = _client().post('/api/incidents/9/acknowledge', json=_command_payload())
+
+    assert response.status_code == status
+    assert response.get_json()['code'] == code
+    assert b'segredo' not in response.data

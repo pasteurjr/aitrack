@@ -253,3 +253,52 @@ A fila é somente leitura nesta tarefa. Isso evita reaproveitar endpoints antigo
 de `monitor_alertas` ou simular sucesso local. Reconhecer, assumir e comentar
 serão comandos reais de incidente em UI-2.7; resolução e falso positivo, em
 UI-2.8.
+
+## UI-2.7 — Reconhecer, assumir e comentar incidentes
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `c6527a1`
+
+### Contrato implementado
+
+- `POST /api/incidents/{id}/acknowledge` conduz `new → triage` e registra o
+  operador na timeline.
+- `POST /api/incidents/{id}/assume` conduz `triage → in_progress`, atribui o
+  atendimento ao operador e registra o horário de reconhecimento.
+- `POST /api/incidents/{id}/comments` acrescenta comentário auditável sem
+  alterar o estado operacional.
+- Os três comandos exigem `expected_version`, `idempotency_key` e identidade do
+  operador; replay não duplica timeline.
+- Versão obsoleta retorna conflito HTTP 409; transição inválida retorna 422;
+  payload inválido retorna 400 e incidente inexistente retorna 404.
+- Comentário e incremento de versão são gravados atomicamente.
+- A tela solicita o nome do operador, conserva uma identidade local estável e
+  recarrega lista, detalhe e timeline após cada comando.
+- Botões são exibidos somente no estado permitido: reconhecer em `new` e
+  assumir em `triage`.
+- Erros operacionais ficam visíveis e nenhum sucesso é simulado localmente.
+
+### Evidências
+
+- Testes focais backend/API/máquina: `33 passed`.
+- Suíte completa backend: `82 passed`.
+- Suíte frontend: `42 passed` em 12 suítes.
+- TypeScript e build de produção: sem erros.
+- Prova transacional no MariaDB chegou a `in_progress`, versão 4 e três entradas
+  de timeline; replay foi ignorado, versão obsoleta bloqueada e rollback deixou
+  zero resíduos.
+- E2E real no Playwright criou um incidente temporário, abriu-o na interface,
+  reconheceu, assumiu e comentou usando a API real.
+- Banco após o E2E: estado `in_progress`, responsável humano, versão 4, duas
+  mudanças de estado e um comentário; console sem erros.
+- Limpeza explícita removeu somente o incidente temporário e sua timeline;
+  conferência final encontrou zero registros do teste.
+- Runtime validou as três rotas e backend/frontend permaneceram ativos nas
+  portas 5009/9000/3003.
+
+### Limite de segurança conhecido
+
+A identidade informada é auditável, mas ainda local e não autenticada. Ela não
+deve ser tratada como prova de identidade nem autorização. Autenticação, sessão,
+papéis e permissões continuam obrigatórios antes de operação exposta a usuários
+externos. A interface informa essa limitação ao operador.

@@ -64,6 +64,21 @@ const formatDateTime = (timestamp: string) => new Date(timestamp).toLocaleString
   minute: '2-digit',
 });
 
+const commandKey = (action: string, incidentId: number) => {
+  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `ui:${action}:${incidentId}:${random}`;
+};
+
+const localOperatorId = () => {
+  const stored = window.localStorage.getItem('aitrack.operator.id');
+  if (stored) return stored;
+  const created = `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  window.localStorage.setItem('aitrack.operator.id', created);
+  return created;
+};
+
 const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   const [incidents, setIncidents] = useState<IncidentSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -76,6 +91,13 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [operatorId] = useState(localOperatorId);
+  const [operatorName, setOperatorName] = useState(
+    () => window.localStorage.getItem('aitrack.operator.name') || '',
+  );
+  const [comment, setComment] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const loadIncidents = useCallback(() => {
     setLoading(true);
@@ -131,6 +153,36 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
 
   const retry = () => setRefreshToken(value => value + 1);
 
+  const runCommand = async (action: 'acknowledge' | 'assume' | 'comment') => {
+    if (!selectedIncident || !operatorName.trim()) return;
+    setActionBusy(true);
+    setActionError('');
+    const body = {
+      expected_version: selectedIncident.version,
+      idempotency_key: commandKey(action, selectedIncident.id),
+      operator: { id: operatorId, name: operatorName.trim() },
+    };
+    try {
+      if (action === 'acknowledge') {
+        await incidentService.acknowledge(selectedIncident.id, body);
+      } else if (action === 'assume') {
+        await incidentService.assume(selectedIncident.id, body);
+      } else {
+        await incidentService.comment(selectedIncident.id, { ...body, comment: comment.trim() });
+        setComment('');
+      }
+      window.localStorage.setItem('aitrack.operator.name', operatorName.trim());
+      retry();
+    } catch (requestError: any) {
+      setActionError(
+        requestError?.response?.data?.error
+        || 'Não foi possível registrar a ação. Recarregue o incidente e tente novamente.',
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   return (
     <div style={styles.panel}>
       {selectedId === null ? (
@@ -173,6 +225,15 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
           onBack={() => setSelectedId(null)}
           onRetry={retry}
           onVehicleSelect={onVehicleSelect}
+          operatorName={operatorName}
+          comment={comment}
+          actionBusy={actionBusy}
+          actionError={actionError}
+          onOperatorNameChange={setOperatorName}
+          onCommentChange={setComment}
+          onAcknowledge={() => runCommand('acknowledge')}
+          onAssume={() => runCommand('assume')}
+          onComment={() => runCommand('comment')}
         />
       )}
     </div>
@@ -299,7 +360,20 @@ const IncidentDetails: React.FC<{
   onBack: () => void;
   onRetry: () => void;
   onVehicleSelect?: (deviceId: string) => void;
-}> = ({ incident, loading, error, onBack, onRetry, onVehicleSelect }) => (
+  operatorName: string;
+  comment: string;
+  actionBusy: boolean;
+  actionError: string;
+  onOperatorNameChange: (value: string) => void;
+  onCommentChange: (value: string) => void;
+  onAcknowledge: () => void;
+  onAssume: () => void;
+  onComment: () => void;
+}> = ({
+  incident, loading, error, onBack, onRetry, onVehicleSelect,
+  operatorName, comment, actionBusy, actionError,
+  onOperatorNameChange, onCommentChange, onAcknowledge, onAssume, onComment,
+}) => (
   <>
     <div style={styles.header}>
       <button type="button" onClick={onBack} style={styles.secondaryButton}>← Voltar à fila</button>
@@ -350,11 +424,70 @@ const IncidentDetails: React.FC<{
             </div>
           ))}
         </section>
+        <section style={{ ...styles.card, cursor: 'default' }}>
+          <h3 style={styles.cardTitle}>Ações do operador</h3>
+          <label style={styles.actionLabel}>
+            Seu nome
+            <input
+              aria-label="Seu nome"
+              value={operatorName}
+              maxLength={150}
+              onChange={event => onOperatorNameChange(event.target.value)}
+              style={styles.actionInput}
+              placeholder="Identificação para a auditoria"
+            />
+          </label>
+          <span style={styles.muted}>
+            Identidade local para auditoria; ainda não equivale a autenticação de usuário.
+          </span>
+          <div style={styles.actionRow}>
+            {incident.status === 'new' && (
+              <button
+                type="button"
+                disabled={actionBusy || !operatorName.trim()}
+                onClick={onAcknowledge}
+                style={styles.primaryButton}
+              >
+                Reconhecer incidente
+              </button>
+            )}
+            {incident.status === 'triage' && (
+              <button
+                type="button"
+                disabled={actionBusy || !operatorName.trim()}
+                onClick={onAssume}
+                style={styles.primaryButton}
+              >
+                Assumir atendimento
+              </button>
+            )}
+          </div>
+          <label style={{ ...styles.actionLabel, marginTop: '12px' }}>
+            Comentário operacional
+            <textarea
+              aria-label="Comentário operacional"
+              value={comment}
+              maxLength={2000}
+              onChange={event => onCommentChange(event.target.value)}
+              style={{ ...styles.actionInput, minHeight: '76px', resize: 'vertical' }}
+            />
+          </label>
+          <button
+            type="button"
+            disabled={actionBusy || !operatorName.trim() || comment.trim().length < 2}
+            onClick={onComment}
+            style={styles.secondaryButton}
+          >
+            Registrar comentário
+          </button>
+          {actionBusy && <span role="status" style={styles.muted}>Registrando ação…</span>}
+          {actionError && <div role="alert" style={styles.actionError}>{actionError}</div>}
+        </section>
         <AsyncDataState
           variant="stale"
           compact
-          title="Ações ainda bloqueadas nesta tela"
-          message="Reconhecer, assumir e comentar entram na etapa 2.7; resolver e classificar falso positivo, na 2.8."
+          title="Resolução entra na próxima etapa"
+          message="Resolver e classificar falso positivo serão comandos reais na UI-2.8."
         />
       </div>
     )}
@@ -392,6 +525,11 @@ const styles: Record<string, React.CSSProperties> = {
   secondaryButton: { backgroundColor: '#374151', border: 'none', borderRadius: '6px', color: '#f9fafb', cursor: 'pointer', fontSize: '12px', padding: '8px 12px' },
   detailsGrid: { display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', margin: '16px 0' },
   timelineEntry: { borderLeft: '2px solid #60a5fa', marginTop: '12px', paddingLeft: '10px' },
+  actionLabel: { color: '#d1d5db', display: 'flex', flexDirection: 'column', fontSize: '12px', gap: '5px' },
+  actionInput: { backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '5px', color: '#f9fafb', padding: '8px' },
+  actionRow: { display: 'flex', gap: '8px', marginTop: '12px' },
+  primaryButton: { backgroundColor: '#2563eb', border: 0, borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: 700, padding: '9px 12px' },
+  actionError: { backgroundColor: '#7f1d1d', borderRadius: '5px', color: '#fecaca', fontSize: '12px', marginTop: '10px', padding: '8px' },
 };
 
 export default AlertsPanel;

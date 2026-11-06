@@ -7,6 +7,9 @@ jest.mock('../services/apiService', () => ({
   incidentService: {
     getAll: jest.fn(),
     getById: jest.fn(),
+    acknowledge: jest.fn(),
+    assume: jest.fn(),
+    comment: jest.fn(),
   },
 }));
 
@@ -51,7 +54,11 @@ const listResponse = (incidents: unknown[]) => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  window.localStorage.clear();
   mockedIncidentService.getAll.mockResolvedValue(listResponse([]) as never);
+  mockedIncidentService.acknowledge.mockResolvedValue({ data: {} } as never);
+  mockedIncidentService.assume.mockResolvedValue({ data: {} } as never);
+  mockedIncidentService.comment.mockResolvedValue({ data: {} } as never);
 });
 
 it('consulta somente incidentes abertos e exibe estado vazio real', async () => {
@@ -103,8 +110,19 @@ it('renderiza incidente real e abre seu detalhe auditável', async () => {
 
   expect(await screen.findByText('Timeline auditável (1)')).toBeInTheDocument();
   expect(screen.getByText('Evidência speeding recebida de tracker')).toBeInTheDocument();
-  expect(screen.getByText('Ações ainda bloqueadas nesta tela')).toBeInTheDocument();
+  expect(screen.getByText('Ações do operador')).toBeInTheDocument();
   expect(mockedIncidentService.getById).toHaveBeenCalledWith(44);
+
+  fireEvent.change(screen.getByLabelText('Seu nome'), { target: { value: 'Maria Operadora' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Reconhecer incidente' }));
+
+  await waitFor(() => expect(mockedIncidentService.acknowledge).toHaveBeenCalledWith(
+    44,
+    expect.objectContaining({
+      expected_version: 2,
+      operator: expect.objectContaining({ name: 'Maria Operadora' }),
+    }),
+  ));
 });
 
 it('envia filtros reais de estado e severidade ao backend', async () => {
