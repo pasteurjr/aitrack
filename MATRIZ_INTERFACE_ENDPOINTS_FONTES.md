@@ -128,9 +128,13 @@ O estado é perdido quando o backend reinicia. Os KPIs também não informam ori
 | Item | Comportamento atual |
 |---|---|
 | Componente | `UnifiedFleetPanel.tsx` |
+| Serviço | `unifiedVehicleService.getAll()` |
+| Endpoint | `GET /api/v1/vehicles` |
 | Visões | Todos, Tracker e Dirija Bem |
-| Tracker | posições recentes de `/api/posicoes`, complementadas pelos identificadores com score em memória |
-| Dirija Bem | usuários retornados por `/api/dirijabem/users` |
+| Identidade | tabela `tracker.veiculo_unificado`, contrato `vehicle.v1` |
+| Pesquisa | nome, placa, `device_id` e `codusu`, ignorando acentos e caixa |
+| Tracker | identidade versionada; score complementado pelo motor em memória quando disponível |
+| Dirija Bem | identidade versionada; score permanece indisponível |
 | Identificação | badge e cor específicos por fonte |
 | Score Tracker | exibido somente quando existe no motor |
 | Score Dirija Bem | `Score indisponível`; nenhum valor é inventado |
@@ -283,6 +287,7 @@ O backend oferece `GET /api/events/catalog` e `GET /api/events/stats`, mas o fro
 | GET | `/api/monitors` | `monitorService` | Monitores | leitura | Monitor DB |
 | GET | `/api/monitors/{id}` | `monitorService` | Monitores | leitura | Monitor DB |
 | GET | `/api/monitors/{id}/vehicles` | `monitorService` | Monitores | leitura | Monitor DB + memória |
+| GET | `/api/v1/vehicles` | `unifiedVehicleService` | frota unificada | leitura | `veiculo_unificado` |
 
 ---
 
@@ -300,7 +305,7 @@ Esses serviços representam contratos disponíveis, não funcionalidades conclu�
 
 ### API versionada de identidade
 
-`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. Nesta etapa o endpoint está disponível, mas a interface ainda usa as consultas legadas; a migração ocorre na UI-1.3.
+`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. A frota unificada do Dashboard consome esse endpoint desde a UI-1.3; os seletores legados continuam temporariamente separados.
 
 ---
 

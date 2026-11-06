@@ -31,6 +31,12 @@ export interface UnifiedVehicleDTO {
   dirijabem: DirijabemIdentityDTO | null;
 }
 
+export interface UnifiedVehiclesResponse {
+  schema_version: typeof UNIFIED_VEHICLE_SCHEMA_VERSION;
+  total: number;
+  vehicles: UnifiedVehicleDTO[];
+}
+
 export function isUnifiedVehicleDTO(value: unknown): value is UnifiedVehicleDTO {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<UnifiedVehicleDTO>;

@@ -10,7 +10,10 @@ const items: UnifiedFleetItem[] = [
     primaryLabel: 'ABC-1D23',
     secondaryLabel: 'SIM-1000',
     score: 82.5,
-    sourceId: 'SIM-1000',
+    trackerDeviceId: 'SIM-1000',
+    dirijabemCodusu: null,
+    modes: ['simulation'],
+    lastCommunicationAt: '2026-11-06T05:30:00-03:00',
   },
   {
     id: 'dirijabem:614',
@@ -18,7 +21,10 @@ const items: UnifiedFleetItem[] = [
     primaryLabel: 'Motorista Dirija Bem',
     secondaryLabel: 'Usuário 614',
     score: null,
-    sourceId: 614,
+    trackerDeviceId: null,
+    dirijabemCodusu: 614,
+    modes: ['replay'],
+    lastCommunicationAt: null,
   },
 ];
 
@@ -50,4 +56,20 @@ test('informa o item e sua fonte ao selecionar', () => {
   fireEvent.click(screen.getByRole('button', { name: /Motorista Dirija Bem/ }));
 
   expect(onItemSelect).toHaveBeenCalledWith(items[1]);
+});
+
+test('pesquisa por placa, device ID ou codusu ignorando acentos', () => {
+  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={jest.fn()} />);
+  const search = screen.getByRole('searchbox', { name: 'Pesquisar frota unificada' });
+
+  fireEvent.change(search, { target: { value: 'sim-1000' } });
+  expect(screen.getByText('ABC-1D23')).toBeInTheDocument();
+  expect(screen.queryByText('Motorista Dirija Bem')).not.toBeInTheDocument();
+
+  fireEvent.change(search, { target: { value: '614' } });
+  expect(screen.getByText('Motorista Dirija Bem')).toBeInTheDocument();
+  expect(screen.queryByText('ABC-1D23')).not.toBeInTheDocument();
+
+  fireEvent.change(search, { target: { value: 'não existe' } });
+  expect(screen.getByRole('status')).toHaveTextContent('Nenhum veículo corresponde');
 });

@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
 import UnifiedFleetPanel from './UnifiedFleetPanel';
 import type { UnifiedFleetItem } from './UnifiedFleetPanel';
-import { dirijabemService, fleetService, trackerService } from '../services/apiService';
+import { dirijabemService, fleetService, trackerService, unifiedVehicleService } from '../services/apiService';
+import type { UnifiedVehicleDTO } from '../types/unifiedVehicle';
 
 interface FleetStats {
     fleet_avg: number;
@@ -44,6 +45,9 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     const [allVehicles, setAllVehicles] = useState<VehicleScores>({});
     const [trackerVehicles, setTrackerVehicles] = useState<TrackerVehicle[]>([]);
     const [dirijabemUsers, setDirijabemUsers] = useState<DirijabemUser[]>([]);
+    const [unifiedVehicles, setUnifiedVehicles] = useState<UnifiedVehicleDTO[]>([]);
+    const [unifiedLoading, setUnifiedLoading] = useState(true);
+    const [unifiedError, setUnifiedError] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [stale, setStale] = useState(false);
@@ -114,6 +118,24 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
         return () => clearInterval(intervalId);
     }, [fetchData]);
 
+    const fetchUnifiedVehicles = useCallback(async () => {
+        setUnifiedError(false);
+        try {
+            const response = await unifiedVehicleService.getAll();
+            setUnifiedVehicles(response.data.vehicles);
+        } catch (requestError) {
+            console.error('Erro ao buscar frota unificada:', requestError);
+            setUnifiedVehicles([]);
+            setUnifiedError(true);
+        } finally {
+            setUnifiedLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchUnifiedVehicles();
+    }, [fetchUnifiedVehicles]);
+
     if (loading) {
         return (
             <div style={styles.container}>
@@ -170,50 +192,55 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
     const greenCount = Object.values(stats).filter((v: any) => typeof v === 'number' && v >= 75).length;
     const yellowCount = Object.values(stats).filter((v: any) => typeof v === 'number' && v >= 50 && v < 75).length;
     const redCount = stats.total_vehicles - greenCount - yellowCount;
-    const trackerByDeviceId = new Map(
-        trackerVehicles.map(vehicle => [vehicle.VEI_DEVICE_ID || `VEI-${vehicle.VEICOD}`, vehicle])
-    );
-    const trackerIds = Array.from(new Set([
-        ...Array.from(trackerByDeviceId.keys()),
-        ...Object.keys(allVehicles),
-    ])).sort();
-    const unifiedFleetItems: UnifiedFleetItem[] = [
-        ...trackerIds.map(deviceId => {
-            const vehicle = trackerByDeviceId.get(deviceId);
-            return {
-                id: `tracker:${deviceId}`,
-                source: 'tracker' as const,
-                primaryLabel: vehicle?.VEIPLACA || deviceId,
-                secondaryLabel: deviceId,
-                score: allVehicles[deviceId] ?? null,
-                sourceId: deviceId,
-            };
-        }),
-        ...dirijabemUsers.map(user => ({
-            id: `dirijabem:${user.codusu}`,
-            source: 'dirijabem' as const,
-            primaryLabel: user.name,
-            secondaryLabel: `Usuário ${user.codusu}`,
-            score: null,
-            sourceId: user.codusu,
-        })),
-    ];
-    const selectedUnifiedItemId = selectedVehicleId
-        ? `tracker:${selectedVehicleId}`
-        : selectedUserId
-            ? `dirijabem:${selectedUserId}`
-            : null;
+    const unifiedFleetItems: UnifiedFleetItem[] = unifiedVehicles.map(vehicle => {
+        const trackerDeviceId = vehicle.tracker?.device_id ?? null;
+        const dirijabemCodusu = vehicle.dirijabem?.codusu ?? null;
+        const secondaryParts = [
+            vehicle.plate,
+            trackerDeviceId ? `Device ${trackerDeviceId}` : null,
+            dirijabemCodusu ? `Usuário ${dirijabemCodusu}` : null,
+        ].filter((value): value is string => Boolean(value));
+        const validCommunicationTimes = vehicle.telemetry
+            .map(item => item.last_communication_at)
+            .filter((value): value is string => Boolean(value))
+            .sort();
+        return {
+            id: `vehicle:${vehicle.vehicle_id}`,
+            source: vehicle.identity_type === 'both'
+                ? 'both'
+                : vehicle.identity_type === 'tracker_only' ? 'tracker' : 'dirijabem',
+            primaryLabel: vehicle.display_name,
+            secondaryLabel: secondaryParts.join(' · ') || `Veículo ${vehicle.vehicle_id}`,
+            score: trackerDeviceId ? allVehicles[trackerDeviceId] ?? null : null,
+            trackerDeviceId,
+            dirijabemCodusu,
+            modes: Array.from(new Set(vehicle.telemetry.map(item => item.mode))),
+            lastCommunicationAt: validCommunicationTimes.length > 0
+                ? validCommunicationTimes[validCommunicationTimes.length - 1]
+                : null,
+        };
+    });
+    const selectedUnifiedVehicle = unifiedVehicles.find(vehicle => {
+        const trackerMatches = selectedVehicleId && vehicle.tracker?.device_id === selectedVehicleId;
+        const dirijabemMatches = selectedUserId && vehicle.dirijabem?.codusu === selectedUserId;
+        return Boolean(trackerMatches || dirijabemMatches);
+    });
 
     const handleUnifiedItemSelect = (item: UnifiedFleetItem) => {
         if (item.source === 'tracker') {
             onUserSelect(null);
-            onVehicleSelect(String(item.sourceId));
+            onVehicleSelect(item.trackerDeviceId);
+            return;
+        }
+        if (item.source === 'dirijabem') {
+            // A visão unificada apenas consulta uma viagem já ativa; não inicia replay.
+            onVehicleSelect(null);
+            onUserSelect(item.dirijabemCodusu);
             return;
         }
 
-        // A visão unificada apenas consulta uma viagem já ativa; não inicia replay.
-        onVehicleSelect(null);
-        onUserSelect(Number(item.sourceId));
+        onVehicleSelect(item.trackerDeviceId);
+        onUserSelect(item.dirijabemCodusu);
     };
 
     return (
@@ -337,11 +364,22 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
                 </div>
             </div>
 
-            <UnifiedFleetPanel
-                items={unifiedFleetItems}
-                selectedItemId={selectedUnifiedItemId}
-                onItemSelect={handleUnifiedItemSelect}
-            />
+            {unifiedLoading ? (
+                <AsyncDataState variant="loading" compact message="Carregando identidades da frota..." />
+            ) : unifiedError ? (
+                <AsyncDataState
+                    variant="error"
+                    compact
+                    message="Não foi possível carregar a frota unificada."
+                    onRetry={fetchUnifiedVehicles}
+                />
+            ) : (
+                <UnifiedFleetPanel
+                    items={unifiedFleetItems}
+                    selectedItemId={selectedUnifiedVehicle ? `vehicle:${selectedUnifiedVehicle.vehicle_id}` : null}
+                    onItemSelect={handleUnifiedItemSelect}
+                />
+            )}
         </div>
     );
 };

@@ -6,6 +6,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -175,6 +176,10 @@ export const dirijabemService = {
     apiClient.get<T>(`/dirijabem/user/${userId}/last-point`),
 };
 
+export const unifiedVehicleService = {
+  getAll: () => apiClient.get<UnifiedVehiclesResponse>('/v1/vehicles'),
+};
+
 const apiService = {
   monitor: monitorService,
   alert: alertService,
@@ -184,6 +189,7 @@ const apiService = {
   tracker: trackerService,
   position: positionService,
   dirijabem: dirijabemService,
+  unifiedVehicle: unifiedVehicleService,
 };
 
 export default apiService;

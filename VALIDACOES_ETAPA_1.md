@@ -34,3 +34,27 @@ O resultado `unknown`/`null` é intencional e seguro: as fontes atuais ainda nã
 - Novo endpoint aditivo: `GET /api/v1/vehicles`.
 - APIs legadas não foram alteradas.
 - App 1 não foi migrado nem afetado.
+
+## UI-1.3 — Lista unificada pesquisável
+
+**Data:** 06/11/2026  
+**Checkpoint anterior:** `e170bab`
+
+### Validações automatizadas
+
+- Frontend: `30 passed`.
+- TypeScript: sem erros.
+- Build de produção: concluído com sucesso.
+- Testes cobrem filtro por fonte, pesquisa, resultado vazio e seleção.
+
+### Validação operacional com Playwright
+
+| Verificação | Resultado |
+|---|---:|
+| endpoint `GET /api/v1/vehicles` | HTTP 200 |
+| total exibido | 20 |
+| pesquisa utilizada | `614` |
+| itens visíveis após pesquisa | 1 |
+| erros de página | 0 |
+
+A lista passou a consumir a identidade versionada. A pesquisa encontra placa, nome, `device_id` e `codusu`; modo e última comunicação são apresentados explicitamente, inclusive quando `unknown`/`null`.
