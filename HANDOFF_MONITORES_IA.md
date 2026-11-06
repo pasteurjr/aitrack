@@ -1072,7 +1072,8 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.8 | este commit | TP/FP/FN formalizados com taxonomia, migration e E2E real; 89 testes backend, 44 frontend, rollback e limpeza passaram. |
 | 2026-11-06 | UI-2.9 | este commit | SLA 5m/15m/60m/4h, prioridade e escalonamento visual; 99 testes backend, 44 frontend e E2E real passaram. |
 | 2026-11-06 | UI-2.10 | este commit | Concorrência real: retry simultâneo executa uma vez e reproduz uma vez; dois operadores geram um sucesso e um conflito; 3 integrações MariaDB e 99 regressões passaram, sem resíduos. |
-| 2026-11-06 | UI-3.0A | este commit | Schema operacional unificado e identidade multiorigem especificados; migration preparada, não aplicada até existir runner rastreável e validação explícita. |
+| 2026-11-06 | UI-3.0A | `e52da8e` | Schema operacional unificado e identidade multiorigem especificados; migration preparada sem escrever no servidor. |
+| 2026-11-06 | UI-3.0B | este commit | Runner com baseline/checksum criado; migration 010 aplicada: 6 tabelas, 2 fontes somente leitura, 0 pendências; 108 testes passaram. |
 
 ---
 

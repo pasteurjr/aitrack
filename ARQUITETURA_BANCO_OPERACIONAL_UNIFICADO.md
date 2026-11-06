@@ -39,6 +39,8 @@ indisponibilidade ou mudança de um sistema de origem corrompa a operação comu
 
 1. **UI-3.0A:** criar schema e modelo de identidade vazio.
 2. **UI-3.0B:** criar runner rastreável e aplicar a migration com autorização.
+   O runner registra nome e SHA-256 em `tracker.schema_migrations`, confirma o
+   baseline legado antes de registrá-lo e nunca expõe a senha na linha de comando.
 3. **UI-3.0C:** copiar identidades para o modelo novo, sem apagar a tabela antiga.
 4. **UI-3.0D:** fazer APIs lerem o modelo novo com fallback controlado.
 5. **UI-3.0E:** mover incidentes, timeline e monitores preservando IDs e FKs.
@@ -47,3 +49,9 @@ indisponibilidade ou mudança de um sistema de origem corrompa a operação comu
 
 Cada passo terá checkpoint próprio. Não haverá `DROP`, `TRUNCATE` ou alteração
 destrutiva nas fontes durante essa transição.
+
+## Estado da implantação
+
+Em 06/11/2026, as etapas UI-3.0A e UI-3.0B foram concluídas. O schema e suas
+seis tabelas existem, mas ainda não contêm veículos ou motoristas. A aplicação
+continua lendo as estruturas antigas até o backfill compatível da UI-3.0C.
