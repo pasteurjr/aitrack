@@ -1067,6 +1067,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.3 | este commit | API de lista/detalhe com filtros e timeline; 47 testes e validação runtime passaram. |
 | 2026-11-06 | UI-2.4 | este commit | Máquina de estados transacional, concorrência otimista e idempotência; 65 testes e ciclo real com rollback passaram. |
 | 2026-11-06 | UI-2.5 | este commit | Episódios Tracker correlacionados atomicamente; contrato multifuente fundiu Tracker/Dirija Bem em um incidente; 74 testes e rollback limpo. |
+| 2026-11-06 | UI-2.6 | este commit | Alertas mock removidos e substituídos pela fila real de incidentes; 42 testes frontend, build e Playwright passaram. |
 
 ---
 

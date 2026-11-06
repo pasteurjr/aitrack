@@ -94,7 +94,7 @@ function App() {
             style={{...styles.navTab, ...(viewMode === 'alerts' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('alerts')}
           >
-            🔔 Alertas
+            🚨 Incidentes
           </button>
           <button
             style={{...styles.navTab, ...(viewMode === 'events' ? styles.navTabActive : {})}}

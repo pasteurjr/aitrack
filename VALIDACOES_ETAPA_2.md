@@ -208,3 +208,48 @@ O contrato Dirija Bem (`source`, `codusu`, `source_record_id`, `episode_id` e
 contínuo que transforma métricas/viagens do banco Dirija Bem em episódios ainda
 pertence à etapa específica de integração dessa fonte. Até lá, não se afirma que
 toda viagem Dirija Bem abre incidentes automaticamente.
+
+## UI-2.6 — Fila real de incidentes no lugar de alertas mock
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `a335110`
+
+### Contrato implementado
+
+- A antiga aba Alertas foi renomeada para Incidentes e agora contém uma fila
+  operacional alimentada por `GET /api/incidents`.
+- O filtro inicial mostra somente incidentes abertos; operador pode consultar
+  todos ou selecionar cada estado real da máquina.
+- Filtros de estado e severidade são enviados ao backend, em vez de aplicados
+  sobre uma lista local fictícia.
+- Cabeçalho calcula contagens apenas a partir da resposta real e deixa explícito
+  quando são itens carregados/consultados.
+- Lista mostra identidade veicular, fonte Tracker/Dirija Bem/fundida, severidade,
+  estado, evidências e abertura.
+- Selecionar um item consulta `GET /api/incidents/{id}` e exibe timeline
+  auditável, risco, monitor, responsável e fonte.
+- Carregamento, erro, retry e ausência de dados possuem estados explícitos.
+- Falha de API nunca faz fallback para conteúdo demonstrativo.
+- Botões falsos de reconhecer/resolver foram removidos. A interface explica que
+  ações persistentes entram em UI-2.7 e UI-2.8.
+- O arquivo `mockData/mockAlerts.ts`, com oito alertas inventados, foi removido.
+
+### Evidências
+
+- Testes do frontend: `42 passed` em 12 suítes.
+- Regressão completa do backend: `74 passed`.
+- Checagem TypeScript `npx tsc --noEmit`: sem erros.
+- Build otimizado CRA: compilado com sucesso.
+- Playwright/Chrome abriu `http://localhost:3003`, navegou para Alertas e
+  confirmou o contrato visual contra o backend real.
+- Banco/API sem incidentes exibiu “Fila sem incidentes”, sem criar exemplos.
+- Aviso “DADOS NÃO OPERACIONAIS” e títulos do mock antigo não estavam no DOM.
+- Filtro inicial `open` confirmado e console do navegador sem erros.
+- Backend permaneceu ativo nas portas 5009/9000; frontend ativo na 3003.
+
+### Limite deliberado
+
+A fila é somente leitura nesta tarefa. Isso evita reaproveitar endpoints antigos
+de `monitor_alertas` ou simular sucesso local. Reconhecer, assumir e comentar
+serão comandos reais de incidente em UI-2.7; resolução e falso positivo, em
+UI-2.8.

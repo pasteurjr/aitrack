@@ -7,6 +7,12 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
+import type {
+  IncidentDetailResponse,
+  IncidentListResponse,
+  IncidentSeverity,
+  IncidentStatus,
+} from '../types/incident';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -93,6 +99,23 @@ export const alertService = {
    * Get alert statistics
    */
   getStats: () => apiClient.get('/alerts/stats'),
+};
+
+// ==================== Incident Services ====================
+
+export const incidentService = {
+  getAll: (filters?: {
+    status?: IncidentStatus;
+    severity?: IncidentSeverity;
+    open_only?: boolean;
+    limit?: number;
+    offset?: number;
+  }) => apiClient.get<IncidentListResponse>('/incidents', { params: filters }),
+
+  getById: (id: number, timelineLimit = 200) =>
+    apiClient.get<IncidentDetailResponse>(`/incidents/${id}`, {
+      params: { timeline_limit: timelineLimit },
+    }),
 };
 
 // ==================== Event Services ====================
@@ -183,6 +206,7 @@ export const unifiedVehicleService = {
 const apiService = {
   monitor: monitorService,
   alert: alertService,
+  incident: incidentService,
   event: eventService,
   vehicle: vehicleService,
   fleet: fleetService,

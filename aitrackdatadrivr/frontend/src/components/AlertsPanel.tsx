@@ -1,67 +1,177 @@
-import React, { useState } from 'react';
-import { mockAlerts, mockAlertStats } from '../mockData/mockAlerts';
-import type { Alert } from '../mockData/mockAlerts';
-import DemoDataNotice from './DemoDataNotice';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { incidentService } from '../services/apiService';
+import type {
+  IncidentDetail,
+  IncidentSeverity,
+  IncidentStatus,
+  IncidentSummary,
+} from '../types/incident';
+import AsyncDataState from './AsyncDataState';
 
 interface AlertsPanelProps {
   onVehicleSelect?: (deviceId: string) => void;
 }
 
+type StatusFilter = 'open' | 'all' | IncidentStatus;
+type SeverityFilter = 'all' | IncidentSeverity;
+
+const STATUS_LABELS: Record<IncidentStatus, string> = {
+  new: 'Novo',
+  triage: 'Em triagem',
+  in_progress: 'Em atendimento',
+  waiting_response: 'Aguardando resposta',
+  escalated: 'Escalado',
+  resolved: 'Resolvido',
+  closed: 'Encerrado',
+};
+
+const SEVERITY_LABELS: Record<IncidentSeverity, string> = {
+  critical: 'Crítica',
+  high: 'Alta',
+  medium: 'Média',
+  low: 'Baixa',
+};
+
+const SOURCE_LABELS = {
+  tracker: 'Tracker',
+  dirijabem: 'Dirija Bem',
+  fused: 'Tracker + Dirija Bem',
+  system: 'Sistema',
+};
+
+const severityColor = (severity: IncidentSeverity) => ({
+  critical: '#dc2626',
+  high: '#ea580c',
+  medium: '#f59e0b',
+  low: '#84cc16',
+}[severity]);
+
+const statusColor = (status: IncidentStatus) => ({
+  new: '#f59e0b',
+  triage: '#8b5cf6',
+  in_progress: '#3b82f6',
+  waiting_response: '#0891b2',
+  escalated: '#dc2626',
+  resolved: '#10b981',
+  closed: '#6b7280',
+}[status]);
+
+const formatDateTime = (timestamp: string) => new Date(timestamp).toLocaleString('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
-  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [incidents, setIncidents] = useState<IncidentSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<IncidentDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const filteredAlerts = mockAlerts.filter(alert => {
-    if (filterStatus !== 'all' && alert.status !== filterStatus) return false;
-    if (filterSeverity !== 'all' && alert.severidade !== filterSeverity) return false;
-    return true;
-  });
+  const loadIncidents = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    const filters = {
+      limit: 200,
+      ...(statusFilter === 'open' ? { open_only: true } : {}),
+      ...(statusFilter !== 'open' && statusFilter !== 'all' ? { status: statusFilter } : {}),
+      ...(severityFilter !== 'all' ? { severity: severityFilter } : {}),
+    };
+    let active = true;
+    incidentService.getAll(filters).then(({ data }) => {
+      if (!active) return;
+      setIncidents(data.incidents);
+      setTotal(data.total);
+      setLoading(false);
+    }).catch(() => {
+      if (!active) return;
+      setError(true);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [severityFilter, statusFilter]);
 
-  const handleAlertClick = (alert: Alert) => {
-    setSelectedAlert(alert);
-  };
+  useEffect(() => loadIncidents(), [loadIncidents, refreshToken]);
 
-  const handleBack = () => {
-    setSelectedAlert(null);
-  };
+  useEffect(() => {
+    if (selectedId === null) {
+      setSelectedIncident(null);
+      return undefined;
+    }
+    let active = true;
+    setDetailLoading(true);
+    setDetailError(false);
+    incidentService.getById(selectedId).then(({ data }) => {
+      if (!active) return;
+      setSelectedIncident(data.incident);
+      setDetailLoading(false);
+    }).catch(() => {
+      if (!active) return;
+      setDetailError(true);
+      setDetailLoading(false);
+    });
+    return () => { active = false; };
+  }, [selectedId, refreshToken]);
 
-  const handleAcknowledge = (alertId: number) => {
-    console.log('Acknowledging alert:', alertId);
-    // In real app: API call to acknowledge alert
-    alert('Alerta reconhecido! (Mock - não persiste)');
-  };
+  const stats = useMemo(() => ({
+    total,
+    critical: incidents.filter(item => item.severity === 'critical').length,
+    high: incidents.filter(item => item.severity === 'high').length,
+    escalated: incidents.filter(item => item.status === 'escalated').length,
+  }), [incidents, total]);
 
-  const handleResolve = (alertId: number) => {
-    console.log('Resolving alert:', alertId);
-    // In real app: API call to resolve alert
-    alert('Alerta resolvido! (Mock - não persiste)');
-  };
+  const retry = () => setRefreshToken(value => value + 1);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
-      <DemoDataNotice detail="Alertas, análises de IA, estatísticas e ações desta tela são exemplos locais e não persistem." />
-      {!selectedAlert ? (
+    <div style={styles.panel}>
+      {selectedId === null ? (
         <>
-          <AlertsHeader stats={mockAlertStats} />
-          <AlertsFilters
-            filterStatus={filterStatus}
-            filterSeverity={filterSeverity}
-            onStatusChange={setFilterStatus}
-            onSeverityChange={setFilterSeverity}
+          <QueueHeader stats={stats} onRefresh={retry} />
+          <QueueFilters
+            status={statusFilter}
+            severity={severityFilter}
+            onStatusChange={setStatusFilter}
+            onSeverityChange={setSeverityFilter}
           />
-          <AlertsList
-            alerts={filteredAlerts}
-            onAlertClick={handleAlertClick}
-            onVehicleSelect={onVehicleSelect}
-          />
+          {loading && <AsyncDataState variant="loading" message="Consultando a fila operacional de incidentes." />}
+          {!loading && error && (
+            <AsyncDataState
+              variant="error"
+              message="A fila real não pôde ser consultada. Nenhum alerta foi inventado."
+              onRetry={retry}
+            />
+          )}
+          {!loading && !error && incidents.length === 0 && (
+            <AsyncDataState
+              variant="empty"
+              title="Fila sem incidentes"
+              message="Não há incidentes reais para os filtros selecionados."
+            />
+          )}
+          {!loading && !error && incidents.length > 0 && (
+            <IncidentList
+              incidents={incidents}
+              onIncidentClick={setSelectedId}
+              onVehicleSelect={onVehicleSelect}
+            />
+          )}
         </>
       ) : (
-        <AlertDetails
-          alert={selectedAlert}
-          onBack={handleBack}
-          onAcknowledge={handleAcknowledge}
-          onResolve={handleResolve}
+        <IncidentDetails
+          incident={selectedIncident}
+          loading={detailLoading}
+          error={detailError}
+          onBack={() => setSelectedId(null)}
+          onRetry={retry}
           onVehicleSelect={onVehicleSelect}
         />
       )}
@@ -69,462 +179,219 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   );
 };
 
-// Header with statistics
-const AlertsHeader: React.FC<{ stats: typeof mockAlertStats }> = ({ stats }) => {
-  return (
-    <div style={styles.header}>
-      <h2 style={styles.title}>🔔 Alertas AI</h2>
-      <div style={styles.statsGrid}>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f9fafb' }}>
-            {stats.total_alertas_ativos}
-          </div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Ativos</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc2626' }}>{stats.criticos}</div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Críticos</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ea580c' }}>{stats.altos}</div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Altos</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981' }}>
-            {Math.round(stats.taxa_resolucao_24h * 100)}%
-          </div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Taxa Resolução</div>
-        </div>
+const QueueHeader: React.FC<{
+  stats: { total: number; critical: number; high: number; escalated: number };
+  onRefresh: () => void;
+}> = ({ stats, onRefresh }) => (
+  <div style={styles.header}>
+    <div style={styles.titleRow}>
+      <div>
+        <h2 style={styles.title}>Fila de incidentes</h2>
+        <span style={styles.subtitle}>Dados operacionais persistidos e auditáveis</span>
       </div>
+      <button type="button" onClick={onRefresh} style={styles.secondaryButton}>Atualizar</button>
     </div>
-  );
-};
-
-// Filters
-const AlertsFilters: React.FC<{
-  filterStatus: string;
-  filterSeverity: string;
-  onStatusChange: (status: string) => void;
-  onSeverityChange: (severity: string) => void;
-}> = ({ filterStatus, filterSeverity, onStatusChange, onSeverityChange }) => {
-  return (
-    <div style={styles.filters}>
-      <div style={styles.filterGroup}>
-        <label style={styles.filterLabel}>Status:</label>
-        <select
-          style={styles.filterSelect}
-          value={filterStatus}
-          onChange={e => onStatusChange(e.target.value)}
-        >
-          <option value="all">Todos</option>
-          <option value="pending">Pendente</option>
-          <option value="acknowledged">Reconhecido</option>
-          <option value="resolved">Resolvido</option>
-          <option value="dismissed">Descartado</option>
-        </select>
-      </div>
-      <div style={styles.filterGroup}>
-        <label style={styles.filterLabel}>Severidade:</label>
-        <select
-          style={styles.filterSelect}
-          value={filterSeverity}
-          onChange={e => onSeverityChange(e.target.value)}
-        >
-          <option value="all">Todas</option>
-          <option value="critical">Crítica</option>
-          <option value="high">Alta</option>
-          <option value="medium">Média</option>
-          <option value="low">Baixa</option>
-        </select>
-      </div>
+    <div style={styles.statsGrid}>
+      <Stat value={stats.total} label="Na consulta" color="#f9fafb" />
+      <Stat value={stats.critical} label="Críticos carregados" color="#ef4444" />
+      <Stat value={stats.high} label="Altos carregados" color="#f97316" />
+      <Stat value={stats.escalated} label="Escalados carregados" color="#dc2626" />
     </div>
-  );
-};
+  </div>
+);
 
-// Alerts List
-const AlertsList: React.FC<{
-  alerts: Alert[];
-  onAlertClick: (alert: Alert) => void;
+const Stat: React.FC<{ value: number; label: string; color: string }> = ({ value, label, color }) => (
+  <div style={styles.statBox}>
+    <div style={{ color, fontSize: '20px', fontWeight: 'bold' }}>{value}</div>
+    <div style={{ color: '#9ca3af', fontSize: '11px' }}>{label}</div>
+  </div>
+);
+
+const QueueFilters: React.FC<{
+  status: StatusFilter;
+  severity: SeverityFilter;
+  onStatusChange: (value: StatusFilter) => void;
+  onSeverityChange: (value: SeverityFilter) => void;
+}> = ({ status, severity, onStatusChange, onSeverityChange }) => (
+  <div style={styles.filters}>
+    <label style={styles.filterLabel}>
+      Estado
+      <select
+        aria-label="Estado"
+        style={styles.filterSelect}
+        value={status}
+        onChange={event => onStatusChange(event.target.value as StatusFilter)}
+      >
+        <option value="open">Somente abertos</option>
+        <option value="all">Todos</option>
+        {Object.entries(STATUS_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>{label}</option>
+        ))}
+      </select>
+    </label>
+    <label style={styles.filterLabel}>
+      Severidade
+      <select
+        aria-label="Severidade"
+        style={styles.filterSelect}
+        value={severity}
+        onChange={event => onSeverityChange(event.target.value as SeverityFilter)}
+      >
+        <option value="all">Todas</option>
+        {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>{label}</option>
+        ))}
+      </select>
+    </label>
+  </div>
+);
+
+const IncidentList: React.FC<{
+  incidents: IncidentSummary[];
+  onIncidentClick: (id: number) => void;
   onVehicleSelect?: (deviceId: string) => void;
-}> = ({ alerts, onAlertClick, onVehicleSelect }) => {
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return '#dc2626';
-      case 'high':
-        return '#ea580c';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#84cc16';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return '#f59e0b';
-      case 'acknowledged':
-        return '#3b82f6';
-      case 'resolved':
-        return '#10b981';
-      case 'dismissed':
-        return '#6b7280';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 60) return `${diffMins} min atrás`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h atrás`;
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: 'Pendente',
-      acknowledged: 'Reconhecido',
-      resolved: 'Resolvido',
-      dismissed: 'Descartado',
-    };
-    return labels[status] || status;
-  };
-
-  return (
-    <div style={styles.content}>
-      {alerts.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px 20px' }}>
-          Nenhum alerta encontrado com os filtros selecionados
-        </div>
-      )}
-      {alerts.map(alert => (
-        <div
-          key={alert.id}
-          style={{
-            ...styles.alertCard,
-            borderLeft: `4px solid ${getSeverityColor(alert.severidade)}`,
-            cursor: 'pointer',
-          }}
-          onClick={() => onAlertClick(alert)}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-            <div style={{ flex: 1 }}>
-              <h3 style={{ margin: '0 0 4px 0', color: '#f9fafb', fontSize: '14px', fontWeight: 'bold' }}>
-                {alert.titulo}
-              </h3>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>
-                {alert.monitor_nome}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-              <span
-                style={{
-                  fontSize: '10px',
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: getSeverityColor(alert.severidade),
-                  color: 'white',
-                  textTransform: 'uppercase',
-                  fontWeight: 'bold',
-                }}
-              >
-                {alert.severidade}
-              </span>
-              <span
-                style={{
-                  fontSize: '10px',
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: getStatusColor(alert.status),
-                  color: 'white',
-                  textTransform: 'uppercase',
-                  fontWeight: 'bold',
-                }}
-              >
-                {getStatusLabel(alert.status)}
-              </span>
-            </div>
+}> = ({ incidents, onIncidentClick, onVehicleSelect }) => (
+  <div style={styles.content}>
+    {incidents.map(incident => (
+      <article
+        key={incident.id}
+        style={{ ...styles.card, borderLeft: `4px solid ${severityColor(incident.severity)}` }}
+        onClick={() => onIncidentClick(incident.id)}
+      >
+        <div style={styles.cardHeader}>
+          <div>
+            <h3 style={styles.cardTitle}>{incident.title}</h3>
+            <span style={styles.muted}>#{incident.id} · {SOURCE_LABELS[incident.primary_source]}</span>
           </div>
-
-          <p style={{ margin: '8px 0', color: '#d1d5db', fontSize: '13px', lineHeight: '1.4' }}>
-            {alert.mensagem.substring(0, 150)}...
-          </p>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #4b5563' }}>
-            <div style={{ fontSize: '12px', color: '#d1d5db' }}>
-              <span
-                style={{ fontWeight: 'bold', cursor: onVehicleSelect ? 'pointer' : 'default', textDecoration: onVehicleSelect ? 'underline' : 'none' }}
-                onClick={(e) => {
-                  if (onVehicleSelect) {
-                    e.stopPropagation();
-                    onVehicleSelect(alert.device_id);
-                  }
-                }}
-              >
-                {alert.device_id}
-              </span>
-              {alert.nome_motorista && <span> - {alert.nome_motorista}</span>}
-            </div>
-            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-              {formatTimestamp(alert.criado_em)}
-            </div>
+          <div style={styles.badges}>
+            <Badge label={SEVERITY_LABELS[incident.severity]} color={severityColor(incident.severity)} />
+            <Badge label={STATUS_LABELS[incident.status]} color={statusColor(incident.status)} />
           </div>
         </div>
-      ))}
-    </div>
-  );
-};
+        <p style={styles.description}>{incident.summary || 'Sem resumo adicional.'}</p>
+        <div style={styles.cardFooter}>
+          <button
+            type="button"
+            disabled={!incident.device_id || !onVehicleSelect}
+            onClick={event => {
+              event.stopPropagation();
+              if (incident.device_id && onVehicleSelect) onVehicleSelect(incident.device_id);
+            }}
+            style={styles.vehicleButton}
+          >
+            {incident.placa || incident.device_id || `Dirija Bem ${incident.codusu}`}
+          </button>
+          <span>{incident.event_count} evidência(s) · {formatDateTime(incident.opened_at)}</span>
+        </div>
+      </article>
+    ))}
+  </div>
+);
 
-// Alert Details
-const AlertDetails: React.FC<{
-  alert: Alert;
+const Badge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
+  <span style={{ ...styles.badge, backgroundColor: color }}>{label}</span>
+);
+
+const IncidentDetails: React.FC<{
+  incident: IncidentDetail | null;
+  loading: boolean;
+  error: boolean;
   onBack: () => void;
-  onAcknowledge: (alertId: number) => void;
-  onResolve: (alertId: number) => void;
+  onRetry: () => void;
   onVehicleSelect?: (deviceId: string) => void;
-}> = ({ alert, onBack, onAcknowledge, onResolve, onVehicleSelect }) => {
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return '#dc2626';
-      case 'high':
-        return '#ea580c';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#84cc16';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  return (
-    <>
-      <div style={styles.header}>
-        <button onClick={onBack} style={styles.backButton}>
-          ← Voltar
-        </button>
-        <h2 style={{ ...styles.title, fontSize: '16px' }}>Detalhes do Alerta</h2>
-      </div>
-
+}> = ({ incident, loading, error, onBack, onRetry, onVehicleSelect }) => (
+  <>
+    <div style={styles.header}>
+      <button type="button" onClick={onBack} style={styles.secondaryButton}>← Voltar à fila</button>
+    </div>
+    {loading && <AsyncDataState variant="loading" message="Carregando o incidente e sua timeline." />}
+    {!loading && error && (
+      <AsyncDataState
+        variant="error"
+        message="O detalhe real do incidente não pôde ser carregado."
+        onBack={onBack}
+        onRetry={onRetry}
+      />
+    )}
+    {!loading && !error && incident && (
       <div style={styles.content}>
-        <div style={{ ...styles.alertCard, borderLeft: `4px solid ${getSeverityColor(alert.severidade)}` }}>
-          {/* Header */}
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  padding: '4px 10px',
-                  borderRadius: '4px',
-                  backgroundColor: getSeverityColor(alert.severidade),
-                  color: 'white',
-                  textTransform: 'uppercase',
-                  fontWeight: 'bold',
-                }}
-              >
-                {alert.severidade}
+        <article style={{ ...styles.card, borderLeft: `4px solid ${severityColor(incident.severity)}` }}>
+          <div style={styles.badges}>
+            <Badge label={SEVERITY_LABELS[incident.severity]} color={severityColor(incident.severity)} />
+            <Badge label={STATUS_LABELS[incident.status]} color={statusColor(incident.status)} />
+            <Badge label={SOURCE_LABELS[incident.primary_source]} color="#2563eb" />
+          </div>
+          <h2 style={{ ...styles.cardTitle, fontSize: '18px', marginTop: '12px' }}>{incident.title}</h2>
+          <p style={styles.description}>{incident.summary || 'Sem resumo adicional.'}</p>
+          <dl style={styles.detailsGrid}>
+            <Detail label="Veículo" value={incident.placa || incident.device_id || `Dirija Bem ${incident.codusu}`} />
+            <Detail label="Tipo" value={incident.incident_type} />
+            <Detail label="Monitor" value={incident.monitor_name || 'Sem monitor associado'} />
+            <Detail label="Responsável" value={incident.assigned_to || 'Não atribuído'} />
+            <Detail label="Risco" value={incident.risk_score === null ? 'Não calculado' : `${incident.risk_score.toFixed(1)}/100`} />
+            <Detail label="Aberto em" value={formatDateTime(incident.opened_at)} />
+          </dl>
+          {incident.device_id && onVehicleSelect && (
+            <button type="button" style={styles.secondaryButton} onClick={() => onVehicleSelect(incident.device_id!)}>
+              Abrir veículo no mapa
+            </button>
+          )}
+        </article>
+        <section style={{ ...styles.card, cursor: 'default' }}>
+          <h3 style={styles.cardTitle}>Timeline auditável ({incident.timeline_total})</h3>
+          {incident.timeline.length === 0 ? (
+            <p style={styles.muted}>Nenhuma entrada registrada.</p>
+          ) : incident.timeline.map(entry => (
+            <div key={entry.id} style={styles.timelineEntry}>
+              <strong style={{ color: '#f9fafb' }}>{entry.summary}</strong>
+              <span style={styles.muted}>
+                {entry.actor_name || entry.actor_id || entry.actor_type} · {formatDateTime(entry.occurred_at)}
               </span>
-              <span
-                style={{
-                  fontSize: '11px',
-                  padding: '4px 10px',
-                  borderRadius: '4px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  textTransform: 'uppercase',
-                  fontWeight: 'bold',
-                }}
-              >
-                {alert.tipo}
-              </span>
             </div>
-            <h3 style={{ margin: '0 0 8px 0', color: '#f9fafb', fontSize: '18px', fontWeight: 'bold' }}>
-              {alert.titulo}
-            </h3>
-            <div style={{ fontSize: '13px', color: '#9ca3af' }}>
-              Monitor: <span style={{ color: '#d1d5db' }}>{alert.monitor_nome}</span>
-            </div>
-          </div>
-
-          {/* Vehicle Info */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '6px' }}>Veículo:</div>
-            <div style={{ fontSize: '15px', color: '#f9fafb', fontWeight: 'bold' }}>
-              <span
-                style={{ cursor: onVehicleSelect ? 'pointer' : 'default', textDecoration: onVehicleSelect ? 'underline' : 'none' }}
-                onClick={() => onVehicleSelect && onVehicleSelect(alert.device_id)}
-              >
-                {alert.device_id}
-              </span>
-              {alert.nome_motorista && <span style={{ color: '#d1d5db', fontWeight: 'normal' }}> - {alert.nome_motorista}</span>}
-            </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-              {alert.eventos_relacionados} eventos relacionados
-            </div>
-          </div>
-
-          {/* Message */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>Descrição:</div>
-            <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
-              {alert.mensagem}
-            </p>
-          </div>
-
-          {/* LLM Analysis */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>🤖 Análise da IA:</div>
-            <p style={{ margin: 0, color: '#d1d5db', fontSize: '13px', lineHeight: '1.6' }}>
-              {alert.llm_analise_resumo}
-            </p>
-          </div>
-
-          {/* Recommendations */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px' }}>💡 Recomendações:</div>
-            <ul style={{ margin: 0, paddingLeft: '20px', color: '#d1d5db', fontSize: '13px', lineHeight: '1.6' }}>
-              {alert.recomendacoes.map((rec, idx) => (
-                <li key={idx} style={{ marginBottom: '6px' }}>{rec}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Timestamp */}
-          <div style={{ fontSize: '12px', color: '#9ca3af', paddingTop: '10px', borderTop: '1px solid #4b5563' }}>
-            Criado em: {formatTimestamp(alert.criado_em)}
-            {alert.reconhecido_em && (
-              <div style={{ marginTop: '4px' }}>
-                Reconhecido em: {formatTimestamp(alert.reconhecido_em)} por {alert.reconhecido_por}
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-            {alert.status === 'pending' && (
-              <button
-                style={styles.actionButton}
-                onClick={() => onAcknowledge(alert.id)}
-              >
-                ✓ Reconhecer
-              </button>
-            )}
-            {(alert.status === 'pending' || alert.status === 'acknowledged') && (
-              <button
-                style={{ ...styles.actionButton, backgroundColor: '#10b981' }}
-                onClick={() => onResolve(alert.id)}
-              >
-                ✓ Resolver
-              </button>
-            )}
-          </div>
-        </div>
+          ))}
+        </section>
+        <AsyncDataState
+          variant="stale"
+          compact
+          title="Ações ainda bloqueadas nesta tela"
+          message="Reconhecer, assumir e comentar entram na etapa 2.7; resolver e classificar falso positivo, na 2.8."
+        />
       </div>
-    </>
-  );
-};
+    )}
+  </>
+);
 
-const styles: { [key: string]: React.CSSProperties } = {
-  header: {
-    padding: '15px 20px',
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-  },
-  title: {
-    margin: 0,
-    color: '#f9fafb',
-    fontSize: '18px',
-    fontWeight: 'bold',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '10px',
-    marginTop: '15px',
-  },
-  statBox: {
-    backgroundColor: '#374151',
-    padding: '10px',
-    borderRadius: '6px',
-    textAlign: 'center',
-  },
-  filters: {
-    padding: '15px 20px',
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-    display: 'flex',
-    gap: '15px',
-  },
-  filterGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  filterLabel: {
-    fontSize: '13px',
-    color: '#9ca3af',
-  },
-  filterSelect: {
-    padding: '6px 10px',
-    backgroundColor: '#374151',
-    color: '#f9fafb',
-    border: '1px solid #4b5563',
-    borderRadius: '4px',
-    fontSize: '13px',
-    cursor: 'pointer',
-  },
-  content: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '15px',
-  },
-  alertCard: {
-    backgroundColor: '#374151',
-    borderRadius: '8px',
-    padding: '15px',
-    marginBottom: '12px',
-  },
-  backButton: {
-    padding: '8px 12px',
-    backgroundColor: '#374151',
-    color: '#f9fafb',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500',
-    marginBottom: '10px',
-  },
-  infoBox: {
-    backgroundColor: '#1f2937',
-    padding: '12px',
-    borderRadius: '6px',
-  },
-  actionButton: {
-    padding: '10px 20px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '600',
-    transition: 'all 0.2s ease',
-  },
+const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div>
+    <dt style={styles.muted}>{label}</dt>
+    <dd style={{ color: '#f9fafb', margin: '3px 0 0' }}>{value}</dd>
+  </div>
+);
+
+const styles: Record<string, React.CSSProperties> = {
+  panel: { backgroundColor: '#1f2937', display: 'flex', flexDirection: 'column', height: '100%' },
+  header: { backgroundColor: '#111827', borderBottom: '1px solid #374151', padding: '15px 20px' },
+  titleRow: { alignItems: 'center', display: 'flex', justifyContent: 'space-between' },
+  title: { color: '#f9fafb', fontSize: '18px', margin: 0 },
+  subtitle: { color: '#9ca3af', fontSize: '11px' },
+  statsGrid: { display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(4, 1fr)', marginTop: '15px' },
+  statBox: { backgroundColor: '#374151', borderRadius: '6px', padding: '10px', textAlign: 'center' },
+  filters: { backgroundColor: '#111827', borderBottom: '1px solid #374151', display: 'flex', gap: '15px', padding: '12px 20px' },
+  filterLabel: { color: '#9ca3af', display: 'flex', flexDirection: 'column', fontSize: '12px', gap: '4px' },
+  filterSelect: { backgroundColor: '#374151', border: '1px solid #4b5563', borderRadius: '4px', color: '#f9fafb', padding: '6px 10px' },
+  content: { flex: 1, overflowY: 'auto', padding: '15px' },
+  card: { backgroundColor: '#374151', borderRadius: '8px', cursor: 'pointer', marginBottom: '12px', padding: '15px' },
+  cardHeader: { alignItems: 'flex-start', display: 'flex', gap: '12px', justifyContent: 'space-between' },
+  cardTitle: { color: '#f9fafb', fontSize: '14px', margin: '0 0 4px' },
+  badges: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+  badge: { borderRadius: '4px', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '3px 8px', textTransform: 'uppercase' },
+  muted: { color: '#9ca3af', display: 'block', fontSize: '12px' },
+  description: { color: '#d1d5db', fontSize: '13px', lineHeight: 1.5, margin: '10px 0' },
+  cardFooter: { alignItems: 'center', borderTop: '1px solid #4b5563', color: '#9ca3af', display: 'flex', fontSize: '11px', justifyContent: 'space-between', paddingTop: '10px' },
+  vehicleButton: { background: 'none', border: 0, color: '#dbeafe', cursor: 'pointer', fontWeight: 700, padding: 0, textDecoration: 'underline' },
+  secondaryButton: { backgroundColor: '#374151', border: 'none', borderRadius: '6px', color: '#f9fafb', cursor: 'pointer', fontSize: '12px', padding: '8px 12px' },
+  detailsGrid: { display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', margin: '16px 0' },
+  timelineEntry: { borderLeft: '2px solid #60a5fa', marginTop: '12px', paddingLeft: '10px' },
 };
 
 export default AlertsPanel;
