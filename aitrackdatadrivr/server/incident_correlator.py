@@ -5,6 +5,8 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
+from .incident_sla import SLA_SECONDS, deadline_for
+
 
 VALID_SOURCES = {'tracker', 'dirijabem'}
 VALID_SEVERITIES = {'low', 'medium', 'high', 'critical'}
@@ -108,14 +110,15 @@ def correlate_episode(
             (correlation_key, vehicle_id, origin_episode_id, incident_type,
              title, summary, status, severity, risk_score, primary_source,
              latitude, longitude, position_observed_at, context_snapshot,
-             opened_at, event_count)
+             opened_at, sla_due_at, event_count)
         VALUES (%s, %s, %s, %s, %s, %s, 'new', %s, %s, %s,
-                %s, %s, %s, %s, %s, 0)
+                %s, %s, %s, %s, %s, %s, 0)
         ON DUPLICATE KEY UPDATE correlation_key = VALUES(correlation_key)
     """, (
         correlation_key, vehicle['id'], stored_episode_id, event_type, title,
         f'Episódio {event_type} recebido de {source}.', severity, risk_score, source,
         event.get('lat'), event.get('lon'), observed_at, context_snapshot, observed_at,
+        deadline_for(severity),
     ))
     incident_created = cursor.rowcount == 1
     cursor.execute(
@@ -173,10 +176,15 @@ def correlate_episode(
                        WHEN %s IS NULL THEN risk_score
                        WHEN risk_score IS NULL OR %s > risk_score THEN %s
                        ELSE risk_score END,
+                   sla_due_at = LEAST(
+                       COALESCE(sla_due_at, CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND),
+                       CURRENT_TIMESTAMP(6) + INTERVAL %s SECOND
+                   ),
                    updated_at = CURRENT_TIMESTAMP(6)
              WHERE id = %s
         """, (
             next_source, severity, severity, risk_score, risk_score, risk_score,
+            SLA_SECONDS[severity], SLA_SECONDS[severity],
             incident['id'],
         ))
 

@@ -373,3 +373,65 @@ para medir a cobertura perdida e orientar correção de detector/telemetria.
   implementados antes de usar os números para decisões disciplinares.
 - “Outro” exige justificativa textual; a UI exige no mínimo dez caracteres em
   qualquer classificação.
+
+## UI-2.9 — SLA e escalonamento visual
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `aeac67e`
+
+### Política implementada
+
+| Severidade | Prazo inicial |
+|---|---:|
+| Crítica | 5 minutos |
+| Alta | 15 minutos |
+| Média | 60 minutos |
+| Baixa | 4 horas |
+
+- O prazo começa quando o sistema cria/registra o incidente, não no horário
+  histórico da evidência. Isso evita que replay de telemetria já nasça vencido.
+- Nova evidência de severidade maior encurta o prazo para a política mais grave;
+  evidência posterior nunca amplia um prazo existente.
+- `on_track`: fora da janela final de risco.
+- `at_risk`: último quarto do prazo ou últimos cinco minutos, o que for maior.
+- `breached`: prazo atingido ou ultrapassado.
+- `completed`: incidente resolvido ou encerrado.
+- `not_set`: caso legado sem prazo; aparece explicitamente e não é tratado como
+  “no prazo”.
+
+### Contrato implementado
+
+- Incidentes comportamentais Tracker/Dirija Bem recebem `sla_due_at` na criação.
+- Falsos negativos também recebem SLA conforme a severidade informada.
+- API de lista e detalhe acrescenta `sla_status`, segundos restantes e percentual
+  consumido sem alterar campos persistidos.
+- Fila prioriza primeiro SLA vencido, depois estado escalado, depois os demais
+  por prazo crescente.
+- Cards mostram badge verde/amarelo/vermelho/azul/cinza e tempo restante ou
+  atraso; vencidos recebem contorno vermelho.
+- Cabeçalho mostra a quantidade carregada de SLAs vencidos.
+- Detalhe mostra prazo absoluto e tempo restante/atrasado.
+- Estado `escalated` continua visível separadamente do SLA. Um vencimento não
+  falsifica automaticamente uma ação de escalonamento que ainda não ocorreu.
+
+### Evidências
+
+- Testes focais de SLA/correlacionador/API: `37 passed`.
+- Suíte completa backend: `99 passed`.
+- Suíte frontend: `44 passed` em 12 suítes.
+- TypeScript e build de produção: sem erros.
+- Testes cobrem os quatro prazos, início da janela de risco, instante exato do
+  vencimento, atraso negativo, casos concluídos e ausência de SLA.
+- Prova MariaDB: baixo recebeu 14.399 s; evidência crítica encurtou para 299 s;
+  falso negativo alto recebeu 899 s. Rollback confirmou zero resíduos.
+- E2E Playwright real criou três casos e confirmou a ordem
+  `vencido → escalado → no prazo`, badge/atraso visíveis e console sem erros.
+- Limpeza por IDs removeu os três casos temporários; zero registros residuais.
+
+### Limite explícito
+
+Esta tarefa implementa política, prioridade e escalonamento **visual**. Ela não
+envia mensagem, não liga para contatos e não muda silenciosamente o estado para
+`escalated`. O worker que executará escalonamento automático deverá registrar a
+ação na timeline e respeitar as políticas de autonomia/comunicação das etapas de
+agentes, sem confundir “SLA vencido” com “pessoa efetivamente acionada”.

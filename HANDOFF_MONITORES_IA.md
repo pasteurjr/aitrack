@@ -1070,6 +1070,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.6 | este commit | Alertas mock removidos e substituídos pela fila real de incidentes; 42 testes frontend, build e Playwright passaram. |
 | 2026-11-06 | UI-2.7 | este commit | Reconhecer, assumir e comentar persistem com versão/idempotência; 82 testes backend, 42 frontend e E2E real passaram. |
 | 2026-11-06 | UI-2.8 | este commit | TP/FP/FN formalizados com taxonomia, migration e E2E real; 89 testes backend, 44 frontend, rollback e limpeza passaram. |
+| 2026-11-06 | UI-2.9 | este commit | SLA 5m/15m/60m/4h, prioridade e escalonamento visual; 99 testes backend, 44 frontend e E2E real passaram. |
 
 ---
 

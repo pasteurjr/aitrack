@@ -9,6 +9,7 @@ export type IncidentStatus =
 
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type IncidentSource = 'tracker' | 'dirijabem' | 'fused' | 'system';
+export type IncidentSlaStatus = 'not_set' | 'on_track' | 'at_risk' | 'breached' | 'completed';
 
 export interface IncidentSummary {
   id: number;
@@ -35,6 +36,10 @@ export interface IncidentSummary {
   opened_at: string;
   updated_at: string;
   timeline_entries: number;
+  sla_due_at: string | null;
+  sla_status: IncidentSlaStatus;
+  sla_seconds_remaining: number | null;
+  sla_progress_percent: number | null;
 }
 
 export interface IncidentTimelineEntry {

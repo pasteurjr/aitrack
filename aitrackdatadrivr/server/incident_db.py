@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .monitor_db import get_connection
 from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
+from .incident_sla import deadline_for, enrich_sla
 
 
 class IncidentNotFound(Exception):
@@ -84,10 +85,14 @@ def list_incidents(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], 
         total = int(cursor.fetchone()['total'])
         cursor.execute(
             INCIDENT_SELECT + where_sql
-            + ' ORDER BY i.updated_at DESC, i.id DESC LIMIT %s OFFSET %s',
+            + " ORDER BY CASE"
+              " WHEN i.status NOT IN ('resolved', 'closed') AND i.sla_due_at < CURRENT_TIMESTAMP(6) THEN 0"
+              " WHEN i.status = 'escalated' THEN 1 ELSE 2 END,"
+              " i.sla_due_at IS NULL, i.sla_due_at ASC, i.updated_at DESC, i.id DESC"
+              " LIMIT %s OFFSET %s",
             tuple([*params, limit, offset]),
         )
-        return [serialize_record(row) for row in cursor.fetchall()], total
+        return [serialize_record(enrich_sla(row)) for row in cursor.fetchall()], total
     finally:
         cursor.close()
         conn.close()
@@ -119,7 +124,7 @@ def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
              LIMIT %s
         """, (incident_id, timeline_limit))
         timeline = [serialize_record(row) for row in reversed(cursor.fetchall())]
-        result = serialize_record(incident)
+        result = serialize_record(enrich_sla(incident))
         result['timeline'] = timeline
         result['timeline_total'] = timeline_total
         result['timeline_truncated'] = timeline_total > len(timeline)
@@ -376,13 +381,13 @@ def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connect
                 (correlation_key, vehicle_id, incident_type, title, summary,
                  status, severity, primary_source, opened_at, triaged_at,
                  detection_outcome, classification_reason, classified_by,
-                 classified_at, version)
+                 classified_at, sla_due_at, version)
             VALUES (%s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
                     CURRENT_TIMESTAMP(6), 'false_negative', %s, %s,
-                    CURRENT_TIMESTAMP(6), 1)
+                    CURRENT_TIMESTAMP(6), %s, 1)
         """, (
             correlation_key, vehicle_id, incident_type, title, notes, severity,
-            occurred_at, reason, str(actor['id'])[:100],
+            occurred_at, reason, str(actor['id'])[:100], deadline_for(severity),
         ))
         incident_id = cursor.lastrowid
         cursor.execute("""

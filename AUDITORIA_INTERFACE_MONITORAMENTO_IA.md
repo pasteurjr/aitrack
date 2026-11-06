@@ -682,7 +682,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **2.6** Substituir Alertas mock por fila real de incidentes.
 - [x] **2.7** Implementar reconhecer, assumir e comentar.
 - [x] **2.8** Implementar resolver, classificar falso positivo e registrar falso negativo.
-- [ ] **2.9** Adicionar SLA e escalonamento visual.
+- [x] **2.9** Adicionar SLA e escalonamento visual.
 - [ ] **2.10** Criar testes de concorrência e idempotência.
 
 **Aceite:** operador conduz um caso completo, persistente e auditável, sem dados mock.

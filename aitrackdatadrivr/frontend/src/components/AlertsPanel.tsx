@@ -48,6 +48,22 @@ const OUTCOME_LABELS = {
   false_negative: 'Falso negativo',
 };
 
+const SLA_LABELS = {
+  not_set: 'SLA não definido',
+  on_track: 'SLA no prazo',
+  at_risk: 'SLA em risco',
+  breached: 'SLA vencido',
+  completed: 'SLA concluído',
+};
+
+const SLA_COLORS = {
+  not_set: '#6b7280',
+  on_track: '#059669',
+  at_risk: '#d97706',
+  breached: '#dc2626',
+  completed: '#2563eb',
+};
+
 const REASON_LABELS: Record<string, string> = {
   confirmed_risk: 'Risco confirmado',
   owner_confirmed: 'Confirmado pelo proprietário',
@@ -94,6 +110,15 @@ const formatDateTime = (timestamp: string) => new Date(timestamp).toLocaleString
   hour: '2-digit',
   minute: '2-digit',
 });
+
+const formatSlaTime = (seconds: number | null) => {
+  if (seconds === null) return '';
+  const absolute = Math.abs(seconds);
+  const hours = Math.floor(absolute / 3600);
+  const minutes = Math.ceil((absolute % 3600) / 60);
+  const duration = hours ? `${hours}h ${minutes}min` : `${minutes}min`;
+  return seconds < 0 ? `${duration} atrasado` : `${duration} restante`;
+};
 
 const commandKey = (action: string, incidentId: number) => {
   const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -194,7 +219,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   const stats = useMemo(() => ({
     total,
     critical: incidents.filter(item => item.severity === 'critical').length,
-    high: incidents.filter(item => item.severity === 'high').length,
+    breached: incidents.filter(item => item.sla_status === 'breached').length,
     escalated: incidents.filter(item => item.status === 'escalated').length,
   }), [incidents, total]);
 
@@ -378,7 +403,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
 };
 
 const QueueHeader: React.FC<{
-  stats: { total: number; critical: number; high: number; escalated: number };
+  stats: { total: number; critical: number; breached: number; escalated: number };
   onRefresh: () => void;
   onReportFalseNegative: () => void;
 }> = ({ stats, onRefresh, onReportFalseNegative }) => (
@@ -398,7 +423,7 @@ const QueueHeader: React.FC<{
     <div style={styles.statsGrid}>
       <Stat value={stats.total} label="Na consulta" color="#f9fafb" />
       <Stat value={stats.critical} label="Críticos carregados" color="#ef4444" />
-      <Stat value={stats.high} label="Altos carregados" color="#f97316" />
+      <Stat value={stats.breached} label="SLA vencido" color="#dc2626" />
       <Stat value={stats.escalated} label="Escalados carregados" color="#dc2626" />
     </div>
   </div>
@@ -550,7 +575,11 @@ const IncidentList: React.FC<{
     {incidents.map(incident => (
       <article
         key={incident.id}
-        style={{ ...styles.card, borderLeft: `4px solid ${severityColor(incident.severity)}` }}
+        style={{
+          ...styles.card,
+          borderLeft: `4px solid ${severityColor(incident.severity)}`,
+          boxShadow: incident.sla_status === 'breached' ? '0 0 0 1px #dc2626' : 'none',
+        }}
         onClick={() => onIncidentClick(incident.id)}
       >
         <div style={styles.cardHeader}>
@@ -561,6 +590,7 @@ const IncidentList: React.FC<{
           <div style={styles.badges}>
             <Badge label={SEVERITY_LABELS[incident.severity]} color={severityColor(incident.severity)} />
             <Badge label={STATUS_LABELS[incident.status]} color={statusColor(incident.status)} />
+            <Badge label={SLA_LABELS[incident.sla_status]} color={SLA_COLORS[incident.sla_status]} />
           </div>
         </div>
         <p style={styles.description}>{incident.summary || 'Sem resumo adicional.'}</p>
@@ -576,7 +606,9 @@ const IncidentList: React.FC<{
           >
             {incident.placa || incident.device_id || `Dirija Bem ${incident.codusu}`}
           </button>
-          <span>{incident.event_count} evidência(s) · {formatDateTime(incident.opened_at)}</span>
+          <span>
+            {incident.event_count} evidência(s) · {formatSlaTime(incident.sla_seconds_remaining)}
+          </span>
         </div>
       </article>
     ))}
@@ -640,6 +672,7 @@ const IncidentDetails: React.FC<{
             <Badge label={SEVERITY_LABELS[incident.severity]} color={severityColor(incident.severity)} />
             <Badge label={STATUS_LABELS[incident.status]} color={statusColor(incident.status)} />
             <Badge label={SOURCE_LABELS[incident.primary_source]} color="#2563eb" />
+            <Badge label={SLA_LABELS[incident.sla_status]} color={SLA_COLORS[incident.sla_status]} />
           </div>
           <h2 style={{ ...styles.cardTitle, fontSize: '18px', marginTop: '12px' }}>{incident.title}</h2>
           <p style={styles.description}>{incident.summary || 'Sem resumo adicional.'}</p>
@@ -650,6 +683,11 @@ const IncidentDetails: React.FC<{
             <Detail label="Responsável" value={incident.assigned_to || 'Não atribuído'} />
             <Detail label="Risco" value={incident.risk_score === null ? 'Não calculado' : `${incident.risk_score.toFixed(1)}/100`} />
             <Detail label="Aberto em" value={formatDateTime(incident.opened_at)} />
+            <Detail label="Prazo do SLA" value={
+              incident.sla_due_at
+                ? `${formatDateTime(incident.sla_due_at)} · ${formatSlaTime(incident.sla_seconds_remaining)}`
+                : 'Não definido'
+            } />
             <Detail label="Resultado da detecção" value={OUTCOME_LABELS[incident.detection_outcome]} />
             <Detail label="Motivo da classificação" value={
               incident.classification_reason

@@ -46,6 +46,10 @@ const incident = {
   opened_at: '2026-11-06T15:00:00',
   updated_at: '2026-11-06T15:00:00',
   timeline_entries: 1,
+  sla_due_at: '2026-11-06T15:05:00',
+  sla_status: 'at_risk',
+  sla_seconds_remaining: 120,
+  sla_progress_percent: 60,
 } as const;
 
 const listResponse = (incidents: unknown[]) => ({
@@ -123,6 +127,8 @@ it('renderiza incidente real e abre seu detalhe auditável', async () => {
   const title = await screen.findByText('Excesso de velocidade detectado');
   expect(screen.getAllByText('Crítica')).toHaveLength(2);
   expect(screen.getByText(/#44 · Tracker/)).toBeInTheDocument();
+  expect(screen.getByText('SLA em risco')).toBeInTheDocument();
+  expect(screen.getByText(/2min restante/)).toBeInTheDocument();
 
   fireEvent.click(title);
 
