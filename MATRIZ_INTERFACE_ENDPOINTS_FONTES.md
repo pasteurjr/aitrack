@@ -298,6 +298,10 @@ O backend oferece `GET /api/events/catalog` e `GET /api/events/stats`, mas o fro
 
 Esses serviços representam contratos disponíveis, não funcionalidades concluídas.
 
+### API versionada de identidade
+
+`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. Nesta etapa o endpoint está disponível, mas a interface ainda usa as consultas legadas; a migração ocorre na UI-1.3.
+
 ---
 
 ## 12. Metadados que precisam entrar nos contratos

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from server.unified_vehicle_dto import SCHEMA_VERSION, UnifiedVehicleDTO
+from server.unified_vehicle_dto import OperationMode, SCHEMA_VERSION, UnifiedVehicleDTO
 
 
 def test_builds_tracker_only_vehicle_from_existing_record():
@@ -15,7 +15,7 @@ def test_builds_tracker_only_vehicle_from_existing_record():
         "placa": "abc-1d23",
         "descricao": "Veículo de apoio",
         "ativo": 1,
-    })
+    }, tracker_mode=OperationMode.SIMULATION)
 
     assert vehicle.to_dict() == {
         "schema_version": SCHEMA_VERSION,
@@ -24,6 +24,11 @@ def test_builds_tracker_only_vehicle_from_existing_record():
         "display_name": "Veículo de apoio",
         "plate": "ABC-1D23",
         "active": True,
+        "telemetry": [{
+            "source": "tracker",
+            "mode": "simulation",
+            "last_communication_at": None,
+        }],
         "tracker": {"device_id": "SIM-1000", "veicod": 42},
         "dirijabem": None,
     }
@@ -59,7 +64,24 @@ def test_builds_both_vehicle_and_is_json_serializable():
     assert payload["display_name"] == "XYZ-9Z99"
     assert payload["tracker"] == {"device_id": "DEV-30", "veicod": None}
     assert payload["dirijabem"] == {"codusu": 30}
+    assert {item["source"] for item in payload["telemetry"]} == {"tracker", "dirijabem"}
     json.dumps(payload)
+
+
+def test_exposes_mode_and_last_communication_without_inference():
+    vehicle = UnifiedVehicleDTO.from_record({
+        "id": 10,
+        "tipo": "tracker_only",
+        "device_id": "SIM-1000",
+        "descricao": "Veículo",
+        "tracker_last_communication_at": "2026-11-06T05:30:00-03:00",
+    }, tracker_mode=OperationMode.LIVE)
+
+    assert vehicle.to_dict()["telemetry"] == [{
+        "source": "tracker",
+        "mode": "live",
+        "last_communication_at": "2026-11-06T05:30:00-03:00",
+    }]
 
 
 @pytest.mark.parametrize(

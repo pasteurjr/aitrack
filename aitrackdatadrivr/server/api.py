@@ -177,6 +177,12 @@ app.register_blueprint(monitor_bp)
 from .unified_api import unified_bp
 app.register_blueprint(unified_bp)
 
+# ============================================
+# VERSIONED VEHICLE IDENTITY API
+# ============================================
+from .vehicle_api import vehicle_bp
+app.register_blueprint(vehicle_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """

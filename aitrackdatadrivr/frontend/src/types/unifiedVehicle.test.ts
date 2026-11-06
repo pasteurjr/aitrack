@@ -7,6 +7,7 @@ const trackerVehicle = {
   display_name: 'Veículo 10',
   plate: 'ABC-1D23',
   active: true,
+  telemetry: [{ source: 'tracker', mode: 'simulation', last_communication_at: null }],
   tracker: { device_id: 'SIM-1000', veicod: 42 },
   dirijabem: null,
 };
