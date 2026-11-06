@@ -62,7 +62,7 @@ Indica como o dado foi produzido:
 | Catálogo de eventos | `EventsCatalog` | tipos, estatísticas e SLA | mock frontend | Sim: faixa DEMONSTRAÇÃO | 🧪 |
 | Cercas | inexistente | desenho, regras e violações | — | — | ⛔ |
 | Sensores/comandos | inexistente | capacidades, leituras e comandos | — | — | ⛔ |
-| Incidentes | API/UI ainda inexistentes | incidente e timeline persistentes | `tracker.incidents`, `tracker.incident_timeline` | Não aplicável | ⚠️ |
+| Incidentes | UI ainda inexistente; API real disponível | incidente e timeline persistentes | `tracker.incidents`, `tracker.incident_timeline` | Não aplicável | ⚠️ |
 | Runtime dos agentes | inexistente | decisão, ferramentas e memória | — | — | ⛔ |
 | Comunicações | inexistente | mensagens, ligações e recibos | — | — | ⛔ |
 
@@ -303,6 +303,13 @@ O backend oferece `GET /api/events/catalog` e `GET /api/events/stats`, mas o fro
 | GET | `/api/monitors/{id}` | `monitorService` | Monitores | leitura | Monitor DB |
 | GET | `/api/monitors/{id}/vehicles` | `monitorService` | Monitores | leitura | Monitor DB + memória |
 | GET | `/api/v1/vehicles` | `unifiedVehicleService` | frota unificada e cabeçalho do veículo | leitura | `veiculo_unificado` |
+
+APIs operacionais disponíveis, ainda sem consumidor no frontend:
+
+| Método | Endpoint | Contrato | Fonte |
+|---|---|---|---|
+| GET | `/api/incidents` | `incident-list.v1` | `tracker.incidents` |
+| GET | `/api/incidents/{id}` | `incident-detail.v1` | incidentes, identidade, monitor e timeline |
 
 ---
 

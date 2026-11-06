@@ -77,3 +77,38 @@ os índices de eventos definidos no plano original.
 A migration `008_create_incident_timeline.sql` foi aplicada diretamente no
 schema `tracker`; o runner de migrations documentado no handoff continua
 pendente.
+
+## UI-2.3 — API de listagem e detalhe
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `f2cbbab`
+
+### Contrato implementado
+
+- `GET /api/incidents`: filtros por estado, severidade, fonte, veículo,
+  monitor, responsável e somente abertos.
+- Paginação por `limit`/`offset`, limitada a 200 itens por resposta.
+- `GET /api/incidents/{id}`: incidente enriquecido com identidade, monitor e
+  timeline cronológica.
+- Timeline limitada a 1.000 entradas e sinalização de truncamento.
+- Queries dinâmicas usam somente colunas permitidas e valores parametrizados.
+- Datas, decimais, booleanos e JSON possuem serialização estável.
+- Erros de validação, ausência e indisponibilidade têm códigos distintos sem
+  expor detalhes internos.
+
+### Evidências
+
+- Testes de filtros, limites, detalhe, 404, falha e serialização.
+- Suíte backend e compilação Python sem regressão.
+- Endpoints reais respondem sobre as tabelas operacionais vazias.
+- Testes específicos da API: `7 passed`.
+- Suíte completa do backend: `47 passed`.
+- Compilação dos módulos Python: sem erros.
+- `GET /api/incidents`: HTTP 200 em 76,7 ms, contrato
+  `incident-list.v1`, total 0.
+- Lista somente aberta: HTTP 200 em 36,8 ms.
+- Estado inválido: HTTP 400 com `INVALID_INCIDENT_FILTER`.
+- ID inexistente: HTTP 404 com `INCIDENT_NOT_FOUND`.
+- Limite de timeline acima do máximo: HTTP 400.
+- Regressão de identidade: `/api/v1/vehicles` HTTP 200.
+- Reinício sem exceções e API/socket ativos nas portas 5009/9000.

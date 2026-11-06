@@ -1064,6 +1064,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-1.10 | este commit | Drill-down por identidade estável; 39 testes, build e fluxo real no navegador passaram. |
 | 2026-11-06 | UI-2.1 | este commit | `tracker.incidents` aplicada: 36 colunas, correlação única, 2 FKs, rollback limpo e 36 testes backend. |
 | 2026-11-06 | UI-2.2 | este commit | `incident_timeline` aplicada: 19 colunas, 2 FKs, idempotência provada, rollback limpo e 40 testes backend. |
+| 2026-11-06 | UI-2.3 | este commit | API de lista/detalhe com filtros e timeline; 47 testes e validação runtime passaram. |
 
 ---
 
@@ -1106,6 +1107,8 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | POST | `/api/monitors/<id>/vehicles` (aceita `{device_id}` ou `{tipo_veiculo:"dirijabem", codusu}`) | T3.3, T4.6 |
 | GET | `/api/events/catalog` (+ `tempo_resposta_segundos`, `deteccao_ativa`) | T3.5 |
 | GET/POST/DELETE | `/api/geofences` | T4.3 |
+| GET | `/api/incidents` | UI-2.3 |
+| GET | `/api/incidents/<id>` | UI-2.3 |
 
 ---
 

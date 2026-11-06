@@ -183,6 +183,12 @@ app.register_blueprint(unified_bp)
 from .vehicle_api import vehicle_bp
 app.register_blueprint(vehicle_bp)
 
+# ============================================
+# INCIDENT API
+# ============================================
+from .incident_api import incident_bp
+app.register_blueprint(incident_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """
