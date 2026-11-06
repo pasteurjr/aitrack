@@ -220,3 +220,34 @@ para os índices da tabela de eventos previstos no plano.
   `/api/fleet/events?limit=50` responderam HTTP 200.
 - Sem simuladores ativos, o contrato retornou legitimamente 0 veículos e 0
   episódios, sem criar valores de demonstração.
+
+## UI-1.9 — Filtros da timeline
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `9c2ce2b`
+
+### Contrato implementado
+
+- Filtros combináveis por veículo, tipo, severidade e período.
+- Contador de episódios visíveis sobre os 50 mais recentes consultados.
+- Estado vazio específico quando os filtros não encontram resultado.
+- Limpeza de todos os filtros em uma ação.
+- Seleção filtrada preserva o índice original até a migração por identidade da
+  UI-1.10.
+
+### Evidências
+
+- Filtros de veículo, tipo e severidade combinados.
+- Período de uma hora exclui episódio antigo.
+- Limpeza restaura todos os resultados.
+- Clique em resultado filtrado mantém o índice original.
+- Frontend: `38 passed` em 11 suítes.
+- TypeScript: sem erros.
+- Build de produção: concluído com sucesso.
+- Navegador: filtro combinado reduziu 3 episódios a 1 (`SIM-1001`).
+- Navegador: período de uma hora exibiu 2 de 3 episódios.
+- Ação acessível do episódio encontrada exatamente uma vez.
+- Erros de página: 0.
+- Dados da validação visual foram interceptados no navegador; nenhum evento
+  artificial foi escrito no banco.
+- Captura: `/tmp/aitrack-ui-1.9-timeline-filters.png`.
