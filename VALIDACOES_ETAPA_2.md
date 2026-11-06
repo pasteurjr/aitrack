@@ -112,3 +112,51 @@ pendente.
 - Limite de timeline acima do máximo: HTTP 400.
 - Regressão de identidade: `/api/v1/vehicles` HTTP 200.
 - Reinício sem exceções e API/socket ativos nas portas 5009/9000.
+
+## UI-2.4 — Máquina de estados dos incidentes
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `2948d33`
+
+### Contrato implementado
+
+- Estados operacionais: novo, triagem, em atendimento, aguardando resposta,
+  escalado, resolvido e encerrado.
+- Comandos explícitos substituem alterações livres de `status`: encaminhar para
+  triagem, iniciar atendimento, aguardar resposta, escalar, retomar, resolver,
+  encerrar e reabrir.
+- Transições ilegais são recusadas antes de acessar o banco.
+- Iniciar atendimento exige responsável humano ou agente.
+- Aguardar resposta exige data da próxima ação.
+- Resolver exige código e justificativa; falso positivo exige classificação
+  coerente. Encerrar exige resolução prévia.
+- Cada transição altera incidente e acrescenta timeline na mesma transação.
+- `version` implementa concorrência otimista e impede atualização sobre estado
+  obsoleto.
+- `idempotency_key` torna repetição segura e devolve o estado atual sem gerar
+  nova entrada.
+- Ator, resumo, correlação e limites do schema são validados antes do SQL.
+- O serviço é interno nesta etapa. Os comandos HTTP orientados ao operador
+  serão expostos em UI-2.7/UI-2.8, junto das respectivas regras de autorização;
+  não foi criado um endpoint genérico de escrita sem autenticação.
+
+### Evidências
+
+- Testes focais da máquina: `18 passed`.
+- Suíte completa do backend: `65 passed`.
+- Compilação dos módulos Python: sem erros.
+- Prova no MariaDB percorreu
+  `new → triage → in_progress → waiting_response → escalated → resolved → closed`.
+- Estado final real: `closed`, versão 7 e seis entradas auditáveis na timeline.
+- Repetição da primeira chave retornou replay idempotente e não criou entrada.
+- Versão obsoleta foi bloqueada por `IncidentConflict`.
+- Transição inválida `closed → close` foi bloqueada por `InvalidTransition`.
+- Toda a prova foi desfeita com rollback; uma segunda conexão confirmou zero
+  incidentes e zero entradas de timeline residuais.
+
+### Limite deliberado
+
+UI-2.4 garante o núcleo transacional usado por humanos e agentes. Autenticação,
+autorização e comandos públicos não pertencem à máquina em si. A API de leitura
+de UI-2.3 permanece inalterada; reconhecer, assumir, comentar, resolver e marcar
+falso positivo entram em UI-2.7/UI-2.8.

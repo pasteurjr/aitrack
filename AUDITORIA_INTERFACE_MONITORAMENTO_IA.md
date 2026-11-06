@@ -677,7 +677,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **2.1** Criar migration de incidentes.
 - [x] **2.2** Criar migration de timeline do incidente.
 - [x] **2.3** Criar API de listagem e detalhe.
-- [ ] **2.4** Criar máquina de estados e validar transições.
+- [x] **2.4** Criar máquina de estados e validar transições.
 - [ ] **2.5** Correlacionar episódios ao incidente.
 - [ ] **2.6** Substituir Alertas mock por fila real de incidentes.
 - [ ] **2.7** Implementar reconhecer, assumir e comentar.

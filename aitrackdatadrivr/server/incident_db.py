@@ -1,4 +1,4 @@
-"""Consultas somente leitura para incidentes e sua timeline."""
+"""Consultas e transições atômicas de incidentes operacionais."""
 
 import json
 from datetime import date, datetime
@@ -6,6 +6,15 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 from .monitor_db import get_connection
+from .incident_state_machine import plan_transition
+
+
+class IncidentNotFound(Exception):
+    pass
+
+
+class IncidentConflict(Exception):
+    pass
 
 
 INCIDENT_SELECT = """
@@ -117,3 +126,107 @@ def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
     finally:
         cursor.close()
         conn.close()
+
+
+def transition_incident(
+    incident_id: int,
+    command: str,
+    payload: Dict,
+    actor: Dict,
+    expected_version: int,
+    idempotency_key: str,
+    connection=None,
+) -> Dict:
+    """Altera estado e grava timeline atomicamente com concorrência otimista."""
+    if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
+        raise ValueError('expected_version deve ser inteiro positivo')
+    if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
+        raise ValueError('idempotency_key deve ter entre 1 e 150 caracteres')
+    if not isinstance(actor, dict) or actor.get('type') not in {
+        'system', 'human', 'agent', 'integration',
+    }:
+        raise ValueError('actor.type inválido')
+    if not actor.get('id') and not actor.get('name'):
+        raise ValueError('Ator deve possuir id ou nome')
+    if len(str(actor.get('id') or '')) > 100 or len(str(actor.get('name') or '')) > 150:
+        raise ValueError('Identificação do ator excede o limite')
+    if not isinstance(payload, dict):
+        raise ValueError('payload deve ser um objeto')
+    if len(str(payload.get('correlation_id') or '')) > 100:
+        raise ValueError('correlation_id deve ter no máximo 100 caracteres')
+
+    idempotency_key = idempotency_key.strip()
+    owns_connection = connection is None
+    conn = connection or get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            (idempotency_key,),
+        )
+        replay = cursor.fetchone()
+        if replay:
+            if int(replay['incident_id']) != incident_id:
+                raise IncidentConflict('Chave de idempotência pertence a outro incidente')
+            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+            result = serialize_record(cursor.fetchone())
+            result['idempotent_replay'] = True
+            return result
+
+        cursor.execute(
+            'SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE',
+            (incident_id,),
+        )
+        incident = cursor.fetchone()
+        if not incident:
+            raise IncidentNotFound()
+        if int(incident['version']) != expected_version:
+            raise IncidentConflict(
+                f'Versão divergente: atual={incident["version"]}, esperada={expected_version}'
+            )
+
+        plan = plan_transition(incident, command, payload)
+        assignments = [f'{field} = %s' for field in plan['updates']]
+        values = list(plan['updates'].values())
+        assignments.extend(['version = version + 1', 'updated_at = CURRENT_TIMESTAMP(6)'])
+        cursor.execute(
+            f'UPDATE tracker.incidents SET {", ".join(assignments)} '
+            'WHERE id = %s AND version = %s',
+            tuple([*values, incident_id, expected_version]),
+        )
+        if cursor.rowcount != 1:
+            raise IncidentConflict('Incidente foi alterado por outro processo')
+
+        details = {
+            'command': command,
+            'expected_version': expected_version,
+            'new_version': expected_version + 1,
+            **{key: value for key, value in payload.items() if key != 'resolution_notes'},
+        }
+        cursor.execute("""
+            INSERT INTO tracker.incident_timeline
+                (incident_id, idempotency_key, entry_type, actor_type,
+                 actor_id, actor_name, from_status, to_status,
+                 summary, details, correlation_id, occurred_at)
+            VALUES (%s, %s, 'status_changed', %s, %s, %s, %s, %s,
+                    %s, %s, %s, CURRENT_TIMESTAMP(6))
+        """, (
+            incident_id, idempotency_key, actor['type'], actor.get('id'),
+            actor.get('name'), plan['from_status'], plan['to_status'],
+            plan['summary'], json.dumps(details, default=str),
+            payload.get('correlation_id'),
+        ))
+        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        result = serialize_record(cursor.fetchone())
+        result['idempotent_replay'] = False
+        if owns_connection:
+            conn.commit()
+        return result
+    except Exception:
+        if owns_connection:
+            conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        if owns_connection:
+            conn.close()
