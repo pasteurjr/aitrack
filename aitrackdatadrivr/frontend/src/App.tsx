@@ -8,6 +8,7 @@ import MonitorDetailView from './components/MonitorDetailView';
 import AlertsPanel from './components/AlertsPanel';
 import EventsCatalog from './components/EventsCatalog';
 import OperationModeBadge from './components/OperationModeBadge';
+import VehicleDetailHeader from './components/VehicleDetailHeader';
 import { mockVehiclesInMonitors } from './mockData/mockMonitors';
 import type { VehicleInMonitor } from './mockData/mockMonitors';
 import './App.css';
@@ -145,18 +146,31 @@ function App() {
               selectedVehicle={selectedMonitorVehicle}
             />
           ) : (
-            <MapComponent
-              selectedVehicleId={selectedVehicleId}
-              selectedUserId={selectedUserId}
-              highlightedEventIndex={highlightedEventIndex}
-              filterEventsByVehicle={filterEventsByVehicle}
-              onClearEventHighlight={() => setHighlightedEventIndex(null)}
-              onClearFilter={() => {
-                setFilterEventsByVehicle(null);
-                setSelectedVehicleId(null);
-                setSelectedUserId(null);
-              }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <VehicleDetailHeader
+                selectedVehicleId={selectedVehicleId}
+                selectedUserId={selectedUserId}
+                onClear={() => {
+                  setFilterEventsByVehicle(null);
+                  setSelectedVehicleId(null);
+                  setSelectedUserId(null);
+                }}
+              />
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <MapComponent
+                  selectedVehicleId={selectedVehicleId}
+                  selectedUserId={selectedUserId}
+                  highlightedEventIndex={highlightedEventIndex}
+                  filterEventsByVehicle={filterEventsByVehicle}
+                  onClearEventHighlight={() => setHighlightedEventIndex(null)}
+                  onClearFilter={() => {
+                    setFilterEventsByVehicle(null);
+                    setSelectedVehicleId(null);
+                    setSelectedUserId(null);
+                  }}
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

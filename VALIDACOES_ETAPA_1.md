@@ -2,7 +2,7 @@
 
 ## UI-1.2 — Procedência, modo e última comunicação
 
-**Data:** 06/11/2026  
+**Data:** 06/11/2026
 **Checkpoint anterior:** `2960557`
 
 ### Validações automatizadas
@@ -37,7 +37,7 @@ O resultado `unknown`/`null` é intencional e seguro: as fontes atuais ainda nã
 
 ## UI-1.3 — Lista unificada pesquisável
 
-**Data:** 06/11/2026  
+**Data:** 06/11/2026
 **Checkpoint anterior:** `e170bab`
 
 ### Validações automatizadas
@@ -58,3 +58,36 @@ O resultado `unknown`/`null` é intencional e seguro: as fontes atuais ainda nã
 | erros de página | 0 |
 
 A lista passou a consumir a identidade versionada. A pesquisa encontra placa, nome, `device_id` e `codusu`; modo e última comunicação são apresentados explicitamente, inclusive quando `unknown`/`null`.
+
+## UI-1.4 — Cabeçalho contextual do veículo
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `0f93f4c`
+
+### Validações automatizadas
+
+- Frontend: `35 passed` em 11 suítes.
+- Testes novos: ausência de seleção, identidade Tracker, identidade sem vínculo, fechamento e falha da API.
+- TypeScript: `npx tsc --noEmit` sem erros.
+- Build de produção: concluído com sucesso.
+- `git diff --check`: sem erros de whitespace.
+
+### Validação operacional com navegador automatizado
+
+| Verificação | Resultado |
+|---|---:|
+| frontend | HTTP 200 |
+| pesquisa utilizada | `SIM-1000` |
+| itens visíveis após pesquisa | 1 |
+| identidade resolvida | Veículo simulado rastreador GPS 1 |
+| procedência | `TRACKER` |
+| modo retornado | `unknown` |
+| último contato retornado | não informado |
+| cabeçalho após fechar | removido |
+| erros de página | 0 |
+| requisições falhas | 0 |
+
+O cabeçalho usa o mesmo contrato versionado da frota unificada e fica acima do
+mapa durante a seleção. Nenhum score, modo ou horário ausente é fabricado. A
+captura da prova visual foi gerada em
+`/tmp/aitrack-ui-1.4-vehicle-header.png` durante a validação local.

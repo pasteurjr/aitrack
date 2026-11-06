@@ -51,6 +51,7 @@ Indica como o dado foi produzido:
 |---|---|---|---|---|---:|
 | Cabeçalho | `OperationModeBadge` | Ambiente global | `REACT_APP_OPERATION_MODE` | Sim, mas apenas no nível do build | ✅ |
 | Dashboard | `BehavioralDashboard` | veículos, usuários, scores e KPIs | Tracker DB, lista fixa Dirija Bem e memória do motor | Não por registro | ⚠️ |
+| Contexto do veículo | `VehicleDetailHeader` | identidade, fonte, modo e última comunicação | cadastro unificado | Sim, conforme metadados disponíveis | ✅ |
 | Mapa | `MapComponent` | posições, scores, eventos, trilha e rota | Tracker DB, Dirija Bem DB e memória | Não por registro | ⚠️ |
 | Timeline | `EventsTimeline` | eventos comportamentais recentes | memória do motor | Não | ⚠️ |
 | Análises | `VehicleAnalytics` | scores, distribuição e rankings | memória do motor | Não | ⚠️ |
@@ -147,6 +148,15 @@ Os seletores específicos foram preservados. O seletor Dirija Bem antigo ainda i
 ---
 
 ## 4. Mapa
+
+### 4.1 Cabeçalho de contexto do veículo
+
+Ao selecionar um item da frota unificada, `VehicleDetailHeader.tsx` resolve a
+identidade pelo `GET /api/v1/vehicles` e mantém acima do mapa o nome, placa,
+identificadores Tracker/Dirija Bem, procedência, modo, última comunicação e
+estado cadastral. Ausências e falhas são explícitas; o componente não cria
+score, horário ou vínculo. Fechar o cabeçalho limpa as seleções e o filtro de
+eventos do veículo.
 
 | Função | Serviço | Endpoint | Fonte | Frequência/gatilho | Situação |
 |---|---|---|---|---|---:|
@@ -287,7 +297,7 @@ O backend oferece `GET /api/events/catalog` e `GET /api/events/stats`, mas o fro
 | GET | `/api/monitors` | `monitorService` | Monitores | leitura | Monitor DB |
 | GET | `/api/monitors/{id}` | `monitorService` | Monitores | leitura | Monitor DB |
 | GET | `/api/monitors/{id}/vehicles` | `monitorService` | Monitores | leitura | Monitor DB + memória |
-| GET | `/api/v1/vehicles` | `unifiedVehicleService` | frota unificada | leitura | `veiculo_unificado` |
+| GET | `/api/v1/vehicles` | `unifiedVehicleService` | frota unificada e cabeçalho do veículo | leitura | `veiculo_unificado` |
 
 ---
 
@@ -305,7 +315,7 @@ Esses serviços representam contratos disponíveis, não funcionalidades conclu�
 
 ### API versionada de identidade
 
-`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. A frota unificada do Dashboard consome esse endpoint desde a UI-1.3; os seletores legados continuam temporariamente separados.
+`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. A frota unificada do Dashboard consome esse endpoint desde a UI-1.3 e o cabeçalho contextual desde a UI-1.4; os seletores legados continuam temporariamente separados.
 
 ---
 

@@ -10,6 +10,7 @@ jest.mock('./components/MonitorDashboard', () => () => <div />);
 jest.mock('./components/MonitorDetailView', () => () => <div />);
 jest.mock('./components/AlertsPanel', () => () => <div />);
 jest.mock('./components/EventsCatalog', () => () => <div />);
+jest.mock('./components/VehicleDetailHeader', () => () => <div />);
 
 test('renderiza a marca e assume simulação quando o modo não está configurado', () => {
   render(<App />);
