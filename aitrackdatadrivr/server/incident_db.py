@@ -167,6 +167,16 @@ def transition_incident(
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
+            'SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE',
+            (incident_id,),
+        )
+        incident = cursor.fetchone()
+        if not incident:
+            raise IncidentNotFound()
+        # O lock do incidente vem antes da consulta de idempotência. Assim,
+        # retries simultâneos aguardam a primeira transação e enxergam sua
+        # timeline, em vez de falharem artificialmente por versão obsoleta.
+        cursor.execute(
             'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
             (idempotency_key,),
         )
@@ -174,18 +184,9 @@ def transition_incident(
         if replay:
             if int(replay['incident_id']) != incident_id:
                 raise IncidentConflict('Chave de idempotência pertence a outro incidente')
-            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
-            result = serialize_record(cursor.fetchone())
+            result = serialize_record(incident)
             result['idempotent_replay'] = True
             return result
-
-        cursor.execute(
-            'SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE',
-            (incident_id,),
-        )
-        incident = cursor.fetchone()
-        if not incident:
-            raise IncidentNotFound()
         if int(incident['version']) != expected_version:
             raise IncidentConflict(
                 f'Versão divergente: atual={incident["version"]}, esperada={expected_version}'
@@ -266,6 +267,10 @@ def add_incident_comment(
     conn = connection or get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE', (incident_id,))
+        incident = cursor.fetchone()
+        if not incident:
+            raise IncidentNotFound()
         cursor.execute(
             'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
             (idempotency_key,),
@@ -274,15 +279,9 @@ def add_incident_comment(
         if replay:
             if int(replay['incident_id']) != incident_id:
                 raise IncidentConflict('Chave de idempotência pertence a outro incidente')
-            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
-            result = serialize_record(cursor.fetchone())
+            result = serialize_record(incident)
             result['idempotent_replay'] = True
             return result
-
-        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE', (incident_id,))
-        incident = cursor.fetchone()
-        if not incident:
-            raise IncidentNotFound()
         if int(incident['version']) != expected_version:
             raise IncidentConflict(
                 f'Versão divergente: atual={incident["version"]}, esperada={expected_version}'

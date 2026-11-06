@@ -435,3 +435,44 @@ envia mensagem, não liga para contatos e não muda silenciosamente o estado par
 `escalated`. O worker que executará escalonamento automático deverá registrar a
 ação na timeline e respeitar as políticas de autonomia/comunicação das etapas de
 agentes, sem confundir “SLA vencido” com “pessoa efetivamente acionada”.
+
+## UI-2.10 — Concorrência e idempotência reais
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `3f0ea35`
+
+### Correção implementada
+
+- Transições e comentários bloqueiam primeiro a linha do incidente com
+  `SELECT ... FOR UPDATE` e só depois consultam a chave idempotente.
+- Dois retries simultâneos da mesma ação agora são serializados: o primeiro
+  grava e incrementa a versão; o segundo lê a timeline confirmada e responde
+  como replay, sem executar a ação outra vez.
+- Comandos diferentes enviados sobre a mesma versão continuam protegidos pela
+  concorrência otimista: apenas um vence e o outro recebe `IncidentConflict`,
+  mapeado pela API para HTTP 409.
+
+### Cenários automatizados no MariaDB compartilhado
+
+O arquivo `tests/integration/test_incident_concurrency_mysql.py` cria incidentes
+temporários, dispara duas threads com conexões independentes e remove timeline e
+incidente por ID em bloco `finally`.
+
+1. Dois comandos `triage` simultâneos, mesma versão e mesma chave:
+   uma execução, um replay, versão final 2 e uma entrada de timeline.
+2. Dois operadores, comandos incompatíveis e mesma versão:
+   um sucesso, um conflito, versão final 2 e uma entrada de timeline.
+3. Dois comentários simultâneos com a mesma chave:
+   uma execução, um replay, versão final 2 e uma entrada de timeline.
+
+### Evidências
+
+- Integração real: `AITRACK_RUN_DB_INTEGRATION=1 python3 -m pytest -q
+  tests/integration/test_incident_concurrency_mysql.py` → `3 passed`.
+- Regressão backend: `python3 -m pytest -q tests` → `99 passed, 3 skipped`;
+  os três testes reais são opt-in para não escrever no banco durante toda suíte.
+- Conferência posterior: zero incidentes `ui210:%` e zero entradas de timeline
+  `ui210-%` residuais.
+- Não há modelo de linguagem neste teste. A garantia exercitada é transacional
+  e deve permanecer determinística mesmo quando os comandos forem produzidos
+  futuramente por operadores humanos ou agentes de IA.
