@@ -674,7 +674,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 
 ### Etapa 2 — Incidentes reais
 
-- [ ] **2.1** Criar migration de incidentes.
+- [x] **2.1** Criar migration de incidentes.
 - [ ] **2.2** Criar migration de timeline do incidente.
 - [ ] **2.3** Criar API de listagem e detalhe.
 - [ ] **2.4** Criar máquina de estados e validar transições.

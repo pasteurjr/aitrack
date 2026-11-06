@@ -62,7 +62,7 @@ Indica como o dado foi produzido:
 | Catálogo de eventos | `EventsCatalog` | tipos, estatísticas e SLA | mock frontend | Sim: faixa DEMONSTRAÇÃO | 🧪 |
 | Cercas | inexistente | desenho, regras e violações | — | — | ⛔ |
 | Sensores/comandos | inexistente | capacidades, leituras e comandos | — | — | ⛔ |
-| Incidentes | inexistente | caso operacional e atendimento | — | — | ⛔ |
+| Incidentes | API/UI ainda inexistentes | schema operacional persistente | `tracker.incidents` | Não aplicável | ⚠️ |
 | Runtime dos agentes | inexistente | decisão, ferramentas e memória | — | — | ⛔ |
 | Comunicações | inexistente | mensagens, ligações e recibos | — | — | ⛔ |
 
