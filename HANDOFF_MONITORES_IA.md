@@ -1063,6 +1063,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-1.9 | este commit | Timeline com filtros combináveis; 38 testes, build e validação visual sem erros. |
 | 2026-11-06 | UI-1.10 | este commit | Drill-down por identidade estável; 39 testes, build e fluxo real no navegador passaram. |
 | 2026-11-06 | UI-2.1 | este commit | `tracker.incidents` aplicada: 36 colunas, correlação única, 2 FKs, rollback limpo e 36 testes backend. |
+| 2026-11-06 | UI-2.2 | este commit | `incident_timeline` aplicada: 19 colunas, 2 FKs, idempotência provada, rollback limpo e 40 testes backend. |
 
 ---
 

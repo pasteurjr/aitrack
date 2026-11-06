@@ -38,3 +38,42 @@
 A migration `007_create_incidents.sql` foi aplicada diretamente porque o runner
 descrito no handoff ainda não existe. O número `005` permanece reservado para
 os índices de eventos definidos no plano original.
+
+## UI-2.2 — Timeline auditável do incidente
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `b649580`
+
+### Contrato implementado
+
+- Histórico separado e append-only por incidente.
+- Ordem determinística por ocorrência e ID.
+- Chave de idempotência obrigatória para impedir entradas repetidas.
+- Ator humano, agente, sistema ou integração identificado.
+- Mudança de estado anterior/novo, resumo e detalhes estruturados.
+- Vínculo opcional com evento técnico e evidência externa.
+- IDs de correlação e causalidade para rastrear automações.
+- Visibilidade interna ou para o cliente.
+- Remover um evento técnico preserva a timeline; remover em cascata um
+  incidente não foi habilitado.
+
+### Evidências
+
+- Migration aditiva e restrita ao schema `tracker`.
+- FKs, índices e idempotência conferidos no banco.
+- Incidente e entrada de prova desfeitos na mesma transação.
+- Nenhum registro artificial residual.
+- Suíte backend e compilação Python sem regressão.
+- Testes específicos: `4 passed`.
+- Suíte completa do backend: `40 passed`.
+- Compilação dos módulos Python: sem erros.
+- Tabela criada com 19 colunas, chave primária, idempotência única e quatro
+  índices operacionais adicionais.
+- FK do incidente confirmada como `RESTRICT`; FK do evento como `SET NULL`.
+- Reaplicação idempotente concluída.
+- Segunda entrada com a mesma chave foi bloqueada.
+- Rollback conjunto: 0 incidentes e 0 entradas residuais.
+
+A migration `008_create_incident_timeline.sql` foi aplicada diretamente no
+schema `tracker`; o runner de migrations documentado no handoff continua
+pendente.
