@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { incidentService } from '../services/apiService';
+import { incidentService, unifiedVehicleService } from '../services/apiService';
 import AlertsPanel from './AlertsPanel';
 
 jest.mock('../services/apiService', () => ({
@@ -10,10 +10,16 @@ jest.mock('../services/apiService', () => ({
     acknowledge: jest.fn(),
     assume: jest.fn(),
     comment: jest.fn(),
+    getClassificationCatalog: jest.fn(),
+    resolve: jest.fn(),
+    classifyFalsePositive: jest.fn(),
+    reportFalseNegative: jest.fn(),
   },
+  unifiedVehicleService: { getAll: jest.fn() },
 }));
 
 const mockedIncidentService = incidentService as jest.Mocked<typeof incidentService>;
+const mockedUnifiedVehicleService = unifiedVehicleService as jest.Mocked<typeof unifiedVehicleService>;
 
 const incident = {
   id: 44,
@@ -59,6 +65,18 @@ beforeEach(() => {
   mockedIncidentService.acknowledge.mockResolvedValue({ data: {} } as never);
   mockedIncidentService.assume.mockResolvedValue({ data: {} } as never);
   mockedIncidentService.comment.mockResolvedValue({ data: {} } as never);
+  mockedIncidentService.getClassificationCatalog.mockResolvedValue({
+    data: {
+      schema_version: 'incident-classification.v1',
+      true_positive_reasons: ['confirmed_risk'],
+      false_positive_reasons: ['sensor_noise'],
+      false_negative_reasons: ['detector_gap'],
+    },
+  } as never);
+  mockedIncidentService.resolve.mockResolvedValue({ data: {} } as never);
+  mockedIncidentService.classifyFalsePositive.mockResolvedValue({ data: {} } as never);
+  mockedIncidentService.reportFalseNegative.mockResolvedValue({ data: {} } as never);
+  mockedUnifiedVehicleService.getAll.mockResolvedValue({ data: { vehicles: [] } } as never);
 });
 
 it('consulta somente incidentes abertos e exibe estado vazio real', async () => {
@@ -151,4 +169,72 @@ it('não inventa dados quando a API falha e permite tentar novamente', async () 
 
   expect(await screen.findByText('Fila sem incidentes')).toBeInTheDocument();
   expect(mockedIncidentService.getAll).toHaveBeenCalledTimes(2);
+});
+
+it('exige motivo e confirmação explícita para classificar falso positivo', async () => {
+  const triageIncident = { ...incident, status: 'triage', version: 3 } as const;
+  mockedIncidentService.getAll.mockResolvedValue(listResponse([triageIncident]) as never);
+  mockedIncidentService.getById.mockResolvedValue({
+    data: {
+      schema_version: 'incident-detail.v1',
+      incident: {
+        ...triageIncident,
+        hypothesis: null, confidence: null, resolution_code: null, resolution_notes: null,
+        false_positive: false, detection_outcome: 'unreviewed', classification_reason: null,
+        classified_by: null, classified_at: null, timeline_total: 0,
+        timeline_truncated: false, timeline: [],
+      },
+    },
+  } as never);
+  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+  render(<AlertsPanel />);
+  fireEvent.click(await screen.findByText('Excesso de velocidade detectado'));
+  await screen.findByText('Encerrar análise da detecção');
+  fireEvent.change(screen.getByLabelText('Seu nome'), { target: { value: 'Maria Operadora' } });
+  fireEvent.change(screen.getByLabelText('Motivo da classificação'), { target: { value: 'sensor_noise' } });
+  fireEvent.change(screen.getByLabelText('Justificativa da classificação'), {
+    target: { value: 'Ruído do sensor confirmado pela telemetria redundante.' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Classificar como falso positivo' }));
+
+  await waitFor(() => expect(mockedIncidentService.classifyFalsePositive).toHaveBeenCalledWith(
+    44,
+    expect.objectContaining({
+      expected_version: 3,
+      classification_reason: 'sensor_noise',
+    }),
+  ));
+  expect(confirm).toHaveBeenCalled();
+  confirm.mockRestore();
+});
+
+it('registra falso negativo com veículo e taxonomia explícitos', async () => {
+  mockedUnifiedVehicleService.getAll.mockResolvedValue({
+    data: {
+      vehicles: [{ vehicle_id: 12, display_name: 'Veículo 12', active: true }],
+    },
+  } as never);
+  render(<AlertsPanel />);
+  await screen.findByText('Fila sem incidentes');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Registrar falso negativo' }));
+  await waitFor(() => expect(mockedUnifiedVehicleService.getAll).toHaveBeenCalled());
+  fireEvent.change(screen.getByLabelText('Operador do falso negativo'), { target: { value: 'Maria Operadora' } });
+  fireEvent.change(screen.getByLabelText('Veículo do falso negativo'), { target: { value: '12' } });
+  fireEvent.change(screen.getByLabelText('Tipo do falso negativo'), { target: { value: 'geofence_exit' } });
+  fireEvent.change(screen.getByLabelText('Motivo do falso negativo'), { target: { value: 'detector_gap' } });
+  fireEvent.change(screen.getByLabelText('Título do falso negativo'), { target: { value: 'Saída não detectada' } });
+  fireEvent.change(screen.getByLabelText('Evidência do falso negativo'), {
+    target: { value: 'Saída confirmada por câmera e controle da portaria.' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar falha de detecção' }));
+
+  await waitFor(() => expect(mockedIncidentService.reportFalseNegative).toHaveBeenCalledWith(
+    expect.objectContaining({
+      vehicle_id: 12,
+      incident_type: 'geofence_exit',
+      classification_reason: 'detector_gap',
+    }),
+  ));
 });

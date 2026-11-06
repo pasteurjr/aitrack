@@ -37,6 +37,34 @@ COMMAND_LABELS = {
     'reopen': 'Incidente reaberto para triagem',
 }
 
+TRUE_POSITIVE_REASONS = {
+    'confirmed_risk',
+    'owner_confirmed',
+    'operational_action_completed',
+    'expected_event_validated',
+    'other',
+}
+FALSE_POSITIVE_REASONS = {
+    'sensor_noise',
+    'gps_drift',
+    'duplicate_signal',
+    'expected_behavior',
+    'incorrect_rule',
+    'identity_mismatch',
+    'test_data',
+    'other',
+}
+FALSE_NEGATIVE_REASONS = {
+    'detector_gap',
+    'telemetry_gap',
+    'delayed_data',
+    'unsupported_scenario',
+    'threshold_too_high',
+    'identity_gap',
+    'integration_failure',
+    'other',
+}
+
 
 def plan_transition(
     incident: Dict,
@@ -91,10 +119,17 @@ def plan_transition(
         false_positive = bool(payload.get('false_positive', False))
         if false_positive and resolution_code != 'false_positive':
             raise InvalidTransition('Falso positivo exige resolution_code=false_positive')
+        classification_reason = str(payload.get('classification_reason') or '').strip()
+        valid_reasons = FALSE_POSITIVE_REASONS if false_positive else TRUE_POSITIVE_REASONS
+        if classification_reason not in valid_reasons:
+            raise InvalidTransition('Motivo de classificação inválido')
         updates.update({
             'resolution_code': resolution_code,
             'resolution_notes': resolution_notes,
             'false_positive': false_positive,
+            'detection_outcome': 'false_positive' if false_positive else 'true_positive',
+            'classification_reason': classification_reason,
+            'classified_at': now,
             'resolved_at': now,
             'next_action_at': None,
         })

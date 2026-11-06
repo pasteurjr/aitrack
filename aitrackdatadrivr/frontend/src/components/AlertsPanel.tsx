@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { incidentService } from '../services/apiService';
+import { incidentService, unifiedVehicleService } from '../services/apiService';
 import type {
   IncidentDetail,
+  IncidentClassificationCatalog,
   IncidentSeverity,
   IncidentStatus,
   IncidentSummary,
 } from '../types/incident';
+import type { UnifiedVehicleDTO } from '../types/unifiedVehicle';
 import AsyncDataState from './AsyncDataState';
 
 interface AlertsPanelProps {
@@ -37,6 +39,35 @@ const SOURCE_LABELS = {
   dirijabem: 'Dirija Bem',
   fused: 'Tracker + Dirija Bem',
   system: 'Sistema',
+};
+
+const OUTCOME_LABELS = {
+  unreviewed: 'Não revisado',
+  true_positive: 'Ocorrência válida',
+  false_positive: 'Falso positivo',
+  false_negative: 'Falso negativo',
+};
+
+const REASON_LABELS: Record<string, string> = {
+  confirmed_risk: 'Risco confirmado',
+  owner_confirmed: 'Confirmado pelo proprietário',
+  operational_action_completed: 'Ação operacional concluída',
+  expected_event_validated: 'Evento esperado e validado',
+  sensor_noise: 'Ruído de sensor',
+  gps_drift: 'Desvio/erro de GPS',
+  duplicate_signal: 'Sinal duplicado',
+  expected_behavior: 'Comportamento esperado',
+  incorrect_rule: 'Regra incorreta',
+  identity_mismatch: 'Identidade incorreta',
+  test_data: 'Dado de teste',
+  detector_gap: 'Lacuna no detector',
+  telemetry_gap: 'Falha de telemetria',
+  delayed_data: 'Dado atrasado',
+  unsupported_scenario: 'Cenário não suportado',
+  threshold_too_high: 'Limite alto demais',
+  identity_gap: 'Falha de identidade',
+  integration_failure: 'Falha de integração',
+  other: 'Outro motivo documentado',
 };
 
 const severityColor = (severity: IncidentSeverity) => ({
@@ -98,6 +129,16 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   const [comment, setComment] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [classificationCatalog, setClassificationCatalog] = useState<IncidentClassificationCatalog | null>(null);
+  const [resolutionCode, setResolutionCode] = useState('operational_action_completed');
+  const [resolutionReason, setResolutionReason] = useState('');
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [showFalseNegative, setShowFalseNegative] = useState(false);
+  const [vehicles, setVehicles] = useState<UnifiedVehicleDTO[]>([]);
+  const [falseNegative, setFalseNegative] = useState({
+    vehicleId: '', incidentType: '', title: '', notes: '', severity: 'high' as IncidentSeverity,
+    reason: '', occurredAt: new Date().toISOString().slice(0, 16),
+  });
 
   const loadIncidents = useCallback(() => {
     setLoading(true);
@@ -123,6 +164,12 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   }, [severityFilter, statusFilter]);
 
   useEffect(() => loadIncidents(), [loadIncidents, refreshToken]);
+
+  useEffect(() => {
+    incidentService.getClassificationCatalog()
+      .then(({ data }) => setClassificationCatalog(data))
+      .catch(() => setClassificationCatalog(null));
+  }, []);
 
   useEffect(() => {
     if (selectedId === null) {
@@ -183,11 +230,92 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
     }
   };
 
+  const runResolution = async (falsePositive: boolean) => {
+    if (!selectedIncident || !operatorName.trim() || !resolutionReason || resolutionNotes.trim().length < 10) return;
+    if (falsePositive && !window.confirm(
+      'Confirma que o incidente foi aberto indevidamente? Essa classificação afeta as métricas dos detectores.',
+    )) return;
+    setActionBusy(true);
+    setActionError('');
+    const body = {
+      expected_version: selectedIncident.version,
+      idempotency_key: commandKey(falsePositive ? 'false-positive' : 'resolve', selectedIncident.id),
+      operator: { id: operatorId, name: operatorName.trim() },
+      resolution_notes: resolutionNotes.trim(),
+      classification_reason: resolutionReason,
+    };
+    try {
+      if (falsePositive) {
+        await incidentService.classifyFalsePositive(selectedIncident.id, body);
+      } else {
+        await incidentService.resolve(selectedIncident.id, { ...body, resolution_code: resolutionCode });
+      }
+      setResolutionNotes('');
+      setResolutionReason('');
+      retry();
+    } catch (requestError: any) {
+      setActionError(requestError?.response?.data?.error || 'Não foi possível classificar o incidente.');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const openFalseNegativeForm = async () => {
+    setShowFalseNegative(true);
+    setActionError('');
+    try {
+      const { data } = await unifiedVehicleService.getAll();
+      setVehicles(data.vehicles.filter(vehicle => vehicle.active));
+    } catch {
+      setActionError('Não foi possível carregar os veículos para registrar o falso negativo.');
+    }
+  };
+
+  const reportFalseNegative = async () => {
+    if (!operatorName.trim() || !falseNegative.vehicleId || !falseNegative.reason) return;
+    setActionBusy(true);
+    setActionError('');
+    try {
+      await incidentService.reportFalseNegative({
+        idempotency_key: commandKey('false-negative', Number(falseNegative.vehicleId)),
+        operator: { id: operatorId, name: operatorName.trim() },
+        vehicle_id: Number(falseNegative.vehicleId),
+        incident_type: falseNegative.incidentType.trim(),
+        title: falseNegative.title.trim(),
+        notes: falseNegative.notes.trim(),
+        severity: falseNegative.severity,
+        classification_reason: falseNegative.reason,
+        occurred_at: new Date(falseNegative.occurredAt).toISOString(),
+      });
+      window.localStorage.setItem('aitrack.operator.name', operatorName.trim());
+      setShowFalseNegative(false);
+      retry();
+    } catch (requestError: any) {
+      setActionError(requestError?.response?.data?.error || 'Não foi possível registrar o falso negativo.');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   return (
     <div style={styles.panel}>
       {selectedId === null ? (
         <>
-          <QueueHeader stats={stats} onRefresh={retry} />
+          <QueueHeader stats={stats} onRefresh={retry} onReportFalseNegative={openFalseNegativeForm} />
+          {showFalseNegative && (
+            <FalseNegativeForm
+              value={falseNegative}
+              vehicles={vehicles}
+              reasons={classificationCatalog?.false_negative_reasons || []}
+              operatorName={operatorName}
+              busy={actionBusy}
+              error={actionError}
+              onChange={setFalseNegative}
+              onOperatorNameChange={setOperatorName}
+              onCancel={() => setShowFalseNegative(false)}
+              onSubmit={reportFalseNegative}
+            />
+          )}
           <QueueFilters
             status={statusFilter}
             severity={severityFilter}
@@ -234,6 +362,15 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
           onAcknowledge={() => runCommand('acknowledge')}
           onAssume={() => runCommand('assume')}
           onComment={() => runCommand('comment')}
+          catalog={classificationCatalog}
+          resolutionCode={resolutionCode}
+          resolutionReason={resolutionReason}
+          resolutionNotes={resolutionNotes}
+          onResolutionCodeChange={setResolutionCode}
+          onResolutionReasonChange={setResolutionReason}
+          onResolutionNotesChange={setResolutionNotes}
+          onResolve={() => runResolution(false)}
+          onFalsePositive={() => runResolution(true)}
         />
       )}
     </div>
@@ -243,14 +380,20 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
 const QueueHeader: React.FC<{
   stats: { total: number; critical: number; high: number; escalated: number };
   onRefresh: () => void;
-}> = ({ stats, onRefresh }) => (
+  onReportFalseNegative: () => void;
+}> = ({ stats, onRefresh, onReportFalseNegative }) => (
   <div style={styles.header}>
     <div style={styles.titleRow}>
       <div>
         <h2 style={styles.title}>Fila de incidentes</h2>
         <span style={styles.subtitle}>Dados operacionais persistidos e auditáveis</span>
       </div>
-      <button type="button" onClick={onRefresh} style={styles.secondaryButton}>Atualizar</button>
+      <div style={styles.actionRow}>
+        <button type="button" onClick={onReportFalseNegative} style={styles.warningButton}>
+          Registrar falso negativo
+        </button>
+        <button type="button" onClick={onRefresh} style={styles.secondaryButton}>Atualizar</button>
+      </div>
     </div>
     <div style={styles.statsGrid}>
       <Stat value={stats.total} label="Na consulta" color="#f9fafb" />
@@ -260,6 +403,97 @@ const QueueHeader: React.FC<{
     </div>
   </div>
 );
+
+interface FalseNegativeValue {
+  vehicleId: string;
+  incidentType: string;
+  title: string;
+  notes: string;
+  severity: IncidentSeverity;
+  reason: string;
+  occurredAt: string;
+}
+
+const FalseNegativeForm: React.FC<{
+  value: FalseNegativeValue;
+  vehicles: UnifiedVehicleDTO[];
+  reasons: string[];
+  operatorName: string;
+  busy: boolean;
+  error: string;
+  onChange: (value: FalseNegativeValue) => void;
+  onOperatorNameChange: (value: string) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}> = ({
+  value, vehicles, reasons, operatorName, busy, error,
+  onChange, onOperatorNameChange, onCancel, onSubmit,
+}) => {
+  const update = (field: keyof FalseNegativeValue, fieldValue: string) => onChange({
+    ...value,
+    [field]: fieldValue,
+  });
+  const valid = operatorName.trim() && value.vehicleId && value.incidentType.trim()
+    && value.title.trim().length >= 3 && value.notes.trim().length >= 10
+    && value.reason && value.occurredAt;
+  return (
+    <section style={styles.formPanel} aria-label="Registrar falso negativo">
+      <div style={styles.titleRow}>
+        <div>
+          <h3 style={styles.cardTitle}>Falha de detecção</h3>
+          <span style={styles.muted}>Use somente quando um fato real ocorreu e nenhum incidente foi aberto.</span>
+        </div>
+        <button type="button" style={styles.secondaryButton} onClick={onCancel}>Cancelar</button>
+      </div>
+      <div style={styles.formGrid}>
+        <label style={styles.actionLabel}>Operador
+          <input aria-label="Operador do falso negativo" style={styles.actionInput} value={operatorName}
+            onChange={event => onOperatorNameChange(event.target.value)} />
+        </label>
+        <label style={styles.actionLabel}>Veículo
+          <select aria-label="Veículo do falso negativo" style={styles.actionInput} value={value.vehicleId}
+            onChange={event => update('vehicleId', event.target.value)}>
+            <option value="">Selecione</option>
+            {vehicles.map(vehicle => <option key={vehicle.vehicle_id} value={vehicle.vehicle_id}>{vehicle.display_name}</option>)}
+          </select>
+        </label>
+        <label style={styles.actionLabel}>Horário do fato
+          <input aria-label="Horário do falso negativo" type="datetime-local" style={styles.actionInput}
+            value={value.occurredAt} onChange={event => update('occurredAt', event.target.value)} />
+        </label>
+        <label style={styles.actionLabel}>Severidade
+          <select aria-label="Severidade do falso negativo" style={styles.actionInput} value={value.severity}
+            onChange={event => update('severity', event.target.value)}>
+            {Object.entries(SEVERITY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </label>
+        <label style={styles.actionLabel}>Tipo do incidente
+          <input aria-label="Tipo do falso negativo" style={styles.actionInput} value={value.incidentType}
+            onChange={event => update('incidentType', event.target.value)} placeholder="Ex.: geofence_exit" />
+        </label>
+        <label style={styles.actionLabel}>Motivo da falha
+          <select aria-label="Motivo do falso negativo" style={styles.actionInput} value={value.reason}
+            onChange={event => update('reason', event.target.value)}>
+            <option value="">Selecione</option>
+            {reasons.map(reason => <option key={reason} value={reason}>{REASON_LABELS[reason] || reason}</option>)}
+          </select>
+        </label>
+      </div>
+      <label style={styles.actionLabel}>Título
+        <input aria-label="Título do falso negativo" style={styles.actionInput} value={value.title}
+          onChange={event => update('title', event.target.value)} />
+      </label>
+      <label style={{ ...styles.actionLabel, marginTop: '10px' }}>Evidência e descrição
+        <textarea aria-label="Evidência do falso negativo" style={{ ...styles.actionInput, minHeight: '70px' }}
+          value={value.notes} onChange={event => update('notes', event.target.value)} />
+      </label>
+      {error && <div role="alert" style={styles.actionError}>{error}</div>}
+      <button type="button" disabled={busy || !valid} onClick={onSubmit} style={{ ...styles.warningButton, marginTop: '12px' }}>
+        Confirmar falha de detecção
+      </button>
+    </section>
+  );
+};
 
 const Stat: React.FC<{ value: number; label: string; color: string }> = ({ value, label, color }) => (
   <div style={styles.statBox}>
@@ -369,10 +603,22 @@ const IncidentDetails: React.FC<{
   onAcknowledge: () => void;
   onAssume: () => void;
   onComment: () => void;
+  catalog: IncidentClassificationCatalog | null;
+  resolutionCode: string;
+  resolutionReason: string;
+  resolutionNotes: string;
+  onResolutionCodeChange: (value: string) => void;
+  onResolutionReasonChange: (value: string) => void;
+  onResolutionNotesChange: (value: string) => void;
+  onResolve: () => void;
+  onFalsePositive: () => void;
 }> = ({
   incident, loading, error, onBack, onRetry, onVehicleSelect,
   operatorName, comment, actionBusy, actionError,
   onOperatorNameChange, onCommentChange, onAcknowledge, onAssume, onComment,
+  catalog, resolutionCode, resolutionReason, resolutionNotes,
+  onResolutionCodeChange, onResolutionReasonChange, onResolutionNotesChange,
+  onResolve, onFalsePositive,
 }) => (
   <>
     <div style={styles.header}>
@@ -404,6 +650,12 @@ const IncidentDetails: React.FC<{
             <Detail label="Responsável" value={incident.assigned_to || 'Não atribuído'} />
             <Detail label="Risco" value={incident.risk_score === null ? 'Não calculado' : `${incident.risk_score.toFixed(1)}/100`} />
             <Detail label="Aberto em" value={formatDateTime(incident.opened_at)} />
+            <Detail label="Resultado da detecção" value={OUTCOME_LABELS[incident.detection_outcome]} />
+            <Detail label="Motivo da classificação" value={
+              incident.classification_reason
+                ? (REASON_LABELS[incident.classification_reason] || incident.classification_reason)
+                : 'Ainda não classificado'
+            } />
           </dl>
           {incident.device_id && onVehicleSelect && (
             <button type="button" style={styles.secondaryButton} onClick={() => onVehicleSelect(incident.device_id!)}>
@@ -483,12 +735,63 @@ const IncidentDetails: React.FC<{
           {actionBusy && <span role="status" style={styles.muted}>Registrando ação…</span>}
           {actionError && <div role="alert" style={styles.actionError}>{actionError}</div>}
         </section>
-        <AsyncDataState
-          variant="stale"
-          compact
-          title="Resolução entra na próxima etapa"
-          message="Resolver e classificar falso positivo serão comandos reais na UI-2.8."
-        />
+        {['triage', 'in_progress', 'waiting_response', 'escalated'].includes(incident.status) && (
+          <section style={{ ...styles.card, cursor: 'default' }}>
+            <h3 style={styles.cardTitle}>Encerrar análise da detecção</h3>
+            <p style={styles.description}>
+              Classifique como ocorrência válida ou falso positivo. A justificativa fica na auditoria e afeta as métricas do detector.
+            </p>
+            {!catalog ? (
+              <AsyncDataState compact variant="error" message="Taxonomia de classificação indisponível; resolução bloqueada." />
+            ) : (
+              <>
+                <label style={styles.actionLabel}>Código da resolução válida
+                  <select aria-label="Código da resolução" style={styles.actionInput} value={resolutionCode}
+                    onChange={event => onResolutionCodeChange(event.target.value)}>
+                    <option value="operational_action_completed">Ação operacional concluída</option>
+                    <option value="owner_contacted">Proprietário contatado</option>
+                    <option value="no_further_action">Sem ação adicional</option>
+                  </select>
+                </label>
+                <label style={{ ...styles.actionLabel, marginTop: '10px' }}>Motivo da classificação
+                  <select aria-label="Motivo da classificação" style={styles.actionInput} value={resolutionReason}
+                    onChange={event => onResolutionReasonChange(event.target.value)}>
+                    <option value="">Selecione conforme o resultado</option>
+                    <optgroup label="Ocorrência válida">
+                      {catalog.true_positive_reasons.map(reason => (
+                        <option key={`tp-${reason}`} value={reason}>{REASON_LABELS[reason] || reason}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Falso positivo">
+                      {catalog.false_positive_reasons.map(reason => (
+                        <option key={`fp-${reason}`} value={reason}>{REASON_LABELS[reason] || reason}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </label>
+                <label style={{ ...styles.actionLabel, marginTop: '10px' }}>Justificativa e evidências
+                  <textarea aria-label="Justificativa da classificação" value={resolutionNotes}
+                    onChange={event => onResolutionNotesChange(event.target.value)}
+                    style={{ ...styles.actionInput, minHeight: '80px', resize: 'vertical' }} />
+                </label>
+                <div style={styles.actionRow}>
+                  <button type="button" style={styles.primaryButton}
+                    disabled={actionBusy || !operatorName.trim() || resolutionNotes.trim().length < 10
+                      || !catalog.true_positive_reasons.includes(resolutionReason)}
+                    onClick={onResolve}>
+                    Resolver como ocorrência válida
+                  </button>
+                  <button type="button" style={styles.dangerButton}
+                    disabled={actionBusy || !operatorName.trim() || resolutionNotes.trim().length < 10
+                      || !catalog.false_positive_reasons.includes(resolutionReason)}
+                    onClick={onFalsePositive}>
+                    Classificar como falso positivo
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
       </div>
     )}
   </>
@@ -530,6 +833,10 @@ const styles: Record<string, React.CSSProperties> = {
   actionRow: { display: 'flex', gap: '8px', marginTop: '12px' },
   primaryButton: { backgroundColor: '#2563eb', border: 0, borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: 700, padding: '9px 12px' },
   actionError: { backgroundColor: '#7f1d1d', borderRadius: '5px', color: '#fecaca', fontSize: '12px', marginTop: '10px', padding: '8px' },
+  formPanel: { backgroundColor: '#292524', borderBottom: '1px solid #92400e', padding: '14px 20px' },
+  formGrid: { display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', margin: '12px 0' },
+  warningButton: { backgroundColor: '#b45309', border: 0, borderRadius: '6px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 700, padding: '8px 12px' },
+  dangerButton: { backgroundColor: '#b91c1c', border: 0, borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: 700, padding: '9px 12px' },
 };
 
 export default AlertsPanel;

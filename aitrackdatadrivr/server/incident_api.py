@@ -1,11 +1,17 @@
 """API versionada de consulta e comandos dos incidentes operacionais."""
 
 import logging
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
 from . import incident_db
-from .incident_state_machine import InvalidTransition
+from .incident_state_machine import (
+    FALSE_NEGATIVE_REASONS,
+    FALSE_POSITIVE_REASONS,
+    TRUE_POSITIVE_REASONS,
+    InvalidTransition,
+)
 
 
 incident_bp = Blueprint('incidents', __name__, url_prefix='/api/incidents')
@@ -62,12 +68,16 @@ def _boolean_filter(name: str, default: bool = False) -> bool:
     raise ValueError(f'{name} deve ser booleano')
 
 
-def _command_body():
+def _command_body(require_version: bool = True):
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise ValueError('Corpo JSON é obrigatório')
     expected_version = data.get('expected_version')
-    if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
+    if require_version and (
+        not isinstance(expected_version, int)
+        or isinstance(expected_version, bool)
+        or expected_version < 1
+    ):
         raise ValueError('expected_version deve ser inteiro positivo')
     idempotency_key = data.get('idempotency_key')
     if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
@@ -210,3 +220,74 @@ def comment_incident(incident_id: int):
         return jsonify({'schema_version': 'incident-command.v1', 'incident': incident})
     except Exception as exc:
         return _command_error(exc, incident_id)
+
+
+@incident_bp.route('/classification-catalog', methods=['GET'])
+def classification_catalog():
+    return jsonify({
+        'schema_version': 'incident-classification.v1',
+        'true_positive_reasons': sorted(TRUE_POSITIVE_REASONS),
+        'false_positive_reasons': sorted(FALSE_POSITIVE_REASONS),
+        'false_negative_reasons': sorted(FALSE_NEGATIVE_REASONS),
+    })
+
+
+@incident_bp.route('/<int:incident_id>/resolve', methods=['POST'])
+def resolve_incident(incident_id: int):
+    return _transition_command(
+        incident_id,
+        'resolve',
+        lambda data, _actor: {
+            'resolution_code': str(data.get('resolution_code') or '').strip(),
+            'resolution_notes': str(data.get('resolution_notes') or '').strip(),
+            'classification_reason': data.get('classification_reason'),
+            'false_positive': False,
+            'summary': 'Incidente resolvido e classificado como ocorrência válida',
+        },
+    )
+
+
+@incident_bp.route('/<int:incident_id>/false-positive', methods=['POST'])
+def classify_false_positive(incident_id: int):
+    return _transition_command(
+        incident_id,
+        'resolve',
+        lambda data, _actor: {
+            'resolution_code': 'false_positive',
+            'resolution_notes': str(data.get('resolution_notes') or '').strip(),
+            'classification_reason': data.get('classification_reason'),
+            'false_positive': True,
+            'summary': 'Incidente resolvido e classificado como falso positivo',
+        },
+    )
+
+
+@incident_bp.route('/false-negatives', methods=['POST'])
+def report_false_negative():
+    try:
+        data, _expected_version, idempotency_key, actor = _command_body(require_version=False)
+        occurred_at_raw = data.get('occurred_at')
+        if not isinstance(occurred_at_raw, str):
+            raise ValueError('occurred_at deve ser data ISO-8601')
+        try:
+            occurred_at = datetime.fromisoformat(occurred_at_raw.replace('Z', '+00:00'))
+            if occurred_at.tzinfo is not None:
+                occurred_at = occurred_at.astimezone(timezone.utc).replace(tzinfo=None)
+        except ValueError as exc:
+            raise ValueError('occurred_at deve ser data ISO-8601') from exc
+        incident = incident_db.create_false_negative(
+            {
+                'vehicle_id': data.get('vehicle_id'),
+                'incident_type': data.get('incident_type'),
+                'title': data.get('title'),
+                'notes': data.get('notes'),
+                'severity': data.get('severity'),
+                'classification_reason': data.get('classification_reason'),
+                'occurred_at': occurred_at,
+            },
+            actor,
+            idempotency_key,
+        )
+        return jsonify({'schema_version': 'incident-command.v1', 'incident': incident}), 201
+    except Exception as exc:
+        return _command_error(exc, 0)

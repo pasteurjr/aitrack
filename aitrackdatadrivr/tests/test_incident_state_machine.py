@@ -74,12 +74,17 @@ def test_resolve_requires_classification_and_justification():
     plan = plan_transition(
         _incident('in_progress'),
         'resolve',
-        {'resolution_code': 'owner_confirmed_safe', 'resolution_notes': 'Dono confirmou segurança.'},
+        {
+            'resolution_code': 'owner_confirmed_safe',
+            'resolution_notes': 'Dono confirmou segurança.',
+            'classification_reason': 'owner_confirmed',
+        },
         NOW,
     )
     assert plan['to_status'] == 'resolved'
     assert plan['updates']['resolved_at'] == NOW
     assert plan['updates']['next_action_at'] is None
+    assert plan['updates']['detection_outcome'] == 'true_positive'
 
 
 def test_false_positive_requires_matching_code():
@@ -87,7 +92,38 @@ def test_false_positive_requires_matching_code():
         plan_transition(
             _incident('triage'),
             'resolve',
-            {'resolution_code': 'safe', 'resolution_notes': 'Evento sem risco.', 'false_positive': True},
+            {
+                'resolution_code': 'safe', 'resolution_notes': 'Evento sem risco.',
+                'false_positive': True, 'classification_reason': 'sensor_noise',
+            },
+            NOW,
+        )
+
+    plan = plan_transition(
+        _incident('triage'),
+        'resolve',
+        {
+            'resolution_code': 'false_positive',
+            'resolution_notes': 'Ruído confirmado no sensor.',
+            'false_positive': True,
+            'classification_reason': 'sensor_noise',
+        },
+        NOW,
+    )
+    assert plan['updates']['detection_outcome'] == 'false_positive'
+    assert plan['updates']['classification_reason'] == 'sensor_noise'
+
+
+def test_resolution_rejects_reason_from_wrong_outcome_taxonomy():
+    with pytest.raises(InvalidTransition, match='Motivo de classificação'):
+        plan_transition(
+            _incident('in_progress'),
+            'resolve',
+            {
+                'resolution_code': 'confirmed',
+                'resolution_notes': 'Ocorrência confirmada.',
+                'classification_reason': 'gps_drift',
+            },
             NOW,
         )
 

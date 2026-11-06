@@ -16,6 +16,7 @@ config/.env
 server_debug.log
 server.log
 positions_log.jsonl
+aitrackdatadrivr/migrations/backup/
 
 # Sistema / Editor
 .DS_Store

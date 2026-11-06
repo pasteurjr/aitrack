@@ -240,3 +240,73 @@ def test_maps_command_failures_without_leaking_details(monkeypatch, exception, s
     assert response.status_code == status
     assert response.get_json()['code'] == code
     assert b'segredo' not in response.data
+
+
+def test_exposes_classification_taxonomy():
+    response = _client().get('/api/incidents/classification-catalog')
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload['schema_version'] == 'incident-classification.v1'
+    assert 'sensor_noise' in payload['false_positive_reasons']
+    assert 'detector_gap' in payload['false_negative_reasons']
+    assert 'confirmed_risk' in payload['true_positive_reasons']
+
+
+@pytest.mark.parametrize(
+    ('route', 'false_positive', 'resolution_code'),
+    [
+        ('resolve', False, 'owner_contacted'),
+        ('false-positive', True, 'false_positive'),
+    ],
+)
+def test_resolves_with_explicit_detection_outcome(
+    monkeypatch, route, false_positive, resolution_code,
+):
+    captured = {}
+
+    def fake_transition(*args):
+        captured['args'] = args
+        return {'id': 9, 'status': 'resolved'}
+
+    monkeypatch.setattr(incident_api.incident_db, 'transition_incident', fake_transition)
+    response = _client().post(
+        f'/api/incidents/9/{route}',
+        json=_command_payload(
+            resolution_code='owner_contacted',
+            resolution_notes='Classificação revisada pelo operador.',
+            classification_reason='sensor_noise' if false_positive else 'confirmed_risk',
+        ),
+    )
+
+    assert response.status_code == 200
+    assert captured['args'][1] == 'resolve'
+    assert captured['args'][2]['false_positive'] is false_positive
+    assert captured['args'][2]['resolution_code'] == resolution_code
+
+
+def test_reports_false_negative_as_new_audited_incident(monkeypatch):
+    captured = {}
+
+    def fake_create(data, actor, idempotency_key):
+        captured.update(data=data, actor=actor, idempotency_key=idempotency_key)
+        return {'id': 22, 'detection_outcome': 'false_negative'}
+
+    monkeypatch.setattr(incident_api.incident_db, 'create_false_negative', fake_create)
+    payload = _command_payload(
+        expected_version=None,
+        vehicle_id=4,
+        incident_type='geofence_exit',
+        title='Saída de cerca não detectada',
+        notes='Operador confirmou a saída pelas imagens da portaria.',
+        severity='high',
+        classification_reason='detector_gap',
+        occurred_at='2026-11-06T18:30:00Z',
+    )
+    response = _client().post('/api/incidents/false-negatives', json=payload)
+
+    assert response.status_code == 201
+    assert captured['data']['vehicle_id'] == 4
+    assert captured['data']['occurred_at'] == datetime(2026, 11, 6, 18, 30)
+    assert captured['actor']['type'] == 'human'
+    assert captured['idempotency_key'] == 'browser-command-1'

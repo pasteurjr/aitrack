@@ -57,6 +57,10 @@ export interface IncidentDetail extends IncidentSummary {
   resolution_code: string | null;
   resolution_notes: string | null;
   false_positive: boolean;
+  detection_outcome: 'unreviewed' | 'true_positive' | 'false_positive' | 'false_negative';
+  classification_reason: string | null;
+  classified_by: string | null;
+  classified_at: string | null;
   timeline: IncidentTimelineEntry[];
   timeline_total: number;
   timeline_truncated: boolean;
@@ -84,4 +88,11 @@ export interface IncidentCommandBody {
   expected_version: number;
   idempotency_key: string;
   operator: IncidentOperator;
+}
+
+export interface IncidentClassificationCatalog {
+  schema_version: 'incident-classification.v1';
+  true_positive_reasons: string[];
+  false_positive_reasons: string[];
+  false_negative_reasons: string[];
 }

@@ -10,6 +10,7 @@ import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type {
   IncidentDetailResponse,
   IncidentCommandBody,
+  IncidentClassificationCatalog,
   IncidentListResponse,
   IncidentSeverity,
   IncidentStatus,
@@ -126,6 +127,30 @@ export const incidentService = {
 
   comment: (id: number, body: IncidentCommandBody & { comment: string }) =>
     apiClient.post(`/incidents/${id}/comments`, body),
+
+  getClassificationCatalog: () =>
+    apiClient.get<IncidentClassificationCatalog>('/incidents/classification-catalog'),
+
+  resolve: (id: number, body: IncidentCommandBody & {
+    resolution_code: string;
+    resolution_notes: string;
+    classification_reason: string;
+  }) => apiClient.post(`/incidents/${id}/resolve`, body),
+
+  classifyFalsePositive: (id: number, body: IncidentCommandBody & {
+    resolution_notes: string;
+    classification_reason: string;
+  }) => apiClient.post(`/incidents/${id}/false-positive`, body),
+
+  reportFalseNegative: (body: Omit<IncidentCommandBody, 'expected_version'> & {
+    vehicle_id: number;
+    incident_type: string;
+    title: string;
+    notes: string;
+    severity: IncidentSeverity;
+    classification_reason: string;
+    occurred_at: string;
+  }) => apiClient.post('/incidents/false-negatives', body),
 };
 
 // ==================== Event Services ====================

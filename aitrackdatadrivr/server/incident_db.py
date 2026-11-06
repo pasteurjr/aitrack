@@ -1,12 +1,13 @@
 """Consultas e transições atômicas de incidentes operacionais."""
 
+import hashlib
 import json
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 from .monitor_db import get_connection
-from .incident_state_machine import plan_transition
+from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
 
 
 class IncidentNotFound(Exception):
@@ -186,6 +187,8 @@ def transition_incident(
             )
 
         plan = plan_transition(incident, command, payload)
+        if command == 'resolve':
+            plan['updates']['classified_by'] = str(actor.get('id') or '')[:100]
         assignments = [f'{field} = %s' for field in plan['updates']]
         values = list(plan['updates'].values())
         assignments.extend(['version = version + 1', 'updated_at = CURRENT_TIMESTAMP(6)'])
@@ -297,6 +300,106 @@ def add_incident_comment(
             incident_id, idempotency_key, str(actor['id'])[:100],
             str(actor['name'])[:150], comment[:300],
             json.dumps({'comment': comment}, ensure_ascii=False),
+        ))
+        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        result = serialize_record(cursor.fetchone())
+        result['idempotent_replay'] = False
+        if owns_connection:
+            conn.commit()
+        return result
+    except Exception:
+        if owns_connection:
+            conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        if owns_connection:
+            conn.close()
+
+
+def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connection=None) -> Dict:
+    """Registra fato real que não foi detectado automaticamente."""
+    vehicle_id = data.get('vehicle_id')
+    if not isinstance(vehicle_id, int) or isinstance(vehicle_id, bool) or vehicle_id < 1:
+        raise ValueError('vehicle_id deve ser inteiro positivo')
+    incident_type = str(data.get('incident_type') or '').strip()
+    title = str(data.get('title') or '').strip()
+    notes = str(data.get('notes') or '').strip()
+    severity = data.get('severity')
+    reason = data.get('classification_reason')
+    occurred_at = data.get('occurred_at')
+    if not 1 <= len(incident_type) <= 50:
+        raise ValueError('incident_type deve ter entre 1 e 50 caracteres')
+    if not 3 <= len(title) <= 200:
+        raise ValueError('title deve ter entre 3 e 200 caracteres')
+    if not 10 <= len(notes) <= 4000:
+        raise ValueError('notes deve ter entre 10 e 4000 caracteres')
+    if severity not in {'low', 'medium', 'high', 'critical'}:
+        raise ValueError('severity inválida')
+    if reason not in FALSE_NEGATIVE_REASONS:
+        raise ValueError('Motivo de falso negativo inválido')
+    if not isinstance(occurred_at, datetime):
+        raise ValueError('occurred_at deve ser datetime')
+    if not isinstance(actor, dict) or actor.get('type') != 'human' or not actor.get('id') or not actor.get('name'):
+        raise ValueError('Registro de falso negativo exige ator humano identificado')
+    if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
+        raise ValueError('idempotency_key deve ter entre 1 e 150 caracteres')
+
+    idempotency_key = idempotency_key.strip()
+    correlation_key = f'false-negative:{idempotency_key}'
+    if len(correlation_key) > 150:
+        digest = hashlib.sha256(correlation_key.encode('utf-8')).hexdigest()
+        correlation_key = f'false-negative:{digest}'
+    owns_connection = connection is None
+    conn = connection or get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            (idempotency_key,),
+        )
+        replay = cursor.fetchone()
+        if replay:
+            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (replay['incident_id'],))
+            result = serialize_record(cursor.fetchone())
+            result['idempotent_replay'] = True
+            return result
+
+        cursor.execute(
+            'SELECT id FROM tracker.veiculo_unificado WHERE id = %s AND ativo = TRUE',
+            (vehicle_id,),
+        )
+        if not cursor.fetchone():
+            raise ValueError('Veículo unificado ativo não encontrado')
+        cursor.execute("""
+            INSERT INTO tracker.incidents
+                (correlation_key, vehicle_id, incident_type, title, summary,
+                 status, severity, primary_source, opened_at, triaged_at,
+                 detection_outcome, classification_reason, classified_by,
+                 classified_at, version)
+            VALUES (%s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
+                    CURRENT_TIMESTAMP(6), 'false_negative', %s, %s,
+                    CURRENT_TIMESTAMP(6), 1)
+        """, (
+            correlation_key, vehicle_id, incident_type, title, notes, severity,
+            occurred_at, reason, str(actor['id'])[:100],
+        ))
+        incident_id = cursor.lastrowid
+        cursor.execute("""
+            INSERT INTO tracker.incident_timeline
+                (incident_id, idempotency_key, entry_type, actor_type,
+                 actor_id, actor_name, summary, details, occurred_at)
+            VALUES (%s, %s, 'false_negative_reported', 'human', %s, %s,
+                    %s, %s, %s)
+        """, (
+            incident_id, idempotency_key, str(actor['id'])[:100],
+            str(actor['name'])[:150], f'Falso negativo reportado: {title}'[:300],
+            json.dumps({
+                'classification_reason': reason,
+                'notes': notes,
+                'incident_type': incident_type,
+                'severity': severity,
+            }, ensure_ascii=False), occurred_at,
         ))
         cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
         result = serialize_record(cursor.fetchone())

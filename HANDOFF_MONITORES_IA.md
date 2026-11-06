@@ -1069,6 +1069,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-2.5 | este commit | Episódios Tracker correlacionados atomicamente; contrato multifuente fundiu Tracker/Dirija Bem em um incidente; 74 testes e rollback limpo. |
 | 2026-11-06 | UI-2.6 | este commit | Alertas mock removidos e substituídos pela fila real de incidentes; 42 testes frontend, build e Playwright passaram. |
 | 2026-11-06 | UI-2.7 | este commit | Reconhecer, assumir e comentar persistem com versão/idempotência; 82 testes backend, 42 frontend e E2E real passaram. |
+| 2026-11-06 | UI-2.8 | este commit | TP/FP/FN formalizados com taxonomia, migration e E2E real; 89 testes backend, 44 frontend, rollback e limpeza passaram. |
 
 ---
 
@@ -1116,6 +1117,10 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | POST | `/api/incidents/<id>/acknowledge` | UI-2.7 |
 | POST | `/api/incidents/<id>/assume` | UI-2.7 |
 | POST | `/api/incidents/<id>/comments` | UI-2.7 |
+| GET | `/api/incidents/classification-catalog` | UI-2.8 |
+| POST | `/api/incidents/<id>/resolve` | UI-2.8 |
+| POST | `/api/incidents/<id>/false-positive` | UI-2.8 |
+| POST | `/api/incidents/false-negatives` | UI-2.8 |
 
 ---
 

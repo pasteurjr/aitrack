@@ -302,3 +302,74 @@ A identidade informada é auditável, mas ainda local e não autenticada. Ela n�
 deve ser tratada como prova de identidade nem autorização. Autenticação, sessão,
 papéis e permissões continuam obrigatórios antes de operação exposta a usuários
 externos. A interface informa essa limitação ao operador.
+
+## UI-2.8 — Resolução, falso positivo e falso negativo
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `80962d6`
+
+### Definições operacionais
+
+- **Ocorrência válida (`true_positive`)**: o detector abriu um incidente e a
+  revisão confirmou que o fato ocorreu ou exigiu ação operacional.
+- **Falso positivo (`false_positive`)**: o detector abriu um incidente, mas a
+  revisão comprovou que o risco alegado não existiu naquele caso.
+- **Falso negativo (`false_negative`)**: um fato real ocorreu, mas nenhum
+  detector abriu incidente; o operador registra a falha manualmente.
+- **Não revisado (`unreviewed`)**: incidente ainda sem classificação conclusiva.
+
+Falso positivo não significa simplesmente “não tomei ação”, e falso negativo não
+é um estado de um incidente já detectado. O segundo cria um incidente auditável
+para medir a cobertura perdida e orientar correção de detector/telemetria.
+
+### Contrato implementado
+
+- Migration `009_add_incident_detection_outcome.sql` adiciona resultado,
+  motivo, classificador, horário e índice de qualidade.
+- Backup de `tracker.incidents` foi criado antes da alteração em pasta ignorada
+  pelo Git.
+- `GET /api/incidents/classification-catalog` fornece as taxonomias oficiais.
+- `POST /api/incidents/{id}/resolve` resolve como ocorrência válida.
+- `POST /api/incidents/{id}/false-positive` exige código fixo, motivo compatível,
+  justificativa e confirmação adicional na interface.
+- `POST /api/incidents/false-negatives` cria caso manual em triagem com veículo,
+  horário do fato, tipo, severidade, motivo e evidência.
+- Motivos de falso positivo incluem ruído de sensor, erro de GPS, duplicação,
+  comportamento esperado, regra incorreta, identidade, teste e outro documentado.
+- Motivos de falso negativo incluem lacuna de detector, telemetria, atraso,
+  cenário não suportado, limiar alto, identidade, integração e outro documentado.
+- Taxonomias incompatíveis são recusadas; motivo de falso positivo não pode
+  classificar ocorrência válida e vice-versa.
+- Resultado, motivo, operador e horário ficam no incidente; a decisão completa
+  também fica na timeline.
+- Idempotência, versão otimista e rollback continuam obrigatórios.
+- A interface mostra resultado e motivo no detalhe e oferece formulário dedicado
+  para falha de detecção.
+
+### Evidências
+
+- Testes focais de migration, API e máquina de estados: `40 passed`.
+- Suíte completa backend: `89 passed`.
+- Suíte frontend: `44 passed` em 12 suítes.
+- TypeScript e build de produção: sem erros.
+- Migration aplicada e reaplicada sem erro; quatro colunas e índice composto
+  confirmados no `information_schema`.
+- Prova transacional no MariaDB produziu exatamente um `true_positive`, um
+  `false_positive` e um `false_negative`, com três timelines e replay bloqueado;
+  rollback deixou zero resíduos.
+- E2E Playwright real classificou um incidente como falso positivo e registrou
+  um falso negativo pela interface, usando API e banco reais.
+- Resultado E2E: falso positivo `resolved/sensor_noise`; falso negativo
+  `triage/detector_gap`; console sem erros.
+- Limpeza por IDs removeu somente os dois casos temporários; conferência final
+  encontrou zero registros de teste.
+
+### Controles e limitações
+
+- Classificação exige operador identificado, mas a identidade permanece local e
+  não autenticada até a etapa de segurança.
+- A classificação melhora a base para medir precisão e recall, mas métricas
+  agregadas, revisão amostral e reprocessamento automático ainda devem ser
+  implementados antes de usar os números para decisões disciplinares.
+- “Outro” exige justificativa textual; a UI exige no mínimo dez caracteres em
+  qualquer classificação.
