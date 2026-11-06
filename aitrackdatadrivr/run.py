@@ -3,6 +3,7 @@ import time
 
 # Importa a aplicação Flask e o iniciador do servidor de socket
 from server.api import app
+from server.behavioral_engine import restore_persisted_state
 from server.socket_server import start_server
 from dirijabem_simulator import get_replay_manager
 
@@ -26,6 +27,13 @@ def run_dirijabem_simulator():
         time.sleep(1)
 
 if __name__ == "__main__":
+    restore_result = restore_persisted_state()
+    print(
+        "Estado comportamental: "
+        f"{restore_result.get('scores', 0)} scores e "
+        f"{restore_result.get('events', 0)} eventos restaurados."
+    )
+
     # Cria as threads para cada servidor
     socket_thread = Thread(target=run_socket_server, daemon=True)
     api_thread = Thread(target=run_api_server, daemon=True)

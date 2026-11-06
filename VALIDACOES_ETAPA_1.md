@@ -139,3 +139,57 @@ captura da prova visual foi gerada em
 - Teste focal do motor: `11 passed`.
 - Suíte completa do backend: `27 passed`.
 - Compilação dos módulos Python: sem erros.
+
+## UI-1.7 — Persistência de eventos e scores essenciais
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `34b841e`
+
+### Contrato implementado
+
+- Evento e snapshot do score são gravados na mesma transação.
+- `tracker.behavioral_scores` mantém score, janela, quantidade de eventos e
+  instante do cálculo por `device_id`.
+- No startup, o backend restaura snapshots e eventos da última hora antes de
+  iniciar socket, API e replay Dirija Bem.
+- Eventos restaurados recompõem o score e o estado dos detectores.
+- IDs persistidos impedem duplicação se a restauração for chamada novamente.
+- Falha de restauração não impede o backend de subir e fica explícita no log.
+
+### Validações automatizadas
+
+- Teste focal do motor: `13 passed`.
+- Suíte completa do backend: `29 passed`.
+- Compilação dos módulos Python: sem erros.
+- Teste unitário confirmou `INSERT eventos` e `UPSERT behavioral_scores` em
+  um único commit.
+- Teste de reidratação confirmou evento, score, detector e idempotência.
+
+### Validação do banco `tracker`
+
+| Verificação | Resultado |
+|---|---:|
+| migration | somente `CREATE TABLE IF NOT EXISTS` |
+| tabela anterior | inexistente |
+| tabela criada | `tracker.behavioral_scores` |
+| colunas | 7 |
+| índices | `PRIMARY` + 2 secundários |
+| prova transacional com rollback | 0 registros residuais |
+| restauração isolada | 114,2 ms |
+
+A migration `006_create_behavioral_scores.sql` foi aplicada diretamente porque
+o runner descrito no handoff ainda não existe. O número `005` continua reservado
+para os índices da tabela de eventos previstos no plano.
+
+### Validação operacional após reinício
+
+| Verificação | Resultado |
+|---|---:|
+| restauração no startup | 0 scores e 0 eventos disponíveis na janela atual |
+| API | porta 5009 ativa |
+| socket Tracker | porta 9000 ativa |
+| `/api/fleet/scores` | HTTP 200 |
+| `/api/fleet/events?limit=5` | HTTP 200 |
+| `/api/v1/vehicles` | HTTP 200, 20 veículos |
+| `/api/unified/vehicles` | HTTP 200, 20 veículos |
+| erros no log | 0 |

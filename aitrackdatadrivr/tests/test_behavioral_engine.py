@@ -250,3 +250,84 @@ def test_all_transient_events_receive_episode_metadata():
         )
         assert event['episode_id']
         assert event['episode_state'] == 'started'
+
+
+def test_event_and_score_are_persisted_in_the_same_transaction(monkeypatch):
+    class FakeCursor:
+        def __init__(self):
+            self.statements = []
+
+        def execute(self, sql, params=None):
+            self.statements.append((sql, params))
+
+        def fetchone(self):
+            return {'id': 7}
+
+        def close(self):
+            pass
+
+    class FakeConnection:
+        def __init__(self):
+            self.cursor_instance = FakeCursor()
+            self.commits = 0
+            self.rollbacks = 0
+
+        def cursor(self, dictionary=False):
+            return self.cursor_instance
+
+        def commit(self):
+            self.commits += 1
+
+        def rollback(self):
+            self.rollbacks += 1
+
+        def close(self):
+            pass
+
+    connection = FakeConnection()
+    monkeypatch.setattr(engine.mysql.connector, 'connect', lambda **_kwargs: connection)
+    now = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+
+    engine.save_event_to_db({
+        'device_id': 'SIM-1',
+        'type': 'speeding',
+        'lat': -23.55,
+        'lon': -46.63,
+        'timestamp': now.isoformat(),
+        'severity': 'high',
+        'speed': 90,
+        'episode_id': 'episode-1',
+    }, veicod=1, score_after=98.5, events_in_window=1)
+
+    statements = [sql for sql, _params in connection.cursor_instance.statements]
+    assert any('INSERT INTO eventos' in sql for sql in statements)
+    assert any('INSERT INTO tracker.behavioral_scores' in sql for sql in statements)
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+
+
+def test_persisted_state_restores_events_score_and_detector_without_duplicates():
+    engine.reset_all()
+    now = datetime.now(timezone.utc)
+    score_rows = [{'device_id': 'SIM-1', 'score': 88.0}]
+    event_rows = [{
+        'id': 321,
+        'device_id': 'SIM-1',
+        'type': 'harsh_brake',
+        'timestamp': now - timedelta(minutes=1),
+        'lat': -23.55,
+        'lon': -46.63,
+        'speed': 20,
+        'severity': 'high',
+        'dados_adicionais': '{"episode_id": "episode-321", "episode_state": "started"}',
+    }]
+
+    first = engine._merge_persisted_state(score_rows, event_rows)
+    second = engine._merge_persisted_state(score_rows, event_rows)
+
+    assert first == {'scores': 1, 'events': 1}
+    assert second == {'scores': 1, 'events': 0}
+    assert len(engine.vehicle_events) == 1
+    assert engine.vehicle_events[0]['episode_id'] == 'episode-321'
+    assert engine.vehicle_detector_state['SIM-1']['harsh_brake']['active'] is True
+    assert engine.vehicle_scores['SIM-1'] == 95.5

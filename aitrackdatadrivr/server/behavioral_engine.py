@@ -2,14 +2,17 @@
 Behavioral Engine - DataDrivr Integration
 Detecta eventos comportamentais e calcula scores de direção
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from collections import deque
 import os
+import logging
 import threading
 import mysql.connector
 import json
 import uuid
+
+logger = logging.getLogger(__name__)
 
 # Histórico de posições por veículo (últimas 5)
 vehicle_history: Dict[str, deque] = {}
@@ -165,7 +168,12 @@ DB_CONFIG = {
 }
 
 
-def save_event_to_db(event: Dict, veicod: int):
+def save_event_to_db(
+    event: Dict,
+    veicod: int,
+    score_after: Optional[float] = None,
+    events_in_window: int = 0,
+):
     """
     Salva evento no banco de dados para persistência
 
@@ -173,6 +181,8 @@ def save_event_to_db(event: Dict, veicod: int):
         event: Evento detectado com type, device_id, timestamp, etc
         veicod: VEICOD do veículo no banco de dados
     """
+    conn = None
+    cursor = None
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
@@ -183,8 +193,6 @@ def save_event_to_db(event: Dict, veicod: int):
 
         if not tipo_result:
             # Tipo não existe no catálogo, skip
-            cursor.close()
-            conn.close()
             return
 
         tipo_evento_id = tipo_result['id']
@@ -218,13 +226,134 @@ def save_event_to_db(event: Dict, veicod: int):
             event.get('severity', 'medium')
         ))
 
+        if score_after is not None:
+            cursor.execute("""
+                INSERT INTO tracker.behavioral_scores
+                    (device_id, veicod, score, janela_minutos,
+                     eventos_na_janela, calculado_em)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    veicod = VALUES(veicod),
+                    score = VALUES(score),
+                    janela_minutos = VALUES(janela_minutos),
+                    eventos_na_janela = VALUES(eventos_na_janela),
+                    calculado_em = VALUES(calculado_em)
+            """, (
+                event['device_id'],
+                veicod,
+                score_after,
+                SCORE_WINDOW_SECONDS // 60,
+                events_in_window,
+                datetime.now(),
+            ))
+
         conn.commit()
-        cursor.close()
-        conn.close()
 
     except Exception as e:
-        # Falha silenciosa - evento ainda fica in-memory
-        print(f"[WARN] Erro salvando evento no banco: {e}")
+        if conn:
+            conn.rollback()
+        logger.exception("Erro persistindo evento e score: %s", e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def _merge_persisted_state(score_rows: List[Dict], event_rows: List[Dict]) -> Dict:
+    """Reidrata o estado essencial sem executar I/O; usada no startup e testes."""
+    with _state_lock:
+        for row in score_rows:
+            device_id = row['device_id']
+            init_vehicle(device_id)
+            vehicle_scores[device_id] = float(row['score'])
+
+        loaded_event_ids = {
+            event.get('_persisted_event_id') for event in vehicle_events
+            if event.get('_persisted_event_id') is not None
+        }
+        loaded = 0
+        for row in event_rows:
+            if row.get('id') in loaded_event_ids:
+                continue
+            device_id = row['device_id']
+            init_vehicle(device_id)
+            extras = row.get('dados_adicionais') or {}
+            if isinstance(extras, str):
+                try:
+                    extras = json.loads(extras)
+                except json.JSONDecodeError:
+                    extras = {}
+            timestamp = row['timestamp']
+            timestamp_iso = timestamp.isoformat() if isinstance(timestamp, datetime) else timestamp
+            event = {
+                'device_id': device_id,
+                'type': row['type'],
+                'lat': row.get('lat'),
+                'lon': row.get('lon'),
+                'timestamp': timestamp_iso,
+                'severity': row.get('severity', 'medium'),
+                'speed': row.get('speed'),
+                '_persisted_event_id': row.get('id'),
+                **extras,
+            }
+            vehicle_events.append(event)
+            loaded_event_ids.add(row.get('id'))
+            loaded += 1
+
+            state = vehicle_detector_state[device_id].setdefault(row['type'], {})
+            state['active'] = True
+            state['episode_id'] = event.get('episode_id')
+            if row['type'] != 'speeding':
+                state['last_emitted_at'] = _timestamp_seconds(timestamp_iso)
+
+        for device_id in vehicle_scores:
+            vehicle_scores[device_id] = calculate_vehicle_score(device_id)
+
+    return {'scores': len(score_rows), 'events': loaded}
+
+
+def restore_persisted_state() -> Dict:
+    """Restaura snapshots e eventos da janela ativa após reinício do backend."""
+    conn = None
+    cursor = None
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT device_id, score
+            FROM tracker.behavioral_scores
+            ORDER BY atualizado_em DESC
+            LIMIT 100000
+        """)
+        score_rows = cursor.fetchall()
+        cutoff = datetime.now() - timedelta(seconds=SCORE_WINDOW_SECONDS)
+        cursor.execute("""
+            SELECT e.id, e.device_id, te.codigo AS type,
+                   e.timestamp, e.latitude AS lat, e.longitude AS lon,
+                   e.velocidade AS speed, e.severidade AS severity,
+                   e.dados_adicionais
+            FROM tracker.eventos e
+            JOIN tracker.tipo_evento te ON te.id = e.tipo_evento_id
+            WHERE e.timestamp >= %s AND e.device_id IS NOT NULL
+            ORDER BY e.timestamp ASC
+            LIMIT 20000
+        """, (cutoff,))
+        result = _merge_persisted_state(score_rows, cursor.fetchall())
+        logger.info(
+            "Estado comportamental restaurado: %s scores, %s eventos",
+            result['scores'],
+            result['events'],
+        )
+        return result
+    except Exception as exc:
+        logger.warning("Estado comportamental persistido indisponível: %s", exc)
+        return {'scores': 0, 'events': 0, 'error': str(exc)}
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 def get_veicod_from_device_id(device_id: str) -> Optional[int]:
@@ -288,14 +417,16 @@ def add_position(device_id: str, data: Dict):
             )
             for event in events:
                 vehicle_events.append(event)
-                update_score(device_id, event)
+            score_after = calculate_vehicle_score(device_id)
+            vehicle_scores[device_id] = score_after
+            events_in_window = _count_events_in_score_window(device_id)
 
     # I/O não ocorre sob o lock do estado do motor.
     if events:
         veicod = get_veicod_from_device_id(device_id)
         if veicod:
             for event in events:
-                save_event_to_db(event, veicod)
+                save_event_to_db(event, veicod, score_after, events_in_window)
 
 
 def detect_events(
@@ -438,6 +569,19 @@ def update_score(device_id: str, event: Dict):
     penalidade deixa de participar do cálculo e o veículo se recupera.
     """
     vehicle_scores[device_id] = calculate_vehicle_score(device_id)
+
+
+def _count_events_in_score_window(
+    device_id: str,
+    now: Optional[datetime] = None,
+) -> int:
+    now_seconds = _timestamp_seconds(now or datetime.now(timezone.utc))
+    return sum(
+        1 for event in vehicle_events
+        if event.get('device_id') == device_id
+        and (event_seconds := _timestamp_seconds(event.get('timestamp'))) is not None
+        and 0 <= now_seconds - event_seconds <= SCORE_WINDOW_SECONDS
+    )
 
 
 def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> float:
