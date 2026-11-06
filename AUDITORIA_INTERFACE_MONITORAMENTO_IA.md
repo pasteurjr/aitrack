@@ -664,7 +664,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **1.3** Criar lista unificada pesquisável.
 - [x] **1.4** Criar cabeçalho de detalhe do veículo.
 - [x] **1.5** Implementar episódio de excesso de velocidade.
-- [ ] **1.6** Implementar cooldown/histerese dos demais detectores.
+- [x] **1.6** Implementar cooldown/histerese dos demais detectores.
 - [ ] **1.7** Persistir eventos e scores essenciais.
 - [ ] **1.8** Corrigir contadores e scores para usar episódios.
 - [ ] **1.9** Adicionar filtros à timeline.

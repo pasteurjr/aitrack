@@ -5,6 +5,7 @@ Detecta eventos comportamentais e calcula scores de direção
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 from collections import deque
+import os
 import threading
 import mysql.connector
 import json
@@ -32,6 +33,8 @@ HARSH_BRAKE_THRESHOLD_MS2 = 20.0 / 3.6 / 3.0  # equivalente a 20 km/h em 3 s
 SPEEDING_THRESHOLD = 80.0      # km/h
 SPEEDING_RELEASE_THRESHOLD = 75.0  # km/h; histerese para encerrar o episódio
 SHARP_TURN_THRESHOLD_DEG_PER_SEC = 45.0 / 5.0  # equivalente a 45 graus em 5 s
+DETECTOR_RELEASE_RATIO = 0.6
+DETECTOR_COOLDOWN_SECONDS = float(os.getenv('AITRACK_DETECTOR_COOLDOWN_SECONDS', '30'))
 
 MAX_HISTORY_SIZE = 5
 INITIAL_SCORE = 100.0
@@ -113,6 +116,44 @@ def _detect_speeding_episode(
         'episode_state': 'started',
         'icon': '🚨'
     }
+
+
+def _detector_episode_gate(
+    device_id: str,
+    event_type: str,
+    timestamp,
+    condition_active: bool,
+    condition_released: bool,
+    detector_state: Dict,
+) -> Optional[str]:
+    """Aplica histerese e cooldown aos detectores de eventos transitórios."""
+    state = detector_state.setdefault(event_type, {
+        'active': False,
+        'last_emitted_at': None,
+        'episode_id': None,
+    })
+
+    if condition_released:
+        state['active'] = False
+        state['episode_id'] = None
+        return None
+    if not condition_active or state['active']:
+        return None
+
+    state['active'] = True
+    timestamp_seconds = _timestamp_seconds(timestamp)
+    last_emitted_at = state.get('last_emitted_at')
+    if (
+        timestamp_seconds is not None
+        and last_emitted_at is not None
+        and timestamp_seconds - last_emitted_at < DETECTOR_COOLDOWN_SECONDS
+    ):
+        return None
+
+    episode_id = _episode_id(device_id, event_type, timestamp)
+    state['episode_id'] = episode_id
+    state['last_emitted_at'] = timestamp_seconds
+    return episode_id
 
 # Database configuration for event persistence
 DB_CONFIG = {
@@ -281,8 +322,16 @@ def detect_events(
         speed_delta = speed_now - speed_3s_ago
         elapsed = _elapsed_seconds(reference, current)
         acceleration = speed_delta / 3.6 / elapsed if elapsed else None
+        episode_id = _detector_episode_gate(
+            device_id,
+            'harsh_accel',
+            current['timestamp'],
+            acceleration is not None and acceleration > HARSH_ACCEL_THRESHOLD_MS2,
+            acceleration is not None and acceleration <= HARSH_ACCEL_THRESHOLD_MS2 * DETECTOR_RELEASE_RATIO,
+            detector_state,
+        )
 
-        if acceleration is not None and acceleration > HARSH_ACCEL_THRESHOLD_MS2:
+        if episode_id:
             events.append({
                 'device_id': device_id,
                 'type': 'harsh_accel',
@@ -295,6 +344,8 @@ def detect_events(
                 'delta': speed_delta,
                 'elapsed_seconds': round(elapsed, 3),
                 'acceleration_ms2': round(acceleration, 2),
+                'episode_id': episode_id,
+                'episode_state': 'started',
                 'icon': '⚡'
             })
 
@@ -306,8 +357,16 @@ def detect_events(
         speed_delta = speed_3s_ago - speed_now  # invertido para desaceleração
         elapsed = _elapsed_seconds(reference, current)
         deceleration = speed_delta / 3.6 / elapsed if elapsed else None
+        episode_id = _detector_episode_gate(
+            device_id,
+            'harsh_brake',
+            current['timestamp'],
+            deceleration is not None and deceleration > HARSH_BRAKE_THRESHOLD_MS2,
+            deceleration is not None and deceleration <= HARSH_BRAKE_THRESHOLD_MS2 * DETECTOR_RELEASE_RATIO,
+            detector_state,
+        )
 
-        if deceleration is not None and deceleration > HARSH_BRAKE_THRESHOLD_MS2:
+        if episode_id:
             events.append({
                 'device_id': device_id,
                 'type': 'harsh_brake',
@@ -320,6 +379,8 @@ def detect_events(
                 'delta': speed_delta,
                 'elapsed_seconds': round(elapsed, 3),
                 'deceleration_ms2': round(deceleration, 2),
+                'episode_id': episode_id,
+                'episode_state': 'started',
                 'icon': '🛑'
             })
 
@@ -338,8 +399,16 @@ def detect_events(
         heading_change = _heading_delta(heading_5s_ago, heading_now)
         turn_rate = heading_change / elapsed if elapsed else None
         speed = current['speed']
+        episode_id = _detector_episode_gate(
+            device_id,
+            'sharp_turn',
+            current['timestamp'],
+            turn_rate is not None and turn_rate > SHARP_TURN_THRESHOLD_DEG_PER_SEC and speed > 30,
+            turn_rate is not None and turn_rate <= SHARP_TURN_THRESHOLD_DEG_PER_SEC * DETECTOR_RELEASE_RATIO,
+            detector_state,
+        )
 
-        if turn_rate is not None and turn_rate > SHARP_TURN_THRESHOLD_DEG_PER_SEC and speed > 30:
+        if episode_id:
             events.append({
                 'device_id': device_id,
                 'type': 'sharp_turn',
@@ -353,6 +422,8 @@ def detect_events(
                 'elapsed_seconds': round(elapsed, 3),
                 'turn_rate_deg_per_sec': round(turn_rate, 2),
                 'speed': speed,
+                'episode_id': episode_id,
+                'episode_state': 'started',
                 'icon': '↪️'
             })
 

@@ -173,3 +173,80 @@ def test_speeding_does_not_rearm_at_release_boundary():
     assert engine._detect_speeding_episode(
         "SIM-1", position(start + timedelta(seconds=2), speed=90), state
     ) is None
+
+
+def test_transient_detector_suppresses_continuous_condition_and_fast_retrigger():
+    start = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    state = {}
+
+    first = engine._detector_episode_gate(
+        'SIM-1', 'harsh_brake', start, True, False, state
+    )
+    continuous = engine._detector_episode_gate(
+        'SIM-1', 'harsh_brake', start + timedelta(seconds=1), True, False, state
+    )
+    engine._detector_episode_gate(
+        'SIM-1', 'harsh_brake', start + timedelta(seconds=2), False, True, state
+    )
+    fast_retrigger = engine._detector_episode_gate(
+        'SIM-1', 'harsh_brake', start + timedelta(seconds=3), True, False, state
+    )
+
+    assert first is not None
+    assert continuous is None
+    assert fast_retrigger is None
+
+
+def test_transient_detector_rearms_after_release_and_cooldown():
+    start = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    state = {}
+    first = engine._detector_episode_gate(
+        'SIM-1', 'sharp_turn', start, True, False, state
+    )
+    engine._detector_episode_gate(
+        'SIM-1', 'sharp_turn', start + timedelta(seconds=1), False, True, state
+    )
+    second = engine._detector_episode_gate(
+        'SIM-1',
+        'sharp_turn',
+        start + timedelta(seconds=engine.DETECTOR_COOLDOWN_SECONDS + 1),
+        True,
+        False,
+        state,
+    )
+
+    assert first is not None
+    assert second is not None
+    assert first != second
+
+
+def test_all_transient_events_receive_episode_metadata():
+    start = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    scenarios = {
+        'harsh_accel': history(
+            position(start, speed=0),
+            position(start + timedelta(seconds=1), speed=0),
+            position(start + timedelta(seconds=2), speed=20),
+        ),
+        'harsh_brake': history(
+            position(start, speed=50),
+            position(start + timedelta(seconds=1), speed=50),
+            position(start + timedelta(seconds=2), speed=20),
+        ),
+        'sharp_turn': history(
+            position(start, speed=40, heading=0),
+            position(start + timedelta(seconds=0.25), speed=40, heading=0),
+            position(start + timedelta(seconds=0.5), speed=40, heading=0),
+            position(start + timedelta(seconds=0.75), speed=40, heading=0),
+            position(start + timedelta(seconds=1), speed=40, heading=90),
+        ),
+    }
+
+    for event_type, sample_history in scenarios.items():
+        current = sample_history[-1]
+        event = next(
+            item for item in engine.detect_events('SIM-1', current, sample_history, {})
+            if item['type'] == event_type
+        )
+        assert event['episode_id']
+        assert event['episode_state'] == 'started'

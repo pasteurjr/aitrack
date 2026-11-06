@@ -116,3 +116,26 @@ captura da prova visual foi gerada em
 - Compilação dos módulos Python: sem erros.
 - O `.venv` descrito no handoff ainda não existe; nenhum pacote foi instalado
   no Python global e a suíte foi executada com o interpretador já configurado.
+
+## UI-1.6 — Cooldown e histerese dos demais detectores
+
+**Data:** 06/11/2026
+**Checkpoint anterior:** `a9a229f`
+
+### Contrato implementado
+
+- Aceleração, frenagem e curva brusca emitem um evento por episódio.
+- Liberação exige queda para 60% do limiar de ativação.
+- Novo episódio só pode ser emitido após cooldown configurável, padrão 30 s.
+- Estado e cooldown são independentes por veículo e tipo de detector.
+- Eventos recebem `episode_id` e `episode_state: started`.
+
+### Evidências
+
+- Condição sustentada não duplica evento.
+- Liberação seguida de reativação rápida é suprimida.
+- Liberação após cooldown permite novo episódio.
+- Os três detectores transitórios carregam os metadados do episódio.
+- Teste focal do motor: `11 passed`.
+- Suíte completa do backend: `27 passed`.
+- Compilação dos módulos Python: sem erros.
