@@ -114,9 +114,11 @@ cd /home/pasteurjr/progreact/aitrack/aitrackdatadrivr/frontend && npx tsc --noEm
 O banco é **remoto, compartilhado e com dados reais**: `camerascasas.no-ip.info:3307`.
 
 1. **O servidor hospeda 35+ bancos de outros sistemas** (ERP, produção etc.). O usuário `scadabr` tem `ALL PRIVILEGES ON *.*`. Um erro pode destruir outro sistema.
-   - Você **só pode escrever** no banco **`tracker`**.
+   - Você pode escrever somente nos bancos **`tracker`** (legado durante a
+     transição) e **`monitoramento`** (camada operacional unificada).
    - O banco **`dirijabem`** é **somente leitura** para você. Exceção: os simuladores Dirijabem, que já escrevem lá.
-   - **Nunca** rode SQL sem o nome do banco explícito ou fora de `tracker`/`dirijabem`.
+   - **Nunca** rode SQL sem o nome do banco explícito ou fora de
+     `tracker`/`dirijabem`/`monitoramento`.
 2. **Tabelas grandes:** `tracker.localizacao` (~4,3 mi), `tracker.eventos` (~2,6 mi, cresce ~100 mil/dia), `dirijabem.localizacaodados` (~60 mi).
    - Nunca rode `SELECT` sem `WHERE` indexado ou sem `LIMIT` nelas.
    - Nunca use `DATE(coluna) = ...`. Use intervalo: `coluna >= X AND coluna < Y`.
