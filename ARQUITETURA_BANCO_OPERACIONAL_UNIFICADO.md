@@ -45,9 +45,11 @@ indisponibilidade ou mudança de um sistema de origem corrompa a operação comu
    `CODUSU` gera motorista; as placas das viagens geram veículos e vínculos
    temporais. A placa normalizada permite fusão futura com outra fonte.
 4. **UI-3.0D:** fazer APIs lerem o modelo novo com fallback controlado.
-5. **UI-3.0E:** mover incidentes, timeline e monitores preservando IDs e FKs.
-6. **UI-3.0F:** retirar o fallback depois dos testes dos dois simuladores e apps.
-7. **UI-3.1:** criar cercas e versões geométricas em `monitoramento`.
+5. **UI-3.0E1:** copiar monitores-base, incidentes e timeline preservando IDs.
+6. **UI-3.0E2:** copiar atribuições, análises e alertas dos monitores.
+7. **UI-3.0E3:** virar o runtime de incidentes e monitores para o operacional.
+8. **UI-3.0F:** retirar o fallback depois dos testes dos dois simuladores e apps.
+9. **UI-3.1:** criar cercas e versões geométricas em `monitoramento`.
 
 Cada passo terá checkpoint próprio. Não haverá `DROP`, `TRUNCATE` ou alteração
 destrutiva nas fontes durante essa transição.
@@ -71,3 +73,7 @@ de incidentes e atribuições de monitor da UI-3.0E.
 Variáveis: `AITRACK_IDENTITY_READ_MODEL` e
 `AITRACK_IDENTITY_ALLOW_FALLBACK`. O fallback pode ser desabilitado para falhar
 de forma explícita quando a camada operacional se tornar a fonte oficial.
+
+Na UI-3.0E1, as tabelas operacionais de monitores-base, incidentes e timeline
+foram criadas. O runtime permanece no legado até que atribuições, análises e
+alertas sejam copiados e a virada transacional possa ser validada em conjunto.

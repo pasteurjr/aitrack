@@ -1076,6 +1076,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-06 | UI-3.0B | este commit | Runner com baseline/checksum criado; migration 010 aplicada: 6 tabelas, 2 fontes somente leitura, 0 pendências; 108 testes passaram. |
 | 2026-11-06 | UI-3.0C | este commit | Backfill idempotente aplicado duas vezes: 26 veículos, 10 motoristas, 27 vínculos, zero órfãos/duplicatas; 112 testes e APIs legadas passaram. |
 | 2026-11-07 | UI-3.0D | este commit | Dupla leitura com shadow padrão e fallback controlado; cobertura 20/20 placas legadas + 6 operacionais; endpoints reais e 122 testes passaram. |
+| 2026-11-07 | UI-3.0E1 | este commit | Monitores-base, incidentes e timeline copiados para o operacional; prova real preservou IDs/FKs e limpou resíduos; 129 testes passaram. |
 
 ---
 

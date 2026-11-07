@@ -113,3 +113,35 @@
 - Testes cobrem shadow, operacional, fallback habilitado, fail-closed, comparação
   de cobertura e os contratos da API legada.
 - Regressão backend: `122 passed, 3 skipped`.
+
+## UI-3.0E1 — Estrutura e backfill de incidentes
+
+**Data:** 07/11/2026
+
+**Checkpoint anterior:** `01a7b0d`
+
+### Estrutura operacional
+
+- Criadas `monitoramento.monitores`, `monitoramento.incidents` e
+  `monitoramento.incident_timeline`.
+- Incidentes referenciam `monitoramento.veiculos.id` como identidade oficial e
+  guardam `legacy_vehicle_id` para reconciliação e rollback.
+- Timeline preserva IDs, idempotência, atores, causalidade e horários.
+- `event_id` mantém a referência lógica acompanhada por `event_source`, sem FK
+  para `tracker.eventos`; a camada operacional não depende fisicamente da fonte.
+- Nenhuma tabela de `tracker` ou `dirijabem` foi alterada.
+
+### Backfill e evidências
+
+- Os 5 monitores-base foram copiados com os mesmos IDs.
+- A origem possuía zero incidentes e zero entradas de timeline no momento do
+  corte; a execução repetida manteve as mesmas contagens.
+- Prova MariaDB criou um incidente temporário com timeline no legado, executou o
+  backfill e confirmou no destino: mesmo ID, mesmo monitor, mesma chave
+  idempotente e veículo canônico correspondente.
+- Limpeza explícita por ID deixou zero registros `ui30e1:%` nos dois schemas.
+- Runner após migration 012: `0 migrations pendentes`.
+- Integração real: `1 passed`.
+- Regressão backend: `129 passed, 4 skipped`.
+- O runtime ainda escreve no legado. A troca de leitura/escrita ocorrerá somente
+  depois da migração das atribuições na UI-3.0E2.
