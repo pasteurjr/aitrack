@@ -79,3 +79,37 @@
 - Regressão backend: `112 passed, 3 skipped`.
 - Compatibilidade: `/api/monitors` e `/api/unified/vehicles` responderam HTTP 200;
   eles continuam lendo o legado até a troca controlada da UI-3.0D.
+
+## UI-3.0D — Dupla leitura e fallback controlado
+
+**Data:** 07/11/2026
+
+**Checkpoint anterior:** `6b3ca1e`
+
+### Estratégia
+
+- `AITRACK_IDENTITY_READ_MODEL=legacy`: consulta somente
+  `tracker.veiculo_unificado`.
+- `AITRACK_IDENTITY_READ_MODEL=shadow` (padrão): consulta os dois modelos,
+  registra a comparação e devolve o legado para preservar IDs e contratos.
+- `AITRACK_IDENTITY_READ_MODEL=operational`: devolve `monitoramento`; se a
+  consulta falhar, volta ao legado apenas quando
+  `AITRACK_IDENTITY_ALLOW_FALLBACK=1`.
+- O modo operacional não foi ativado permanentemente porque incidentes e
+  atribuições de monitor ainda referenciam os IDs antigos. Essa troca pertence à
+  UI-3.0E.
+
+### Cobertura e evidências
+
+- Comparação real: legado 20, operacional 26, 20 placas comuns, zero placa
+  ausente no operacional e 6 veículos exclusivos do histórico Dirija Bem.
+- Em `shadow`: `/api/v1/vehicles`, `/api/unified/vehicles` e
+  `/api/unified/stats` retornaram HTTP 200 e total 20.
+- Em `operational`, somente para validação isolada: `/api/v1/vehicles` retornou
+  HTTP 200 e total 26.
+- APIs versionada e legada passaram a usar o mesmo seletor de read model.
+- A consulta de veículos vinculados a monitores permanece legada até a migração
+  das atribuições, evitando mistura de IDs.
+- Testes cobrem shadow, operacional, fallback habilitado, fail-closed, comparação
+  de cobertura e os contratos da API legada.
+- Regressão backend: `122 passed, 3 skipped`.

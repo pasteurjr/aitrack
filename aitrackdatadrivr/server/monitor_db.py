@@ -257,28 +257,10 @@ def get_all_unified_vehicles() -> List[Dict]:
     """
     Retorna TODOS os veículos unificados disponíveis para monitoramento
     """
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    # Import local evita ciclo: identity_db reutiliza get_connection deste módulo.
+    from .identity_db import get_unified_vehicle_records
 
-    cursor.execute("""
-        SELECT
-            id,
-            device_id,
-            codusu,
-            placa,
-            tipo,
-            descricao,
-            ativo
-        FROM veiculo_unificado
-        WHERE ativo = TRUE
-        ORDER BY placa
-    """)
-
-    vehicles = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return vehicles
+    return get_unified_vehicle_records()
 
 
 def add_vehicle_to_monitor(monitor_id: int, veicod: int, device_id: str) -> int:

@@ -7,6 +7,8 @@ from flask import Blueprint, jsonify
 import mysql.connector
 from datetime import datetime
 
+from . import monitor_db
+
 # Create blueprint
 unified_bp = Blueprint('unified', __name__, url_prefix='/api/unified')
 
@@ -44,20 +46,7 @@ def get_all_vehicles():
     Retorna TODOS os veículos (tracker + dirijabem) com dados unificados
     """
     try:
-        conn = get_tracker_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Buscar todos os veículos unificados
-        cursor.execute("""
-            SELECT id, device_id, codusu, placa, tipo, descricao, ativo
-            FROM veiculo_unificado
-            WHERE ativo = TRUE
-            ORDER BY id
-        """)
-
-        vehicles = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        vehicles = monitor_db.get_all_unified_vehicles()
 
         # Para cada veículo, buscar dados específicos
         result = []
@@ -113,19 +102,13 @@ def get_vehicle_details(placa):
     Busca em ambos os bancos se necessário
     """
     try:
-        conn = get_tracker_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Buscar veículo na tabela unificada
-        cursor.execute("""
-            SELECT id, device_id, codusu, placa, tipo, descricao
-            FROM veiculo_unificado
-            WHERE placa = %s AND ativo = TRUE
-        """, (placa,))
-
-        vehicle = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        vehicle = next(
+            (
+                item for item in monitor_db.get_all_unified_vehicles()
+                if str(item.get('placa') or '').upper() == placa.upper()
+            ),
+            None,
+        )
 
         if not vehicle:
             return jsonify({'success': False, 'error': 'Veículo não encontrado'}), 404
@@ -324,18 +307,13 @@ def get_unified_position(placa):
     Formato unificado: {latitude, longitude, velocidade_kmh, DATAHORA}
     """
     try:
-        conn = get_tracker_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            SELECT device_id, codusu
-            FROM veiculo_unificado
-            WHERE placa = %s AND ativo = TRUE
-        """, (placa,))
-
-        vehicle = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        vehicle = next(
+            (
+                item for item in monitor_db.get_all_unified_vehicles()
+                if str(item.get('placa') or '').upper() == placa.upper()
+            ),
+            None,
+        )
 
         if not vehicle:
             return jsonify({'success': False, 'error': 'Veículo não encontrado'}), 404
@@ -405,22 +383,14 @@ def get_unified_position(placa):
 def get_unified_stats():
     """Estatísticas gerais do sistema unificado"""
     try:
-        conn = get_tracker_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Contar veículos por tipo
-        cursor.execute("""
-            SELECT
-                tipo,
-                COUNT(*) as total
-            FROM veiculo_unificado
-            WHERE ativo = TRUE
-            GROUP BY tipo
-        """)
-
-        stats_tipo = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        totals = {}
+        for vehicle in monitor_db.get_all_unified_vehicles():
+            vehicle_type = vehicle['tipo']
+            totals[vehicle_type] = totals.get(vehicle_type, 0) + 1
+        stats_tipo = [
+            {'tipo': vehicle_type, 'total': total}
+            for vehicle_type, total in sorted(totals.items())
+        ]
 
         return jsonify({
             'success': True,

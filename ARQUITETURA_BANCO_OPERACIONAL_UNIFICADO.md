@@ -56,4 +56,18 @@ destrutiva nas fontes durante essa transição.
 
 Em 06/11/2026, as etapas UI-3.0A, UI-3.0B e UI-3.0C foram concluídas. O schema
 contém 26 veículos canônicos, 10 motoristas e 27 vínculos históricos. A aplicação
-continua lendo as estruturas antigas até a troca compatível da UI-3.0D.
+entrou em dupla leitura na UI-3.0D: por padrão, compara o modelo operacional com
+o legado e ainda devolve os IDs antigos. A ativação definitiva aguarda a migração
+de incidentes e atribuições de monitor da UI-3.0E.
+
+### Modos de leitura
+
+| Modo | Comportamento | Uso |
+|---|---|---|
+| `legacy` | lê somente `tracker.veiculo_unificado` | rollback operacional |
+| `shadow` | lê ambos, compara e responde com legado | padrão durante a transição |
+| `operational` | responde com `monitoramento`, com fallback configurável | após UI-3.0E |
+
+Variáveis: `AITRACK_IDENTITY_READ_MODEL` e
+`AITRACK_IDENTITY_ALLOW_FALLBACK`. O fallback pode ser desabilitado para falhar
+de forma explícita quando a camada operacional se tornar a fonte oficial.
