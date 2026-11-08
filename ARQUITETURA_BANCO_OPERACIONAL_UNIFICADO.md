@@ -77,3 +77,8 @@ de forma explícita quando a camada operacional se tornar a fonte oficial.
 Na UI-3.0E1, as tabelas operacionais de monitores-base, incidentes e timeline
 foram criadas. O runtime permanece no legado até que atribuições, análises e
 alertas sejam copiados e a virada transacional possa ser validada em conjunto.
+
+Na UI-3.0E2, dez atribuições Tracker foram convertidas em alvos canônicos do
+tipo `vehicle`. O modelo também aceita alvo `driver`, necessário para monitorar
+um usuário Dirija Bem independentemente dos veículos que ele conduziu. Os quatro
+alertas seed sem análise não foram promovidos ao banco operacional.

@@ -145,3 +145,37 @@
 - Regressão backend: `129 passed, 4 skipped`.
 - O runtime ainda escreve no legado. A troca de leitura/escrita ocorrerá somente
   depois da migração das atribuições na UI-3.0E2.
+
+## UI-3.0E2 — Alvos, análises e alertas dos monitores
+
+**Data:** 08/11/2026
+
+**Checkpoint anterior:** `e28925d`
+
+### Modelo operacional
+
+- `monitor_targets` substitui a suposição de que todo alvo é um veículo.
+- Alvo `vehicle` referencia `monitoramento.veiculos`; alvo `driver` referencia
+  `monitoramento.motoristas`. Uma `CHECK` exige exatamente uma das referências.
+- Identificadores legados são preservados somente para reconciliação.
+- `monitor_analises` e `monitor_alertas` referenciam o alvo canônico e mantêm os
+  IDs, scores, conclusão, severidade, estado e auditoria do operador.
+- Nenhuma FK operacional aponta para Tracker ou Dirija Bem.
+
+### Resultado e política de dados falsos
+
+- As 10 atribuições existentes eram Tracker, estavam ativas e possuíam
+  correspondência canônica: resultado `vehicle/tracker: 10`.
+- Não há atribuições Dirija Bem atuais; o schema e o backfill já suportam
+  `CODUSU` como alvo `driver`.
+- As quatro linhas de `tracker.monitor_alertas` não têm `analise_id` e são os
+  seeds falsos registrados pela auditoria. Permaneceram no legado para
+  rastreabilidade e não foram copiadas para a operação real.
+- Backfill executado duas vezes sem alterar contagens; zero alvos órfãos.
+- Prova MariaDB criou análise e alerta reais temporários, copiou ambos com os
+  mesmos IDs/alvo/estado e removeu os registros dos dois schemas por ID.
+- Resultado final operacional: 10 alvos, zero análises e zero alertas.
+- Runner: `0 migrations pendentes` após migration 013.
+- Integração real: `1 passed`.
+- Regressão backend: `135 passed, 5 skipped`.
+- O runtime permanece no legado até a virada coordenada da UI-3.0E3.
