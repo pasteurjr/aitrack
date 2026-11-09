@@ -5,6 +5,7 @@ import { Circle, CircleMarker, Polygon, Polyline, Popup, useMap, useMapEvents } 
 import { geofenceService } from '../services/apiService';
 import type {
   CreateGeofenceBody,
+  UpdateGeofenceBody,
   Geofence,
   GeofenceGeometry,
   GeofenceRule,
@@ -66,6 +67,23 @@ const geometryPositions = (geometry: GeofenceGeometry): LatLngTuple[] => {
   return geometry.coordinates[0].map(([lng, lat]) => [lat, lng]);
 };
 
+const geometryToDraft = (geometry: GeofenceGeometry): GeofenceDraft => {
+  if (geometry.type === 'Circle') {
+    return {
+      type: 'circle',
+      center: [geometry.center[1], geometry.center[0]],
+      radius: geometry.radius_meters,
+    };
+  }
+  const points = geometryPositions(geometry);
+  const withoutClosingPoint = points.length > 1
+    && points[0][0] === points[points.length - 1][0]
+    && points[0][1] === points[points.length - 1][1]
+    ? points.slice(0, -1)
+    : points;
+  return { type: 'polygon', points: withoutClosingPoint };
+};
+
 const ExistingGeofence: React.FC<{ geofence: Geofence }> = ({ geofence }) => {
   const baseColor = geofence.status === 'active' ? RULE_COLORS[geofence.regra] : '#64748b';
   const pathOptions = {
@@ -108,6 +126,8 @@ const GeofenceDesigner: React.FC = () => {
     () => window.localStorage.getItem('aitrack.operator.name') || '',
   );
   const [operatorId] = useState(localOperatorId);
+  const [editingFence, setEditingFence] = useState<Geofence | null>(null);
+  const [changeReason, setChangeReason] = useState('');
 
   const loadGeofences = useCallback(async () => {
     try {
@@ -130,10 +150,38 @@ const GeofenceDesigner: React.FC = () => {
 
   const cancelDrawing = useCallback(() => {
     setMode(null);
-    setDraft(null);
+    setDraft(editingFence ? geometryToDraft(editingFence.geometry) : null);
     setCursor(null);
     setMessage(null);
+  }, [editingFence]);
+
+  const clearForm = useCallback(() => {
+    setEditingFence(null);
+    setMode(null);
+    setDraft(null);
+    setCursor(null);
+    setNome('');
+    setDescricao('');
+    setRegra('allowed');
+    setStatus('draft');
+    setChangeReason('');
+    setMessage(null);
   }, []);
+
+  const beginEdit = (fence: Geofence) => {
+    if (fence.status === 'archived') return;
+    setOpen(true);
+    setEditingFence(fence);
+    setMode(null);
+    setDraft(geometryToDraft(fence.geometry));
+    setCursor(null);
+    setNome(fence.nome);
+    setDescricao(fence.descricao || '');
+    setRegra(fence.regra);
+    setStatus(fence.status);
+    setChangeReason('');
+    setMessage(null);
+  };
 
   useEffect(() => {
     const container = map.getContainer();
@@ -223,6 +271,10 @@ const GeofenceDesigner: React.FC = () => {
       setMessage({ type: 'error', text: 'Informe o nome do operador responsável.' });
       return;
     }
+    if (editingFence && changeReason.trim().length < 3) {
+      setMessage({ type: 'error', text: 'Informe o motivo da alteração.' });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
@@ -233,18 +285,56 @@ const GeofenceDesigner: React.FC = () => {
         status,
         geometry: draftToApiGeometry(draft),
         operator: { id: operatorId, name: operatorName.trim() },
-        change_reason: 'Criação visual no mapa',
+        change_reason: editingFence ? changeReason.trim() : 'Criação visual no mapa',
       };
-      const response = await geofenceService.create(body);
+      const response = editingFence
+        ? await geofenceService.update(editingFence.public_id, {
+            ...body,
+            expected_version: editingFence.version,
+          } as UpdateGeofenceBody)
+        : await geofenceService.create(body);
       window.localStorage.setItem('aitrack.operator.name', operatorName.trim());
-      setGeofences(previous => [response.data.geofence, ...previous]);
-      setDraft(null);
-      setNome('');
-      setDescricao('');
-      setMessage({ type: 'success', text: `Cerca “${response.data.geofence.nome}” salva com sucesso.` });
+      setGeofences(previous => editingFence
+        ? previous.map(fence => fence.public_id === editingFence.public_id ? response.data.geofence : fence)
+        : [response.data.geofence, ...previous]);
+      const action = editingFence ? 'atualizada' : 'salva';
+      clearForm();
+      setMessage({ type: 'success', text: `Cerca “${response.data.geofence.nome}” ${action} com sucesso.` });
     } catch (error: any) {
       const detail = error?.response?.data?.error;
       setMessage({ type: 'error', text: detail || 'Não foi possível salvar a cerca.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const archive = async () => {
+    if (!editingFence) return;
+    if (editingFence.active_assignments > 0) {
+      setMessage({ type: 'error', text: 'Desative as atribuições antes de arquivar a cerca.' });
+      return;
+    }
+    if (!operatorName.trim() || changeReason.trim().length < 3) {
+      setMessage({ type: 'error', text: 'Informe operador e motivo antes de arquivar.' });
+      return;
+    }
+    if (!window.confirm(`Arquivar a cerca “${editingFence.nome}”? O histórico será preservado.`)) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const response = await geofenceService.archive(editingFence.public_id, {
+        expected_version: editingFence.version,
+        operator: { id: operatorId, name: operatorName.trim() },
+        change_reason: changeReason.trim(),
+      });
+      setGeofences(previous => previous.map(fence => (
+        fence.public_id === editingFence.public_id ? response.data.geofence : fence
+      )));
+      clearForm();
+      setMessage({ type: 'success', text: 'Cerca arquivada. O histórico foi preservado.' });
+    } catch (error: any) {
+      const detail = error?.response?.data?.error;
+      setMessage({ type: 'error', text: detail || 'Não foi possível arquivar a cerca.' });
     } finally {
       setSaving(false);
     }
@@ -268,12 +358,26 @@ const GeofenceDesigner: React.FC = () => {
       ) : (
         <section className="geofence-panel" aria-label="Desenhar cerca eletrônica">
           <div className="geofence-heading">
-            <div><h2>Cerca eletrônica</h2><span className="geofence-help">{loading ? 'Carregando…' : `${geofences.length} cadastrada(s)`}</span></div>
+            <div><h2>{editingFence ? 'Editar cerca' : 'Cerca eletrônica'}</h2><span className="geofence-help">{loading ? 'Carregando…' : `${geofences.length} cadastrada(s)`}</span></div>
             <button type="button" className="geofence-close" aria-label="Fechar desenho de cerca" onClick={() => { cancelDrawing(); setOpen(false); }}>×</button>
           </div>
           <p className="geofence-help">
             Círculo: clique no centro e depois na borda. Polígono: clique em cada vértice, sem cruzar linhas, e conclua no painel. `Esc` cancela.
           </p>
+          <label className="geofence-field">Gerenciar cerca existente
+            <select aria-label="Gerenciar cerca existente" value={editingFence?.public_id || ''}
+              onChange={event => {
+                const fence = geofences.find(item => item.public_id === event.target.value);
+                if (fence) beginEdit(fence); else clearForm();
+              }}>
+              <option value="">Nova cerca</option>
+              {geofences.map(fence => (
+                <option key={fence.public_id} value={fence.public_id} disabled={fence.status === 'archived'}>
+                  {fence.nome} — {STATUS_LABELS[fence.status]}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="geofence-row">
             <button type="button" className={`geofence-mode ${mode === 'circle' ? 'active' : ''}`} onClick={() => startDrawing('circle')} disabled={saving}>◯ Círculo</button>
             <button type="button" className={`geofence-mode ${mode === 'polygon' ? 'active' : ''}`} onClick={() => startDrawing('polygon')} disabled={saving}>⬡ Polígono</button>
@@ -314,9 +418,17 @@ const GeofenceDesigner: React.FC = () => {
           <label className="geofence-field">Operador responsável
             <input aria-label="Operador responsável pela cerca" maxLength={150} value={operatorName} onChange={event => setOperatorName(event.target.value)} />
           </label>
+          {editingFence && (
+            <label className="geofence-field">Motivo da alteração
+              <input aria-label="Motivo da alteração da cerca" maxLength={300} value={changeReason}
+                onChange={event => setChangeReason(event.target.value)} placeholder="Ex.: Ajuste do limite operacional" />
+            </label>
+          )}
+          {editingFence && <p className="geofence-help">Versão {editingFence.version} · geometria {editingFence.geometry_version} · {editingFence.active_assignments} atribuição(ões) ativa(s)</p>}
           <div className="geofence-actions">
-            <button type="button" className="geofence-primary" onClick={save} disabled={saving || Boolean(mode)}>{saving ? 'Salvando…' : 'Salvar cerca'}</button>
-            {draft && !mode && <button type="button" className="geofence-secondary" onClick={cancelDrawing} disabled={saving}>Refazer desenho</button>}
+            <button type="button" className="geofence-primary" onClick={save} disabled={saving || Boolean(mode)}>{saving ? 'Salvando…' : editingFence ? 'Salvar alterações' : 'Salvar cerca'}</button>
+            {draft && !mode && <button type="button" className="geofence-secondary" onClick={cancelDrawing} disabled={saving}>{editingFence ? 'Restaurar original' : 'Refazer desenho'}</button>}
+            {editingFence && <button type="button" className="geofence-danger" onClick={archive} disabled={saving || editingFence.active_assignments > 0}>Arquivar</button>}
           </div>
           {message && <p role="status" className={`geofence-message ${message.type}`}>{message.text}</p>}
           <div className="geofence-legend">

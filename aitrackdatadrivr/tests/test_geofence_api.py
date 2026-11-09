@@ -148,6 +148,80 @@ def test_database_error_does_not_leak_details(monkeypatch):
     assert b'senha secreta' not in response.data
 
 
+def test_updates_with_expected_version_and_optional_geometry(monkeypatch):
+    captured = {}
+
+    def fake_update(reference, data, geometry):
+        captured.update(reference=reference, data=data, geometry=geometry)
+        return {'id': 8, 'version': 3, 'geometry_version': 2}
+
+    monkeypatch.setattr(geofence_api.geofence_db, 'update_geofence', fake_update)
+    response = _client().put('/api/geofences/public-8', json={
+        **_circle_payload(),
+        'expected_version': 2,
+        'change_reason': 'Ajuste solicitado pelo operador',
+    })
+
+    assert response.status_code == 200
+    assert captured['reference'] == 'public-8'
+    assert captured['data']['expected_version'] == 2
+    assert captured['geometry']['type'] == 'circle'
+    assert response.get_json()['geofence']['geometry_version'] == 2
+
+
+def test_archives_with_reason_without_physical_delete(monkeypatch):
+    captured = {}
+
+    def fake_archive(reference, data):
+        captured.update(reference=reference, data=data)
+        return {'id': 8, 'status': 'archived', 'version': 4}
+
+    monkeypatch.setattr(geofence_api.geofence_db, 'archive_geofence', fake_archive)
+    response = _client().delete('/api/geofences/8', json={
+        'expected_version': 3,
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+        'change_reason': 'Cerca substituída por outra área',
+    })
+
+    assert response.status_code == 200
+    assert captured['data']['expected_version'] == 3
+    assert response.get_json()['geofence']['status'] == 'archived'
+
+
+@pytest.mark.parametrize(('exception', 'code'), [
+    (geofence_api.geofence_db.GeofenceNotFound(), 'GEOFENCE_NOT_FOUND'),
+    (geofence_api.geofence_db.GeofenceConflict(), 'GEOFENCE_VERSION_CONFLICT'),
+    (geofence_api.geofence_db.GeofenceArchived(), 'GEOFENCE_ARCHIVED'),
+    (geofence_api.geofence_db.GeofenceHasActiveAssignments(2), 'GEOFENCE_HAS_ACTIVE_ASSIGNMENTS'),
+])
+def test_mutation_errors_have_stable_codes(monkeypatch, exception, code):
+    monkeypatch.setattr(
+        geofence_api.geofence_db,
+        'archive_geofence',
+        lambda *_args: (_ for _ in ()).throw(exception),
+    )
+    response = _client().delete('/api/geofences/8', json={
+        'expected_version': 3,
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+        'change_reason': 'Motivo operacional válido',
+    })
+
+    assert response.status_code in {404, 409}
+    assert response.get_json()['code'] == code
+
+
+def test_rejects_update_without_concurrency_version(monkeypatch):
+    monkeypatch.setattr(
+        geofence_api.geofence_db,
+        'update_geofence',
+        lambda *_args: (_ for _ in ()).throw(AssertionError('não deve consultar')),
+    )
+    response = _client().put('/api/geofences/8', json=_circle_payload())
+
+    assert response.status_code == 400
+    assert response.get_json()['error'] == 'expected_version deve ser inteiro positivo'
+
+
 def test_repository_filters_are_parameterized():
     from server import geofence_db
 

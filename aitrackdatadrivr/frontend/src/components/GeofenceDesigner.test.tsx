@@ -42,6 +42,8 @@ jest.mock('../services/apiService', () => ({
   geofenceService: {
     getAll: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
+    archive: jest.fn(),
   },
 }));
 
@@ -66,6 +68,7 @@ beforeEach(() => {
         descricao: null,
         regra: 'forbidden',
         status: 'draft',
+        version: 1,
         geometry_type: 'polygon',
         geometry_version: 1,
         active_assignments: 0,
@@ -73,6 +76,28 @@ beforeEach(() => {
           type: 'Polygon',
           coordinates: [[[-46.6, -23.5], [-46.61, -23.51], [-46.62, -23.5], [-46.6, -23.5]]],
         },
+      },
+    },
+  } as any);
+  mockedService.update.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-detail.v1',
+      geofence: {
+        id: 7, public_id: 'fence-7', nome: 'Área atualizada', descricao: null,
+        regra: 'allowed', status: 'active', version: 2, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 0,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      },
+    },
+  } as any);
+  mockedService.archive.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-detail.v1',
+      geofence: {
+        id: 7, public_id: 'fence-7', nome: 'Área atualizada', descricao: null,
+        regra: 'allowed', status: 'archived', version: 3, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 0,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
       },
     },
   } as any);
@@ -132,4 +157,61 @@ test('círculo usa dois cliques e exibe a prévia antes de salvar', async () => 
   expect(screen.getByText('Raio: 250 m')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /salvar cerca/i })).toBeEnabled();
   expect(screen.getByTestId('map-circle')).toBeInTheDocument();
+});
+
+test('edita cerca existente com versão esperada e motivo auditável', async () => {
+  mockedService.getAll.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-list.v1', total: 1, limit: 200, offset: 0,
+      geofences: [{
+        id: 7, public_id: 'fence-7', nome: 'Área antiga', descricao: null,
+        regra: 'allowed', status: 'active', version: 1, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 0,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      }],
+    },
+  } as any);
+  render(<GeofenceDesigner />);
+  fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
+  await screen.findByText('1 cadastrada(s)');
+  fireEvent.change(screen.getByLabelText('Gerenciar cerca existente'), { target: { value: 'fence-7' } });
+  fireEvent.change(screen.getByLabelText('Nome da cerca'), { target: { value: 'Área atualizada' } });
+  fireEvent.change(screen.getByLabelText('Operador responsável pela cerca'), { target: { value: 'Maria' } });
+  fireEvent.change(screen.getByLabelText('Motivo da alteração da cerca'), { target: { value: 'Ajuste cadastral' } });
+  fireEvent.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+  await waitFor(() => expect(mockedService.update).toHaveBeenCalledTimes(1));
+  expect(mockedService.update).toHaveBeenCalledWith('fence-7', expect.objectContaining({
+    expected_version: 1,
+    change_reason: 'Ajuste cadastral',
+    geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+  }));
+});
+
+test('arquiva sem apagar e exige confirmação do operador', async () => {
+  mockedService.getAll.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-list.v1', total: 1, limit: 200, offset: 0,
+      geofences: [{
+        id: 7, public_id: 'fence-7', nome: 'Área antiga', descricao: null,
+        regra: 'allowed', status: 'inactive', version: 2, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 0,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      }],
+    },
+  } as any);
+  jest.spyOn(window, 'confirm').mockReturnValue(true);
+  render(<GeofenceDesigner />);
+  fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
+  await screen.findByText('1 cadastrada(s)');
+  fireEvent.change(screen.getByLabelText('Gerenciar cerca existente'), { target: { value: 'fence-7' } });
+  fireEvent.change(screen.getByLabelText('Operador responsável pela cerca'), { target: { value: 'Maria' } });
+  fireEvent.change(screen.getByLabelText('Motivo da alteração da cerca'), { target: { value: 'Área desativada' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Arquivar' }));
+
+  await waitFor(() => expect(mockedService.archive).toHaveBeenCalledTimes(1));
+  expect(mockedService.archive).toHaveBeenCalledWith('fence-7', expect.objectContaining({
+    expected_version: 2, change_reason: 'Área desativada',
+  }));
+  expect(await screen.findByText(/histórico foi preservado/i)).toBeInTheDocument();
 });

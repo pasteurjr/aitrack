@@ -21,6 +21,7 @@ export interface Geofence {
   descricao: string | null;
   regra: GeofenceRule;
   status: GeofenceStatus;
+  version: number;
   geometry_type: 'circle' | 'polygon';
   geometry: GeofenceGeometry;
   geometry_version: number;
@@ -41,6 +42,16 @@ export interface CreateGeofenceBody {
   regra: GeofenceRule;
   status: Exclude<GeofenceStatus, 'archived'>;
   geometry: GeofenceGeometry;
+  operator: { id: string; name: string };
+  change_reason: string;
+}
+
+export interface UpdateGeofenceBody extends CreateGeofenceBody {
+  expected_version: number;
+}
+
+export interface ArchiveGeofenceBody {
+  expected_version: number;
   operator: { id: string; name: string };
   change_reason: string;
 }

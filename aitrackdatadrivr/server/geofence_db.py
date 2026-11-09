@@ -9,6 +9,24 @@ from uuid import uuid4
 from .monitor_db import get_connection
 
 
+class GeofenceNotFound(Exception):
+    pass
+
+
+class GeofenceConflict(Exception):
+    pass
+
+
+class GeofenceArchived(Exception):
+    pass
+
+
+class GeofenceHasActiveAssignments(Exception):
+    def __init__(self, count: int):
+        self.count = count
+        super().__init__(f'Cerca possui {count} atribuição(ões) ativa(s)')
+
+
 GEOFENCE_SELECT = """
     SELECT g.id, g.public_id, g.nome, g.descricao, g.regra, g.status,
            g.owner_ref, g.criado_por, g.atualizado_por, g.version,
@@ -137,7 +155,184 @@ def create_geofence(data: Dict, normalized_geometry: Dict) -> Dict:
                 data['change_reason'], data['actor_id'],
             ),
         )
+        cursor.execute(
+            """
+            INSERT INTO monitoramento.geofence_audit_log
+                (geofence_id, action, from_version, to_version, actor, reason, details_json)
+            VALUES (%s, 'created', NULL, 1, %s, %s, %s)
+            """,
+            (
+                geofence_id, data['actor_id'], data['change_reason'],
+                json.dumps({'geometry_type': normalized_geometry['type']}),
+            ),
+        )
         cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (geofence_id,))
+        result = _serialize(cursor.fetchone())
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _locked_geofence(cursor, reference: str) -> Dict:
+    if reference.isdigit():
+        clause, parameter = 'id = %s', int(reference)
+    else:
+        clause, parameter = 'public_id = %s', reference
+    cursor.execute(
+        f'SELECT id, version, status FROM monitoramento.geofences WHERE {clause} FOR UPDATE',
+        (parameter,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        raise GeofenceNotFound()
+    return row
+
+
+def _assert_mutable(row: Dict, expected_version: int) -> None:
+    if row['status'] == 'archived':
+        raise GeofenceArchived()
+    if int(row['version']) != expected_version:
+        raise GeofenceConflict()
+
+
+def update_geofence(
+    reference: str,
+    data: Dict,
+    normalized_geometry: Optional[Dict],
+) -> Dict:
+    """Atualiza metadados e cria versão geométrica somente quando o desenho mudou."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        row = _locked_geofence(cursor, reference)
+        _assert_mutable(row, data['expected_version'])
+        cursor.execute(
+            """
+            SELECT id, version_number, geometry_hash
+              FROM monitoramento.geofence_versions
+             WHERE geofence_id = %s
+             ORDER BY version_number DESC LIMIT 1 FOR UPDATE
+            """,
+            (row['id'],),
+        )
+        current_geometry = cursor.fetchone()
+        geometry_changed = bool(
+            normalized_geometry
+            and normalized_geometry['hash'] != current_geometry['geometry_hash']
+        )
+        next_version = int(row['version']) + 1
+        cursor.execute(
+            """
+            UPDATE monitoramento.geofences
+               SET nome = %s, descricao = %s, regra = %s, status = %s,
+                   owner_ref = %s, atualizado_por = %s, version = %s
+             WHERE id = %s AND version = %s
+            """,
+            (
+                data['nome'], data.get('descricao'), data['regra'], data['status'],
+                data.get('owner_ref'), data['actor_id'], next_version,
+                row['id'], data['expected_version'],
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise GeofenceConflict()
+
+        if geometry_changed:
+            cursor.execute(
+                """
+                UPDATE monitoramento.geofence_versions
+                   SET valid_to = CURRENT_TIMESTAMP(6)
+                 WHERE id = %s AND valid_to IS NULL
+                """,
+                (current_geometry['id'],),
+            )
+            cursor.execute(
+                """
+                INSERT INTO monitoramento.geofence_versions
+                    (geofence_id, version_number, geometry_type, geometry,
+                     radius_meters, geometry_hash, change_reason, created_by)
+                VALUES (%s, %s, %s, ST_GeomFromText(%s), %s, %s, %s, %s)
+                """,
+                (
+                    row['id'], int(current_geometry['version_number']) + 1,
+                    normalized_geometry['type'], normalized_geometry['wkt'],
+                    normalized_geometry['radius_meters'], normalized_geometry['hash'],
+                    data['change_reason'], data['actor_id'],
+                ),
+            )
+
+        action = 'geometry_updated' if geometry_changed else 'updated'
+        cursor.execute(
+            """
+            INSERT INTO monitoramento.geofence_audit_log
+                (geofence_id, action, from_version, to_version, actor, reason, details_json)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                row['id'], action, row['version'], next_version, data['actor_id'],
+                data['change_reason'], json.dumps({'geometry_changed': geometry_changed}),
+            ),
+        )
+        cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (row['id'],))
+        result = _serialize(cursor.fetchone())
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def archive_geofence(reference: str, data: Dict) -> Dict:
+    """Arquiva sem apagar histórico e bloqueia cercas ainda atribuídas."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        row = _locked_geofence(cursor, reference)
+        _assert_mutable(row, data['expected_version'])
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total
+              FROM monitoramento.geofence_assignments
+             WHERE geofence_id = %s AND ativo = TRUE
+            """,
+            (row['id'],),
+        )
+        active_assignments = int(cursor.fetchone()['total'])
+        if active_assignments:
+            raise GeofenceHasActiveAssignments(active_assignments)
+        next_version = int(row['version']) + 1
+        cursor.execute(
+            """
+            UPDATE monitoramento.geofences
+               SET status = 'archived', atualizado_por = %s, version = %s
+             WHERE id = %s AND version = %s
+            """,
+            (data['actor_id'], next_version, row['id'], data['expected_version']),
+        )
+        if cursor.rowcount != 1:
+            raise GeofenceConflict()
+        cursor.execute(
+            """
+            INSERT INTO monitoramento.geofence_audit_log
+                (geofence_id, action, from_version, to_version, actor, reason, details_json)
+            VALUES (%s, 'archived', %s, %s, %s, %s, NULL)
+            """,
+            (
+                row['id'], row['version'], next_version,
+                data['actor_id'], data['change_reason'],
+            ),
+        )
+        cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (row['id'],))
         result = _serialize(cursor.fetchone())
         conn.commit()
         return result

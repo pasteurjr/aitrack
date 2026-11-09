@@ -695,7 +695,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **3.3** Criar CRUD de cercas.
 - [x] **3.4** Adicionar desenho de círculo no mapa.
 - [x] **3.5** Adicionar desenho de polígono.
-- [ ] **3.6** Adicionar edição, validação e exclusão segura.
+- [x] **3.6** Adicionar edição, validação e exclusão segura.
 - [ ] **3.7** Criar tela de atribuição a veículos/grupos.
 - [ ] **3.8** Implementar entrada/saída com histerese.
 - [ ] **3.9** Implementar agenda e permanência.

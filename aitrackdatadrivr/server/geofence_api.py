@@ -66,6 +66,79 @@ def _creation_payload():
     }, normalize_geometry(data.get('geometry'))
 
 
+def _mutation_payload(require_geometry: bool = False):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValueError('Corpo JSON é obrigatório')
+    expected_version = data.get('expected_version')
+    if (
+        not isinstance(expected_version, int)
+        or isinstance(expected_version, bool)
+        or expected_version < 1
+    ):
+        raise ValueError('expected_version deve ser inteiro positivo')
+    operator = data.get('operator')
+    if not isinstance(operator, dict):
+        raise ValueError('operator é obrigatório')
+    actor_id = str(operator.get('id') or '').strip()
+    actor_name = str(operator.get('name') or '').strip()
+    if not 1 <= len(actor_id) <= 100:
+        raise ValueError('operator.id deve ter entre 1 e 100 caracteres')
+    if not 1 <= len(actor_name) <= 150:
+        raise ValueError('operator.name deve ter entre 1 e 150 caracteres')
+    change_reason = str(data.get('change_reason') or '').strip()
+    if not 3 <= len(change_reason) <= 300:
+        raise ValueError('change_reason deve ter entre 3 e 300 caracteres')
+    result = {
+        'expected_version': expected_version,
+        'actor_id': actor_id,
+        'change_reason': change_reason,
+    }
+    if not require_geometry:
+        return result
+    nome = data.get('nome')
+    if not isinstance(nome, str) or not 1 <= len(nome.strip()) <= 150:
+        raise ValueError('nome deve ter entre 1 e 150 caracteres')
+    if data.get('regra') not in VALID_RULES:
+        raise ValueError('regra deve ser allowed ou forbidden')
+    if data.get('status') not in VALID_STATUS:
+        raise ValueError('status deve ser draft, active ou inactive')
+    result.update({
+        'nome': nome.strip(),
+        'descricao': _optional_text(data, 'descricao', 5000),
+        'regra': data['regra'],
+        'status': data['status'],
+        'owner_ref': _optional_text(data, 'owner_ref', 100),
+    })
+    geometry = normalize_geometry(data['geometry']) if data.get('geometry') else None
+    return result, geometry
+
+
+def _mutation_error(exc, operation: str):
+    if isinstance(exc, geofence_db.GeofenceNotFound):
+        return jsonify({'code': 'GEOFENCE_NOT_FOUND', 'error': 'Cerca não encontrada'}), 404
+    if isinstance(exc, geofence_db.GeofenceConflict):
+        return jsonify({
+            'code': 'GEOFENCE_VERSION_CONFLICT',
+            'error': 'A cerca foi alterada. Recarregue antes de tentar novamente.',
+        }), 409
+    if isinstance(exc, geofence_db.GeofenceArchived):
+        return jsonify({'code': 'GEOFENCE_ARCHIVED', 'error': 'Cerca arquivada não pode ser alterada'}), 409
+    if isinstance(exc, geofence_db.GeofenceHasActiveAssignments):
+        return jsonify({
+            'code': 'GEOFENCE_HAS_ACTIVE_ASSIGNMENTS',
+            'error': 'Desative as atribuições antes de arquivar a cerca.',
+            'active_assignments': exc.count,
+        }), 409
+    if isinstance(exc, ValueError):
+        return jsonify({'code': 'INVALID_GEOFENCE', 'error': str(exc)}), 400
+    logger.exception('Erro ao %s cerca', operation)
+    return jsonify({
+        'code': 'GEOFENCE_MUTATION_FAILED',
+        'error': f'Não foi possível {operation} a cerca',
+    }), 500
+
+
 @geofence_bp.route('', methods=['GET'])
 def list_geofences():
     try:
@@ -133,3 +206,23 @@ def create_geofence():
             'code': 'GEOFENCE_CREATE_FAILED',
             'error': 'Não foi possível criar a cerca',
         }), 500
+
+
+@geofence_bp.route('/<string:reference>', methods=['PUT'])
+def update_geofence(reference: str):
+    try:
+        data, geometry = _mutation_payload(require_geometry=True)
+        fence = geofence_db.update_geofence(reference, data, geometry)
+        return jsonify({'schema_version': 'geofence-detail.v1', 'geofence': fence})
+    except Exception as exc:
+        return _mutation_error(exc, 'atualizar')
+
+
+@geofence_bp.route('/<string:reference>', methods=['DELETE'])
+def archive_geofence(reference: str):
+    try:
+        data = _mutation_payload()
+        fence = geofence_db.archive_geofence(reference, data)
+        return jsonify({'schema_version': 'geofence-detail.v1', 'geofence': fence})
+    except Exception as exc:
+        return _mutation_error(exc, 'arquivar')

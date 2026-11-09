@@ -386,3 +386,33 @@
 - Playwright real, viewport 1440×900: painel mediu 350×588 px, sem erros de
   console; polígono de quatro vértices e círculo de 3,50 km foram persistidos e
   consultados no MariaDB. Limpeza por ID deixou zero cercas de teste.
+
+## UI-3.6 — Edição versionada e arquivamento seguro
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `c708ffd`
+
+- `PUT /api/geofences/<id-ou-uuid>` exige `expected_version`, operador e motivo.
+  Versão divergente retorna HTTP 409 e não sobrescreve trabalho concorrente.
+- Alteração geométrica encerra a validade da versão anterior e insere uma nova;
+  alteração apenas cadastral incrementa a versão da cerca sem duplicar desenho.
+- O hash geométrico permanece indexado, mas deixou de ser único para permitir
+  retorno deliberado a um desenho histórico como uma nova versão auditável.
+- A migration 016 criou `geofence_audit_log`, com ações de criação, atualização,
+  redesenho e arquivamento, versões anterior/nova, operador, motivo e detalhes.
+- `DELETE /api/geofences/<id-ou-uuid>` não executa exclusão física: muda o estado
+  para `archived`. A operação é bloqueada quando existem atribuições ativas.
+- A interface permite selecionar uma cerca, alterar metadados, redesenhar como
+  círculo ou polígono, restaurar o desenho original e arquivar com confirmação.
+  Exibe versões e quantidade de atribuições antes da decisão.
+- Integração MariaDB provou versão geométrica 1→2, conflito de escrita obsoleta,
+  bloqueio com uma atribuição ativa e arquivamento 2→3 após desativá-la. O log
+  registrou `created`, `geometry_updated` e `archived`; rollback deixou zero
+  resíduos.
+- Playwright executou criação, redesenho círculo→polígono e arquivamento pela
+  interface real, sem erros de console; a geometria permaneceu no histórico.
+- Regressão completa: `182 passed` no backend com integrações MariaDB e
+  `49 passed` no App 2; TypeScript e build de produção passaram.
+- Runner registrou a migration 016 e reportou zero pendências; zero auditorias
+  órfãs e zero registros temporários da UI-3.6 permaneceram no banco.

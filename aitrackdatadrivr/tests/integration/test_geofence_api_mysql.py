@@ -66,6 +66,11 @@ def test_creates_lists_and_reads_circle_and_polygon_without_residue():
             try:
                 placeholders = ','.join(['%s'] * len(created_ids))
                 cursor.execute(
+                    'DELETE FROM monitoramento.geofence_audit_log '
+                    f'WHERE geofence_id IN ({placeholders})',
+                    tuple(created_ids),
+                )
+                cursor.execute(
                     'DELETE FROM monitoramento.geofence_versions '
                     f'WHERE geofence_id IN ({placeholders})',
                     tuple(created_ids),

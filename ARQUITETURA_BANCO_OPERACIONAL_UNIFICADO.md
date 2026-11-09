@@ -115,3 +115,9 @@ O Leaflet mantém coordenadas na ordem visual `[latitude, longitude]`; o serviç
 tipado converte para GeoJSON `[longitude, latitude]` apenas ao chamar a API.
 Assim, o frontend nunca conhece WKT nem credenciais do banco. O backend continua
 sendo o único responsável por validar, versionar e persistir a geometria.
+
+Na UI-3.6, toda mutação passou a usar concorrência otimista pela versão da cerca.
+Redesenhos criam versões geométricas imutáveis; mudanças cadastrais não duplicam
+geometria. O `geofence_audit_log` registra ator, motivo e transição de versão.
+“Excluir” significa arquivar, nunca apagar, e é recusado enquanto a cerca tiver
+atribuições ativas. Isso preserva a explicabilidade de incidentes históricos.

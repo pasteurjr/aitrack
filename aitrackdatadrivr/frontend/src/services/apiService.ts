@@ -17,8 +17,10 @@ import type {
 } from '../types/incident';
 import type {
   CreateGeofenceBody,
+  ArchiveGeofenceBody,
   GeofenceDetailResponse,
   GeofenceListResponse,
+  UpdateGeofenceBody,
 } from '../types/geofence';
 
 export const apiClient = axios.create({
@@ -251,6 +253,12 @@ export const geofenceService = {
 
   create: (body: CreateGeofenceBody) =>
     apiClient.post<GeofenceDetailResponse>('/geofences', body),
+
+  update: (reference: string, body: UpdateGeofenceBody) =>
+    apiClient.put<GeofenceDetailResponse>(`/geofences/${reference}`, body),
+
+  archive: (reference: string, body: ArchiveGeofenceBody) =>
+    apiClient.delete<GeofenceDetailResponse>(`/geofences/${reference}`, { data: body }),
 };
 
 const apiService = {

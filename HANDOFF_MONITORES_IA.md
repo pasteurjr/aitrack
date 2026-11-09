@@ -1090,6 +1090,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.2 | este commit | Grupos e vínculos vehicle/driver/group com agendas semanais/overnight criados; prova MariaDB e rollback passaram; 151 regressões. |
 | 2026-11-09 | UI-3.3 | este commit | API transacional cria/lista/detalha cercas circle/polygon com validação geométrica; integração sem resíduos e 171 regressões passaram. Edição/arquivamento ficam na UI-3.6. |
 | 2026-11-09 | UI-3.4/3.5 | este commit | App 2 desenha círculo por centro/borda e polígono por vértices, com prévia, desfazer/cancelar e persistência tipada; 47 testes, build e Playwright real passaram sem resíduos. |
+| 2026-11-09 | UI-3.6 | este commit | Edição usa versão otimista e histórico geométrico/auditoria; arquivamento preserva dados e bloqueia vínculos ativos; 182 backend, 49 frontend, build, integração e Playwright passaram sem resíduos. |
 
 ---
 
@@ -1133,7 +1134,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | GET | `/api/events/catalog` (+ `tempo_resposta_segundos`, `deteccao_ativa`) | T3.5 |
 | GET/POST | `/api/geofences` | UI-3.3 |
 | GET | `/api/geofences/<id-ou-uuid>` | UI-3.3 |
-| PUT/DELETE seguro | `/api/geofences/<id-ou-uuid>` | UI-3.6 (planejado) |
+| PUT/DELETE seguro | `/api/geofences/<id-ou-uuid>` | UI-3.6 |
 | GET | `/api/incidents` | UI-2.3 |
 | GET | `/api/incidents/<id>` | UI-2.3 |
 | POST | `/api/incidents/<id>/acknowledge` | UI-2.7 |
