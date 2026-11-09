@@ -9,6 +9,9 @@ import type {
   Geofence,
   GeofenceGeometry,
   GeofenceRule,
+  GeofenceAssignment,
+  GeofenceAssignmentOptions,
+  AssignmentTargetType,
 } from '../types/geofence';
 import './GeofenceDesigner.css';
 
@@ -34,6 +37,9 @@ const RULE_COLORS: Record<GeofenceRule, string> = {
 };
 const STATUS_LABELS = {
   draft: 'Rascunho', active: 'Ativa', inactive: 'Inativa', archived: 'Arquivada',
+};
+const TARGET_LABELS: Record<AssignmentTargetType, string> = {
+  vehicle: 'Veículo', driver: 'Motorista', group: 'Grupo',
 };
 
 const localOperatorId = () => {
@@ -128,6 +134,15 @@ const GeofenceDesigner: React.FC = () => {
   const [operatorId] = useState(localOperatorId);
   const [editingFence, setEditingFence] = useState<Geofence | null>(null);
   const [changeReason, setChangeReason] = useState('');
+  const [assignmentOptions, setAssignmentOptions] = useState<GeofenceAssignmentOptions | null>(null);
+  const [assignments, setAssignments] = useState<GeofenceAssignment[]>([]);
+  const [targetType, setTargetType] = useState<AssignmentTargetType>('vehicle');
+  const [targetId, setTargetId] = useState('');
+  const [assignmentBusy, setAssignmentBusy] = useState(false);
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupVehicleIds, setGroupVehicleIds] = useState<number[]>([]);
+  const [groupDriverIds, setGroupDriverIds] = useState<number[]>([]);
 
   const loadGeofences = useCallback(async () => {
     try {
@@ -181,6 +196,96 @@ const GeofenceDesigner: React.FC = () => {
     setStatus(fence.status);
     setChangeReason('');
     setMessage(null);
+    setAssignmentBusy(true);
+    Promise.all([
+      geofenceService.getAssignmentOptions(),
+      geofenceService.getAssignments(fence.public_id),
+    ]).then(([optionsResponse, assignmentsResponse]) => {
+      setAssignmentOptions(optionsResponse.data);
+      setAssignments(assignmentsResponse.data.assignments);
+    }).catch(() => {
+      setMessage({ type: 'error', text: 'Não foi possível carregar as atribuições.' });
+    }).finally(() => setAssignmentBusy(false));
+  };
+
+  const optionList = assignmentOptions
+    ? targetType === 'vehicle' ? assignmentOptions.vehicles
+      : targetType === 'driver' ? assignmentOptions.drivers : assignmentOptions.groups
+    : [];
+
+  const assignTarget = async () => {
+    if (!editingFence || !targetId || !operatorName.trim()) {
+      setMessage({ type: 'error', text: 'Selecione o alvo e informe o operador.' });
+      return;
+    }
+    setAssignmentBusy(true);
+    setMessage(null);
+    try {
+      const response = await geofenceService.assign(editingFence.public_id, {
+        target_type: targetType,
+        target_id: Number(targetId),
+        operator: { id: operatorId, name: operatorName.trim() },
+      });
+      setAssignments(previous => [...previous, response.data.assignment]);
+      setEditingFence(previous => previous ? {
+        ...previous, active_assignments: previous.active_assignments + 1,
+      } : previous);
+      setGeofences(previous => previous.map(fence => fence.public_id === editingFence.public_id
+        ? { ...fence, active_assignments: fence.active_assignments + 1 } : fence));
+      setTargetId('');
+      setMessage({ type: 'success', text: 'Alvo atribuído à cerca.' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Não foi possível atribuir o alvo.' });
+    } finally {
+      setAssignmentBusy(false);
+    }
+  };
+
+  const deactivateAssignment = async (assignment: GeofenceAssignment) => {
+    if (!editingFence || !operatorName.trim()) return;
+    setAssignmentBusy(true);
+    try {
+      await geofenceService.deactivateAssignment(editingFence.public_id, assignment.id, {
+        expected_version: assignment.version,
+        operator: { id: operatorId, name: operatorName.trim() },
+      });
+      setAssignments(previous => previous.filter(item => item.id !== assignment.id));
+      setEditingFence(previous => previous ? {
+        ...previous, active_assignments: Math.max(0, previous.active_assignments - 1),
+      } : previous);
+      setGeofences(previous => previous.map(fence => fence.public_id === editingFence.public_id
+        ? { ...fence, active_assignments: Math.max(0, fence.active_assignments - 1) } : fence));
+      setMessage({ type: 'success', text: 'Atribuição desativada.' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Não foi possível desativar a atribuição.' });
+    } finally {
+      setAssignmentBusy(false);
+    }
+  };
+
+  const createGroup = async () => {
+    if (!groupName.trim() || !operatorName.trim() || (!groupVehicleIds.length && !groupDriverIds.length)) {
+      setMessage({ type: 'error', text: 'Informe nome, operador e ao menos um membro do grupo.' });
+      return;
+    }
+    setAssignmentBusy(true);
+    try {
+      const response = await geofenceService.createGroup({
+        nome: groupName.trim(), vehicle_ids: groupVehicleIds, driver_ids: groupDriverIds,
+        operator: { id: operatorId, name: operatorName.trim() },
+      });
+      setAssignmentOptions(previous => previous ? {
+        ...previous, groups: [...previous.groups, response.data.group],
+      } : previous);
+      setTargetType('group');
+      setTargetId(String(response.data.group.id));
+      setGroupName(''); setGroupVehicleIds([]); setGroupDriverIds([]); setShowGroupForm(false);
+      setMessage({ type: 'success', text: 'Grupo criado; confirme a atribuição abaixo.' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Não foi possível criar o grupo.' });
+    } finally {
+      setAssignmentBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -425,6 +530,55 @@ const GeofenceDesigner: React.FC = () => {
             </label>
           )}
           {editingFence && <p className="geofence-help">Versão {editingFence.version} · geometria {editingFence.geometry_version} · {editingFence.active_assignments} atribuição(ões) ativa(s)</p>}
+          {editingFence && (
+            <section className="geofence-assignment-section" aria-label="Atribuições da cerca">
+              <h3>Atribuições</h3>
+              <p className="geofence-help">Escolha quem será avaliado quando o detector de cerca entrar em operação.</p>
+              {assignments.map(assignment => (
+                <div className="geofence-assignment-item" key={assignment.id}>
+                  <span>{assignment.target_label}<small>{TARGET_LABELS[assignment.target_type]}</small></span>
+                  <button type="button" className="geofence-danger" disabled={assignmentBusy}
+                    onClick={() => deactivateAssignment(assignment)}>Remover</button>
+                </div>
+              ))}
+              {!assignments.length && <p className="geofence-help">Nenhum alvo atribuído.</p>}
+              <div className="geofence-row">
+                <select aria-label="Tipo de alvo da cerca" value={targetType} onChange={event => { setTargetType(event.target.value as AssignmentTargetType); setTargetId(''); }}>
+                  <option value="vehicle">Veículo</option>
+                  <option value="driver">Motorista</option>
+                  <option value="group">Grupo</option>
+                </select>
+                <select aria-label="Alvo da cerca" value={targetId} onChange={event => setTargetId(event.target.value)}>
+                  <option value="">Selecione</option>
+                  {optionList.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                </select>
+              </div>
+              <div className="geofence-actions">
+                <button type="button" className="geofence-primary" disabled={assignmentBusy || !targetId} onClick={assignTarget}>Atribuir alvo</button>
+                <button type="button" className="geofence-secondary" onClick={() => setShowGroupForm(value => !value)}>Criar grupo</button>
+              </div>
+              {showGroupForm && assignmentOptions && (
+                <div className="geofence-group-form">
+                  <label className="geofence-field">Nome do grupo
+                    <input aria-label="Nome do grupo de monitoramento" value={groupName} onChange={event => setGroupName(event.target.value)} />
+                  </label>
+                  <label className="geofence-field">Veículos do grupo
+                    <select aria-label="Veículos do grupo" multiple value={groupVehicleIds.map(String)}
+                      onChange={event => setGroupVehicleIds(Array.from(event.target.selectedOptions).map(option => Number(option.value)))}>
+                      {assignmentOptions.vehicles.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="geofence-field">Motoristas do grupo
+                    <select aria-label="Motoristas do grupo" multiple value={groupDriverIds.map(String)}
+                      onChange={event => setGroupDriverIds(Array.from(event.target.selectedOptions).map(option => Number(option.value)))}>
+                      {assignmentOptions.drivers.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" className="geofence-primary" disabled={assignmentBusy} onClick={createGroup}>Salvar grupo</button>
+                </div>
+              )}
+            </section>
+          )}
           <div className="geofence-actions">
             <button type="button" className="geofence-primary" onClick={save} disabled={saving || Boolean(mode)}>{saving ? 'Salvando…' : editingFence ? 'Salvar alterações' : 'Salvar cerca'}</button>
             {draft && !mode && <button type="button" className="geofence-secondary" onClick={cancelDrawing} disabled={saving}>{editingFence ? 'Restaurar original' : 'Refazer desenho'}</button>}

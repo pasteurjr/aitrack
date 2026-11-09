@@ -44,6 +44,11 @@ jest.mock('../services/apiService', () => ({
     create: jest.fn(),
     update: jest.fn(),
     archive: jest.fn(),
+    getAssignmentOptions: jest.fn(),
+    getAssignments: jest.fn(),
+    assign: jest.fn(),
+    deactivateAssignment: jest.fn(),
+    createGroup: jest.fn(),
   },
 }));
 
@@ -98,6 +103,27 @@ beforeEach(() => {
         regra: 'allowed', status: 'archived', version: 3, geometry_type: 'circle',
         geometry_version: 1, active_assignments: 0,
         geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      },
+    },
+  } as any);
+  mockedService.getAssignmentOptions.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-assignment-options.v1',
+      vehicles: [{ id: 11, public_id: 'vehicle-11', label: 'ABC1D23' }],
+      drivers: [{ id: 21, public_id: 'driver-21', label: 'João' }],
+      groups: [],
+    },
+  } as any);
+  mockedService.getAssignments.mockResolvedValue({
+    data: { schema_version: 'geofence-assignments.v1', assignments: [] },
+  } as any);
+  mockedService.assign.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-assignment.v1',
+      assignment: {
+        id: 31, geofence_id: 7, target_type: 'vehicle', target_label: 'ABC1D23',
+        vehicle_id: 11, driver_id: null, group_id: null, notify_on_entry: false,
+        notify_on_exit: true, ativo: true, version: 1,
       },
     },
   } as any);
@@ -214,4 +240,33 @@ test('arquiva sem apagar e exige confirmação do operador', async () => {
     expected_version: 2, change_reason: 'Área desativada',
   }));
   expect(await screen.findByText(/histórico foi preservado/i)).toBeInTheDocument();
+});
+
+test('atribui veículo canônico e atualiza a contagem da cerca', async () => {
+  mockedService.getAll.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-list.v1', total: 1, limit: 200, offset: 0,
+      geofences: [{
+        id: 7, public_id: 'fence-7', nome: 'Garagem', descricao: null,
+        regra: 'allowed', status: 'active', version: 1, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 0,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      }],
+    },
+  } as any);
+  render(<GeofenceDesigner />);
+  fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
+  await screen.findByText('1 cadastrada(s)');
+  fireEvent.change(screen.getByLabelText('Gerenciar cerca existente'), { target: { value: 'fence-7' } });
+  await screen.findByText('Nenhum alvo atribuído.');
+  fireEvent.change(screen.getByLabelText('Operador responsável pela cerca'), { target: { value: 'Maria' } });
+  fireEvent.change(screen.getByLabelText('Alvo da cerca'), { target: { value: '11' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Atribuir alvo' }));
+
+  await waitFor(() => expect(mockedService.assign).toHaveBeenCalledWith('fence-7', {
+    target_type: 'vehicle', target_id: 11,
+    operator: expect.objectContaining({ name: 'Maria' }),
+  }));
+  expect((await screen.findAllByText('ABC1D23')).length).toBeGreaterThanOrEqual(2);
+  expect(screen.getByText(/1 atribuição\(ões\) ativa\(s\)/)).toBeInTheDocument();
 });

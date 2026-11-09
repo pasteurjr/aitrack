@@ -416,3 +416,34 @@
   `49 passed` no App 2; TypeScript e build de produção passaram.
 - Runner registrou a migration 016 e reportou zero pendências; zero auditorias
   órfãs e zero registros temporários da UI-3.6 permaneceram no banco.
+
+## UI-3.7 — Atribuição a veículos, motoristas e grupos
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `cfa4730`
+
+- A API lista alvos exclusivamente da identidade canônica em `monitoramento`:
+  veículos ativos não mesclados, motoristas ativos e grupos operacionais.
+- Uma cerca aceita vínculo com exatamente um veículo, motorista ou grupo. Para
+  área permitida, a atribuição nasce notificando saída; para área proibida,
+  notificando entrada.
+- Repetir um vínculo ativo retorna conflito. Um vínculo removido é desativado,
+  preserva sua versão e pode ser reativado sem furar as chaves únicas.
+- Remoção exige a versão esperada do vínculo, impedindo que dois operadores
+  sobrescrevam a mesma atribuição silenciosamente.
+- Grupos podem ser criados na própria tela com veículos e/ou motoristas; seus
+  membros usam IDs canônicos e não IDs particulares de Tracker ou Dirija Bem.
+- A interface mostra alvos atuais, tipo, contagem, criação de grupo e remoção.
+  A contagem da cerca é atualizada imediatamente e continua bloqueando seu
+  arquivamento enquanto houver qualquer atribuição ativa.
+- Integração MariaDB criou grupo misto, atribuiu a mesma cerca aos três tipos de
+  alvo, rejeitou duplicidade, desativou e reativou o veículo com versão 1→2→3.
+- Playwright real criou cerca ativa, atribuiu veículo, criou grupo inline e o
+  atribuiu à cerca; o banco confirmou ambos os vínculos e não houve erro de
+  console. A limpeza por IDs deixou zero cercas, grupos, membros ou vínculos de
+  teste.
+- Regressão final: `187 passed` no backend com integrações MariaDB, `50 passed`
+  no App 2, TypeScript sem erros e build de produção compilado com sucesso.
+- Runner permaneceu com zero migrations pendentes; reconciliação confirmou zero
+  cercas/grupos de teste e zero vínculos órfãos.

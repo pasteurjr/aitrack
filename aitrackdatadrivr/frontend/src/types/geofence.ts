@@ -60,3 +60,35 @@ export interface GeofenceDetailResponse {
   schema_version: 'geofence-detail.v1';
   geofence: Geofence;
 }
+
+export type AssignmentTargetType = 'vehicle' | 'driver' | 'group';
+
+export interface AssignmentOption {
+  id: number;
+  public_id: string;
+  label: string;
+  plate?: string | null;
+  codusu?: string | null;
+  member_count?: number;
+}
+
+export interface GeofenceAssignmentOptions {
+  schema_version: 'geofence-assignment-options.v1';
+  vehicles: AssignmentOption[];
+  drivers: AssignmentOption[];
+  groups: AssignmentOption[];
+}
+
+export interface GeofenceAssignment {
+  id: number;
+  geofence_id: number;
+  target_type: AssignmentTargetType;
+  target_label: string;
+  vehicle_id: number | null;
+  driver_id: number | null;
+  group_id: number | null;
+  notify_on_entry: boolean;
+  notify_on_exit: boolean;
+  ativo: boolean;
+  version: number;
+}

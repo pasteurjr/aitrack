@@ -121,3 +121,9 @@ Redesenhos criam versões geométricas imutáveis; mudanças cadastrais não dup
 geometria. O `geofence_audit_log` registra ator, motivo e transição de versão.
 “Excluir” significa arquivar, nunca apagar, e é recusado enquanto a cerca tiver
 atribuições ativas. Isso preserva a explicabilidade de incidentes históricos.
+
+Na UI-3.7, atribuições passaram a ser operáveis pela API e pelo mapa. Os alvos
+são sempre IDs canônicos de veículo, motorista ou grupo em `monitoramento`.
+Remover desativa o vínculo com concorrência otimista; reatribuir o mesmo alvo
+reativa o registro histórico. Grupos misturam veículos e motoristas sem copiar
+identificadores particulares dos bancos-fonte.

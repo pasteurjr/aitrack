@@ -222,6 +222,73 @@ def test_rejects_update_without_concurrency_version(monkeypatch):
     assert response.get_json()['error'] == 'expected_version deve ser inteiro positivo'
 
 
+def test_lists_assignment_options_from_canonical_identity(monkeypatch):
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'assignment_options',
+        lambda: {'vehicles': [{'id': 1}], 'drivers': [{'id': 2}], 'groups': [{'id': 3}]},
+    )
+    response = _client().get('/api/geofences/assignment-options')
+
+    assert response.status_code == 200
+    assert response.get_json()['schema_version'] == 'geofence-assignment-options.v1'
+    assert response.get_json()['vehicles'] == [{'id': 1}]
+
+
+def test_assigns_canonical_target_with_audited_operator(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'assign_target',
+        lambda reference, data: captured.update(reference=reference, data=data) or {'id': 10},
+    )
+    response = _client().post('/api/geofences/fence-1/assignments', json={
+        'target_type': 'driver', 'target_id': 4,
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 201
+    assert captured == {
+        'reference': 'fence-1',
+        'data': {'target_type': 'driver', 'target_id': 4, 'actor_id': 'operator-7'},
+    }
+
+
+def test_deactivates_assignment_with_optimistic_version(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'deactivate_assignment',
+        lambda reference, assignment_id, data: captured.update(
+            reference=reference, assignment_id=assignment_id, data=data,
+        ) or {'id': assignment_id, 'ativo': False},
+    )
+    response = _client().delete('/api/geofences/fence-1/assignments/10', json={
+        'expected_version': 2,
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 200
+    assert captured['data'] == {'expected_version': 2, 'actor_id': 'operator-7'}
+
+
+def test_creates_group_with_deduplicated_members(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'create_group',
+        lambda data: captured.update(data) or {'id': 5, 'member_count': 3},
+    )
+    response = _client().post('/api/geofences/monitoring-groups', json={
+        'nome': 'Equipe Norte', 'vehicle_ids': [2, 1, 2], 'driver_ids': [4],
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 201
+    assert captured['vehicle_ids'] == [1, 2]
+    assert captured['driver_ids'] == [4]
+
+
 def test_repository_filters_are_parameterized():
     from server import geofence_db
 

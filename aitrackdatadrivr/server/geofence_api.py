@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from . import geofence_db
+from . import geofence_assignment_db
 from .geofence_geometry import normalize_geometry
 
 
@@ -139,6 +140,30 @@ def _mutation_error(exc, operation: str):
     }), 500
 
 
+def _operator(data):
+    operator = data.get('operator')
+    if not isinstance(operator, dict):
+        raise ValueError('operator é obrigatório')
+    actor_id = str(operator.get('id') or '').strip()
+    actor_name = str(operator.get('name') or '').strip()
+    if not 1 <= len(actor_id) <= 100 or not 1 <= len(actor_name) <= 150:
+        raise ValueError('operator inválido')
+    return actor_id
+
+
+def _assignment_error(exc):
+    if isinstance(exc, geofence_assignment_db.AssignmentNotFound):
+        return jsonify({'code': 'ASSIGNMENT_NOT_FOUND', 'error': 'Cerca ou atribuição não encontrada'}), 404
+    if isinstance(exc, geofence_assignment_db.AssignmentConflict):
+        return jsonify({'code': 'ASSIGNMENT_CONFLICT', 'error': 'Alvo já atribuído ou vínculo atualizado por outro operador'}), 409
+    if isinstance(exc, geofence_assignment_db.InvalidAssignmentTarget):
+        return jsonify({'code': 'INVALID_ASSIGNMENT_TARGET', 'error': 'Alvo de atribuição inválido'}), 400
+    if isinstance(exc, ValueError):
+        return jsonify({'code': 'INVALID_ASSIGNMENT', 'error': str(exc)}), 400
+    logger.exception('Erro manipulando atribuição de cerca')
+    return jsonify({'code': 'ASSIGNMENT_UNAVAILABLE', 'error': 'Não foi possível manipular a atribuição'}), 500
+
+
 @geofence_bp.route('', methods=['GET'])
 def list_geofences():
     try:
@@ -226,3 +251,100 @@ def archive_geofence(reference: str):
         return jsonify({'schema_version': 'geofence-detail.v1', 'geofence': fence})
     except Exception as exc:
         return _mutation_error(exc, 'arquivar')
+
+
+@geofence_bp.route('/assignment-options', methods=['GET'])
+def assignment_options():
+    try:
+        return jsonify({
+            'schema_version': 'geofence-assignment-options.v1',
+            **geofence_assignment_db.assignment_options(),
+        })
+    except Exception as exc:
+        return _assignment_error(exc)
+
+
+@geofence_bp.route('/monitoring-groups', methods=['POST'])
+def create_monitoring_group():
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise ValueError('Corpo JSON é obrigatório')
+        nome = str(data.get('nome') or '').strip()
+        if not 1 <= len(nome) <= 150:
+            raise ValueError('nome deve ter entre 1 e 150 caracteres')
+        vehicle_ids = data.get('vehicle_ids', [])
+        driver_ids = data.get('driver_ids', [])
+        if not isinstance(vehicle_ids, list) or not isinstance(driver_ids, list):
+            raise ValueError('vehicle_ids e driver_ids devem ser listas')
+        ids = vehicle_ids + driver_ids
+        if not ids or any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in ids):
+            raise ValueError('grupo deve possuir ao menos um membro válido')
+        group = geofence_assignment_db.create_group({
+            'nome': nome,
+            'descricao': _optional_text(data, 'descricao', 5000),
+            'owner_ref': _optional_text(data, 'owner_ref', 100),
+            'vehicle_ids': sorted(set(vehicle_ids)),
+            'driver_ids': sorted(set(driver_ids)),
+            'actor_id': _operator(data),
+        })
+        return jsonify({'schema_version': 'monitoring-group.v1', 'group': group}), 201
+    except Exception as exc:
+        return _assignment_error(exc)
+
+
+@geofence_bp.route('/<string:reference>/assignments', methods=['GET'])
+def list_geofence_assignments(reference: str):
+    try:
+        include_inactive = request.args.get('include_inactive', 'false').lower()
+        if include_inactive not in {'true', 'false', '1', '0'}:
+            raise ValueError('include_inactive deve ser booleano')
+        assignments = geofence_assignment_db.list_assignments(
+            reference, include_inactive in {'true', '1'},
+        )
+        return jsonify({
+            'schema_version': 'geofence-assignments.v1',
+            'assignments': assignments,
+        })
+    except Exception as exc:
+        return _assignment_error(exc)
+
+
+@geofence_bp.route('/<string:reference>/assignments', methods=['POST'])
+def assign_geofence_target(reference: str):
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise ValueError('Corpo JSON é obrigatório')
+        target_type = data.get('target_type')
+        target_id = data.get('target_id')
+        if target_type not in {'vehicle', 'driver', 'group'}:
+            raise ValueError('target_type inválido')
+        if not isinstance(target_id, int) or isinstance(target_id, bool) or target_id <= 0:
+            raise ValueError('target_id deve ser inteiro positivo')
+        assignment = geofence_assignment_db.assign_target(reference, {
+            'target_type': target_type,
+            'target_id': target_id,
+            'actor_id': _operator(data),
+        })
+        return jsonify({'schema_version': 'geofence-assignment.v1', 'assignment': assignment}), 201
+    except Exception as exc:
+        return _assignment_error(exc)
+
+
+@geofence_bp.route('/<string:reference>/assignments/<int:assignment_id>', methods=['DELETE'])
+def deactivate_geofence_assignment(reference: str, assignment_id: int):
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise ValueError('Corpo JSON é obrigatório')
+        expected_version = data.get('expected_version')
+        if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
+            raise ValueError('expected_version deve ser inteiro positivo')
+        assignment = geofence_assignment_db.deactivate_assignment(reference, assignment_id, {
+            'expected_version': expected_version,
+            'actor_id': _operator(data),
+        })
+        return jsonify({'schema_version': 'geofence-assignment.v1', 'assignment': assignment})
+    except Exception as exc:
+        return _assignment_error(exc)

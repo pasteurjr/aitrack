@@ -192,6 +192,56 @@
   border-radius: 50%;
 }
 
+.geofence-assignment-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #475569;
+}
+
+.geofence-assignment-section h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.geofence-assignment-section select {
+  min-width: 0;
+  flex: 1;
+  padding: 7px;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.geofence-assignment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+  padding: 7px;
+  border-radius: 6px;
+  background: #1e293b;
+  font-size: 12px;
+}
+
+.geofence-assignment-item small {
+  display: block;
+  color: #94a3b8;
+}
+
+.geofence-group-form {
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid #475569;
+  border-radius: 7px;
+  background: #111827;
+}
+
+.geofence-group-form select[multiple] {
+  min-height: 76px;
+}
+
 /* Durante o desenho, veículos e linhas não podem roubar o clique destinado ao mapa. */
 .leaflet-container.geofence-drawing .leaflet-marker-pane,
 .leaflet-container.geofence-drawing .leaflet-overlay-pane path {

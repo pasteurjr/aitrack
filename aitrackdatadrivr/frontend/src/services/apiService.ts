@@ -19,6 +19,9 @@ import type {
   CreateGeofenceBody,
   ArchiveGeofenceBody,
   GeofenceDetailResponse,
+  GeofenceAssignment,
+  GeofenceAssignmentOptions,
+  AssignmentTargetType,
   GeofenceListResponse,
   UpdateGeofenceBody,
 } from '../types/geofence';
@@ -259,6 +262,38 @@ export const geofenceService = {
 
   archive: (reference: string, body: ArchiveGeofenceBody) =>
     apiClient.delete<GeofenceDetailResponse>(`/geofences/${reference}`, { data: body }),
+
+  getAssignmentOptions: () =>
+    apiClient.get<GeofenceAssignmentOptions>('/geofences/assignment-options'),
+
+  getAssignments: (reference: string) =>
+    apiClient.get<{ schema_version: string; assignments: GeofenceAssignment[] }>(
+      `/geofences/${reference}/assignments`,
+    ),
+
+  assign: (reference: string, body: {
+    target_type: AssignmentTargetType;
+    target_id: number;
+    operator: { id: string; name: string };
+  }) => apiClient.post<{ schema_version: string; assignment: GeofenceAssignment }>(
+    `/geofences/${reference}/assignments`, body,
+  ),
+
+  deactivateAssignment: (reference: string, assignmentId: number, body: {
+    expected_version: number;
+    operator: { id: string; name: string };
+  }) => apiClient.delete<{ schema_version: string; assignment: GeofenceAssignment }>(
+    `/geofences/${reference}/assignments/${assignmentId}`, { data: body },
+  ),
+
+  createGroup: (body: {
+    nome: string;
+    vehicle_ids: number[];
+    driver_ids: number[];
+    operator: { id: string; name: string };
+  }) => apiClient.post<{ schema_version: string; group: import('../types/geofence').AssignmentOption }>(
+    '/geofences/monitoring-groups', body,
+  ),
 };
 
 const apiService = {
