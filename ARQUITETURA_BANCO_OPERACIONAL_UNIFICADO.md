@@ -94,3 +94,7 @@ contrato HTTP para manter o frontend compatível durante a transição.
 Na UI-3.0F, `operational` tornou-se o modo padrão e o fallback automático foi
 desabilitado. Retornar ao legado exige configuração explícita; uma falha no banco
 operacional deixa de ser mascarada como resposta válida.
+
+Na UI-3.1, cercas e versões geométricas passaram a existir em `monitoramento`.
+Uma cerca é comum às duas fontes; o desenho versionado não contém IDs Tracker ou
+Dirija Bem. As atribuições futuras apontarão para veículos e motoristas canônicos.

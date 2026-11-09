@@ -690,7 +690,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 ### Etapa 3 — Cercas eletrônicas
 
 - [x] **3.0** Criar banco operacional unificado e migrar a identidade sem interromper os sistemas-fonte.
-- [ ] **3.1** Criar em `monitoramento` as cercas compartilhadas e versões geométricas.
+- [x] **3.1** Criar em `monitoramento` as cercas compartilhadas e versões geométricas.
 - [ ] **3.2** Criar migration de vínculos e agendas.
 - [ ] **3.3** Criar CRUD de cercas.
 - [ ] **3.4** Adicionar desenho de círculo no mapa.

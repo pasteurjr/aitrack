@@ -254,3 +254,26 @@
 - Sem variáveis de override, `/api/v1/vehicles`, `/api/unified/vehicles`,
   `/api/unified/stats` e `/api/vehicles/unified` responderam HTTP 200 e total 26.
 - Testes focais de identidade, APIs e ponte de incidente: `16 passed`.
+
+## UI-3.1 — Cercas compartilhadas e versões geométricas
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `90bf8b8`
+
+- `monitoramento.geofences` armazena identidade pública, nome, regra permitida
+  ou proibida, ciclo de vida, proprietário lógico, responsáveis e versão de
+  concorrência otimista.
+- `monitoramento.geofence_versions` preserva cada desenho com número, hash,
+  motivo, autor e intervalo de validade.
+- Círculo usa `POINT(longitude latitude)` e `radius_meters`; polígono usa
+  `POLYGON` e raio nulo.
+- Geometria é `GEOMETRY NOT NULL` com índice espacial. Restrições impedem raio
+  ausente em círculo, raio em polígono e validade temporal invertida.
+- Versões usam FK restritiva; apagar uma cerca não apaga silenciosamente seu
+  histórico.
+- Prova MariaDB inseriu versões circular e poligonal, confirmou tipos `POINT` e
+  `POLYGON`, raio de 500 m e índice espacial.
+- Rollback deixou zero cercas temporárias; runner reportou zero pendências.
+- Vínculo com veículo/grupo, agenda e histerese pertencem às próximas tarefas e
+  não foram antecipados nesta migration.
