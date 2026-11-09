@@ -359,3 +359,30 @@
 - Testes focais: `24 passed`. Integração MariaDB: criação, listagem e detalhe de
   círculo e polígono passaram; limpeza por IDs temporários deixou zero resíduos.
 - Regressão completa, com integrações MariaDB habilitadas: `171 passed`.
+
+## UI-3.4 e UI-3.5 — Desenho visual de círculos e polígonos
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `79a0350`
+
+- O mapa ganhou um painel recolhível de criação de cercas, sem dependência nova.
+- Círculo é desenhado com dois cliques: centro e borda. O raio é calculado pelo
+  Leaflet em metros e mostrado antes da gravação.
+- Polígono é desenhado por vértices, com prévia, contagem, desfazer último ponto
+  e conclusão explícita. O frontend fecha o anel antes de chamar a API.
+- `Esc`, cancelar e refazer evitam que um desenho incompleto seja persistido.
+  Salvar fica bloqueado enquanto o desenho ainda está em andamento.
+- Área permitida aparece em azul e área proibida em vermelho; rascunhos e
+  inativas usam cinza e linha tracejada. A semântica de alerta é explicada no
+  próprio seletor.
+- Durante o desenho, marcadores e linhas existentes deixam de capturar cliques,
+  mas continuam visíveis; zoom e movimentação do mapa permanecem disponíveis.
+- A conversão é feita somente na borda HTTP: Leaflet usa `[latitude, longitude]`
+  e a API recebe GeoJSON em `[longitude, latitude]`. O navegador não acessa o
+  banco e não produz WKT.
+- App 2: `47 passed` em 13 suítes; TypeScript sem erros; build de produção
+  compilado com sucesso.
+- Playwright real, viewport 1440×900: painel mediu 350×588 px, sem erros de
+  console; polígono de quatro vértices e círculo de 3,50 km foram persistidos e
+  consultados no MariaDB. Limpeza por ID deixou zero cercas de teste.

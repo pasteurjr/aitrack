@@ -15,6 +15,11 @@ import type {
   IncidentSeverity,
   IncidentStatus,
 } from '../types/incident';
+import type {
+  CreateGeofenceBody,
+  GeofenceDetailResponse,
+  GeofenceListResponse,
+} from '../types/geofence';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -236,6 +241,16 @@ export const dirijabemService = {
 
 export const unifiedVehicleService = {
   getAll: () => apiClient.get<UnifiedVehiclesResponse>('/v1/vehicles'),
+};
+
+// ==================== Geofence Services ====================
+
+export const geofenceService = {
+  getAll: (params?: { status?: string; regra?: string; search?: string; limit?: number }) =>
+    apiClient.get<GeofenceListResponse>('/geofences', { params }),
+
+  create: (body: CreateGeofenceBody) =>
+    apiClient.post<GeofenceDetailResponse>('/geofences', body),
 };
 
 const apiService = {

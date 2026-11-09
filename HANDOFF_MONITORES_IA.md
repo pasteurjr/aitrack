@@ -1089,6 +1089,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | Validação Etapa 3 | este commit | 151 testes backend com MariaDB, 44 App 2, builds dos 2 apps, 2 simuladores e endpoints vivos passaram; Jest App 1 bloqueado por ESM preexistente. |
 | 2026-11-09 | UI-3.2 | este commit | Grupos e vínculos vehicle/driver/group com agendas semanais/overnight criados; prova MariaDB e rollback passaram; 151 regressões. |
 | 2026-11-09 | UI-3.3 | este commit | API transacional cria/lista/detalha cercas circle/polygon com validação geométrica; integração sem resíduos e 171 regressões passaram. Edição/arquivamento ficam na UI-3.6. |
+| 2026-11-09 | UI-3.4/3.5 | este commit | App 2 desenha círculo por centro/borda e polígono por vértices, com prévia, desfazer/cancelar e persistência tipada; 47 testes, build e Playwright real passaram sem resíduos. |
 
 ---
 

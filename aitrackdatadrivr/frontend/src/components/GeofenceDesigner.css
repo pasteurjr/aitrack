@@ -1,0 +1,199 @@
+.geofence-tool {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1100;
+  width: min(350px, calc(100% - 24px));
+  color: #e5e7eb;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.geofence-tool button,
+.geofence-tool input,
+.geofence-tool textarea,
+.geofence-tool select {
+  font: inherit;
+}
+
+.geofence-launcher {
+  display: block;
+  margin-left: auto;
+  padding: 10px 14px;
+  border: 1px solid #60a5fa;
+  border-radius: 8px;
+  background: #111827;
+  color: #eff6ff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.geofence-panel {
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, .97);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+}
+
+.geofence-heading,
+.geofence-row,
+.geofence-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.geofence-heading {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.geofence-heading h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.geofence-close {
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.geofence-help,
+.geofence-summary {
+  margin: 8px 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.geofence-mode {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid #64748b;
+  border-radius: 7px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.geofence-mode.active {
+  border-color: #38bdf8;
+  background: #075985;
+  color: white;
+}
+
+.geofence-field {
+  display: grid;
+  gap: 4px;
+  margin-top: 9px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.geofence-field input,
+.geofence-field textarea,
+.geofence-field select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  outline: none;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.geofence-field input:focus,
+.geofence-field textarea:focus,
+.geofence-field select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, .2);
+}
+
+.geofence-actions {
+  margin-top: 11px;
+  flex-wrap: wrap;
+}
+
+.geofence-primary,
+.geofence-secondary,
+.geofence-danger {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.geofence-primary {
+  border: 1px solid #0284c7;
+  background: #0284c7;
+  color: white;
+}
+
+.geofence-secondary {
+  border: 1px solid #64748b;
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.geofence-danger {
+  border: 1px solid #ef4444;
+  background: transparent;
+  color: #fca5a5;
+}
+
+.geofence-primary:disabled,
+.geofence-secondary:disabled,
+.geofence-danger:disabled,
+.geofence-mode:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.geofence-message {
+  margin: 9px 0 0;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.geofence-message.error {
+  border: 1px solid #ef4444;
+  background: #450a0a;
+  color: #fecaca;
+}
+
+.geofence-message.success {
+  border: 1px solid #22c55e;
+  background: #052e16;
+  color: #bbf7d0;
+}
+
+.geofence-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.geofence-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+
+/* Durante o desenho, veículos e linhas não podem roubar o clique destinado ao mapa. */
+.leaflet-container.geofence-drawing .leaflet-marker-pane,
+.leaflet-container.geofence-drawing .leaflet-overlay-pane path {
+  pointer-events: none;
+}

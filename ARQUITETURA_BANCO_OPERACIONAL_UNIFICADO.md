@@ -109,3 +109,9 @@ mesma transação. Polígonos entram como GeoJSON e círculos como centro mais r
 ambos são validados antes da conversão parametrizada para WKT. Edição,
 arquivamento e exclusão segura permanecem na UI-3.6 para respeitar versões e
 vínculos já existentes.
+
+Nas UI-3.4 e UI-3.5, o App 2 passou a desenhar círculos e polígonos com o mouse.
+O Leaflet mantém coordenadas na ordem visual `[latitude, longitude]`; o serviço
+tipado converte para GeoJSON `[longitude, latitude]` apenas ao chamar a API.
+Assim, o frontend nunca conhece WKT nem credenciais do banco. O backend continua
+sendo o único responsável por validar, versionar e persistir a geometria.

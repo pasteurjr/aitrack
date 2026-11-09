@@ -693,8 +693,8 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **3.1** Criar em `monitoramento` as cercas compartilhadas e versões geométricas.
 - [x] **3.2** Criar migration de vínculos e agendas.
 - [x] **3.3** Criar CRUD de cercas.
-- [ ] **3.4** Adicionar desenho de círculo no mapa.
-- [ ] **3.5** Adicionar desenho de polígono.
+- [x] **3.4** Adicionar desenho de círculo no mapa.
+- [x] **3.5** Adicionar desenho de polígono.
 - [ ] **3.6** Adicionar edição, validação e exclusão segura.
 - [ ] **3.7** Criar tela de atribuição a veículos/grupos.
 - [ ] **3.8** Implementar entrada/saída com histerese.
