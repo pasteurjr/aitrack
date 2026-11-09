@@ -86,3 +86,7 @@ alertas seed sem análise não foram promovidos ao banco operacional.
 Na UI-3.0E3A, o runtime de incidentes e o correlacionador passaram a usar apenas
 `monitoramento`. IDs legados recebidos da interface em modo `shadow` são
 resolvidos na borda; eles não voltam a ser usados como chave operacional.
+
+Na UI-3.0E3B, monitores, alvos, análises e alertas também passaram a ler e
+escrever somente em `monitoramento`. Os nomes legados permanecem apenas no
+contrato HTTP para manter o frontend compatível durante a transição.

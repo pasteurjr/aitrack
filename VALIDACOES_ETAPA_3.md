@@ -216,3 +216,24 @@
 - Regressão backend: `138 passed, 5 skipped`.
 - Teste de contrato impede reintroduzir `INSERT/UPDATE` de incidentes no schema
   legado.
+
+## UI-3.0E3B — Virada do runtime de monitores
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `bf7677d`
+
+- CRUD de monitores usa `monitoramento.monitores`.
+- Atribuições usam `monitor_targets`; o contrato HTTP legado conserva os nomes
+  `veiculomonitor_id`, `veicod_tracker` e `codusu_dirijabem` apenas na borda.
+- Análises e alertas usam o alvo canônico e são retornados no formato esperado
+  pelo frontend atual.
+- Reconhecer, resolver e descartar alertas atualizam somente o store operacional.
+- Estatísticas leem exclusivamente monitores, alvos, análises e alertas reais;
+  os quatro seeds falsos do legado não aparecem.
+- Ciclo MariaDB real criou monitor, associou veículo, salvou análise, criou e
+  reconheceu alerta; todas as contagens do legado permaneceram iguais e a
+  limpeza por ID removeu os temporários.
+- Endpoints reais: 5 monitores, 2 alvos no monitor #1, zero alertas operacionais;
+  lista, detalhe, alvos, estatísticas e alertas responderam HTTP 200.
+- Testes focais e integração real: `4 passed`.

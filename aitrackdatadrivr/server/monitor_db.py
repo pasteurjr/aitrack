@@ -31,8 +31,9 @@ def get_all_monitors() -> List[Dict]:
     cursor.execute("""
         SELECT id, nome, descricao, tipo_monitor, intervalo_analise, janela_contexto,
                eventos_minimos, score_threshold, gera_alertas, ativo, criado_em, atualizado_em,
-               (SELECT COUNT(*) FROM veiculomonitor WHERE monitor_id = monitores.id AND ativo = TRUE) as veiculos_monitorados
-        FROM monitores
+               (SELECT COUNT(*) FROM monitoramento.monitor_targets
+                 WHERE monitor_id = monitoramento.monitores.id AND ativo = TRUE) as veiculos_monitorados
+        FROM monitoramento.monitores
         ORDER BY id
     """)
 
@@ -59,8 +60,9 @@ def get_monitor_by_id(monitor_id: int) -> Optional[Dict]:
     cursor.execute("""
         SELECT id, nome, descricao, tipo_monitor, intervalo_analise, janela_contexto,
                eventos_minimos, score_threshold, gera_alertas, ativo, criado_em, atualizado_em,
-               (SELECT COUNT(*) FROM veiculomonitor WHERE monitor_id = monitores.id AND ativo = TRUE) as veiculos_monitorados
-        FROM monitores
+               (SELECT COUNT(*) FROM monitoramento.monitor_targets
+                 WHERE monitor_id = monitoramento.monitores.id AND ativo = TRUE) as veiculos_monitorados
+        FROM monitoramento.monitores
         WHERE id = %s
     """, (monitor_id,))
 
@@ -86,7 +88,7 @@ def get_active_monitors() -> List[Dict]:
     cursor.execute("""
         SELECT id, nome, descricao, tipo_monitor, intervalo_analise, janela_contexto,
                eventos_minimos, score_threshold, gera_alertas, ativo, criado_em, atualizado_em
-        FROM monitores
+        FROM monitoramento.monitores
         WHERE ativo = TRUE
         ORDER BY id
     """)
@@ -105,7 +107,7 @@ def create_monitor(data: Dict) -> int:
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO monitores (nome, descricao, tipo_monitor, intervalo_analise, janela_contexto,
+        INSERT INTO monitoramento.monitores (nome, descricao, tipo_monitor, intervalo_analise, janela_contexto,
                              eventos_minimos, score_threshold, gera_alertas, ativo)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
@@ -170,7 +172,7 @@ def update_monitor(monitor_id: int, data: Dict) -> bool:
         return False
 
     values.append(monitor_id)
-    sql = f"UPDATE monitores SET {', '.join(fields)} WHERE id = %s"
+    sql = f"UPDATE monitoramento.monitores SET {', '.join(fields)} WHERE id = %s"
 
     cursor.execute(sql, values)
     success = cursor.rowcount > 0
@@ -194,13 +196,38 @@ def get_monitor_vehicles(monitor_id: int) -> List[Dict]:
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT vm.id, vm.monitor_id, vm.tipo_veiculo, vm.veicod_tracker,
-               vm.codusu_dirijabem, vm.device_id, vm.ativo, vm.atribuido_em,
-               v.VEIPLACA as placa
-        FROM veiculomonitor vm
-        LEFT JOIN veiculos v ON vm.veicod_tracker = v.VEICOD
-        WHERE vm.monitor_id = %s AND vm.ativo = TRUE
-        ORDER BY vm.device_id
+        SELECT mt.id, mt.monitor_id, mt.fonte_codigo AS tipo_veiculo,
+               mt.legacy_veicod_tracker AS veicod_tracker,
+               COALESCE(
+                 mt.legacy_codusu_dirijabem,
+                 (SELECT CAST(mi.valor_externo AS UNSIGNED)
+                    FROM monitoramento.motorista_identidades mi
+                   WHERE mi.driver_id = mt.driver_id
+                     AND mi.fonte_codigo = 'dirijabem'
+                     AND mi.tipo_identidade = 'user_id' AND mi.ativo = TRUE
+                   LIMIT 1)
+               ) AS codusu_dirijabem,
+               COALESCE(
+                 mt.legacy_device_id,
+                 (SELECT vi.valor_externo
+                    FROM monitoramento.veiculo_identidades vi
+                   WHERE vi.vehicle_id = mt.vehicle_id
+                     AND vi.fonte_codigo = 'tracker'
+                     AND vi.tipo_identidade = 'device_id' AND vi.ativo = TRUE
+                   ORDER BY vi.principal DESC, vi.id LIMIT 1),
+                 CONCAT('APP-', (SELECT mi.valor_externo
+                    FROM monitoramento.motorista_identidades mi
+                   WHERE mi.driver_id = mt.driver_id
+                     AND mi.fonte_codigo = 'dirijabem'
+                     AND mi.tipo_identidade = 'user_id' AND mi.ativo = TRUE
+                   LIMIT 1))
+               ) AS device_id,
+               mt.ativo, mt.atribuido_em, v.placa, d.nome AS nome_motorista
+          FROM monitoramento.monitor_targets mt
+     LEFT JOIN monitoramento.veiculos v ON v.id = mt.vehicle_id
+     LEFT JOIN monitoramento.motoristas d ON d.id = mt.driver_id
+         WHERE mt.monitor_id = %s AND mt.ativo = TRUE
+         ORDER BY device_id
     """, (monitor_id,))
 
     vehicles = cursor.fetchall()
@@ -227,23 +254,31 @@ def get_monitor_vehicles_unified(monitor_id: int) -> List[Dict]:
     # Buscar veículos do monitor com JOIN na tabela unificada
     cursor.execute("""
         SELECT
-            vm.id as veiculomonitor_id,
-            vm.monitor_id,
-            vm.device_id,
-            vm.ativo,
-            vu.id as veiculo_unificado_id,
-            vu.placa,
-            vu.tipo as fonte,
-            vu.descricao,
-            vu.device_id as vu_device_id,
-            vu.codusu
-        FROM veiculomonitor vm
-        LEFT JOIN veiculo_unificado vu ON (
-            vm.device_id = vu.device_id OR
-            vm.codusu_dirijabem = vu.codusu
-        )
-        WHERE vm.monitor_id = %s AND vm.ativo = TRUE
-        ORDER BY vu.placa
+            mt.id AS veiculomonitor_id,
+            mt.monitor_id,
+            mt.legacy_device_id AS device_id,
+            mt.ativo,
+            mt.vehicle_id AS veiculo_unificado_id,
+            v.placa,
+            CASE mt.target_type WHEN 'vehicle' THEN 'tracker_only' ELSE 'app_only' END AS fonte,
+            COALESCE(v.descricao, d.nome) AS descricao,
+            (SELECT vi.valor_externo
+               FROM monitoramento.veiculo_identidades vi
+              WHERE vi.vehicle_id = mt.vehicle_id
+                AND vi.fonte_codigo = 'tracker'
+                AND vi.tipo_identidade = 'device_id' AND vi.ativo = TRUE
+              ORDER BY vi.principal DESC, vi.id LIMIT 1) AS vu_device_id,
+            (SELECT CAST(mi.valor_externo AS UNSIGNED)
+               FROM monitoramento.motorista_identidades mi
+              WHERE mi.driver_id = mt.driver_id
+                AND mi.fonte_codigo = 'dirijabem'
+                AND mi.tipo_identidade = 'user_id' AND mi.ativo = TRUE
+              LIMIT 1) AS codusu
+          FROM monitoramento.monitor_targets mt
+     LEFT JOIN monitoramento.veiculos v ON v.id = mt.vehicle_id
+     LEFT JOIN monitoramento.motoristas d ON d.id = mt.driver_id
+         WHERE mt.monitor_id = %s AND mt.ativo = TRUE
+         ORDER BY v.placa, d.nome
     """, (monitor_id,))
 
     vehicles = cursor.fetchall()
@@ -266,12 +301,31 @@ def get_all_unified_vehicles() -> List[Dict]:
 def add_vehicle_to_monitor(monitor_id: int, veicod: int, device_id: str) -> int:
     """Adiciona veículo ao monitor"""
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        INSERT INTO veiculomonitor (monitor_id, tipo_veiculo, veicod_tracker, device_id)
-        VALUES (%s, 'tracker', %s, %s)
-    """, (monitor_id, veicod, device_id))
+        SELECT vehicle_id
+          FROM monitoramento.veiculo_identidades
+         WHERE fonte_codigo = 'tracker' AND ativo = TRUE
+           AND ((tipo_identidade = 'device_id' AND valor_externo = %s)
+             OR (tipo_identidade = 'vehicle_id' AND valor_externo = %s))
+         ORDER BY tipo_identidade = 'device_id' DESC
+         LIMIT 1
+    """, (device_id, str(veicod)))
+    identity = cursor.fetchone()
+    if not identity:
+        cursor.close()
+        conn.close()
+        raise ValueError('Veículo canônico Tracker não encontrado')
+    cursor.execute("""
+        INSERT INTO monitoramento.monitor_targets
+            (monitor_id, target_type, vehicle_id, fonte_codigo,
+             legacy_veicod_tracker, legacy_device_id, ativo)
+        VALUES (%s, 'vehicle', %s, 'tracker', %s, %s, TRUE)
+        ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id), ativo = TRUE,
+          legacy_veicod_tracker = VALUES(legacy_veicod_tracker),
+          legacy_device_id = VALUES(legacy_device_id)
+    """, (monitor_id, identity['vehicle_id'], veicod, device_id))
 
     veiculomonitor_id = cursor.lastrowid
     conn.commit()
@@ -287,7 +341,7 @@ def remove_vehicle_from_monitor(veiculomonitor_id: int) -> bool:
     cursor = conn.cursor()
 
     cursor.execute("""
-        UPDATE veiculomonitor SET ativo = FALSE WHERE id = %s
+        UPDATE monitoramento.monitor_targets SET ativo = FALSE WHERE id = %s
     """, (veiculomonitor_id,))
 
     success = cursor.rowcount > 0
@@ -308,7 +362,7 @@ def save_analysis(monitor_id: int, veiculomonitor_id: int, data: Dict) -> int:
     eventos_por_tipo_json = json.dumps(data.get('eventos_por_tipo', {}))
 
     cursor.execute("""
-        INSERT INTO monitor_analises (monitor_id, veiculomonitor_id, periodo_inicio, periodo_fim,
+        INSERT INTO monitoramento.monitor_analises (monitor_id, monitor_target_id, periodo_inicio, periodo_fim,
                                      total_eventos, score_inicial, score_final, eventos_por_tipo,
                                      conclusao, severidade)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -339,9 +393,15 @@ def get_monitor_analyses(monitor_id: int, limit: int = 50) -> List[Dict]:
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT ma.*, vm.device_id
-        FROM monitor_analises ma
-        JOIN veiculomonitor vm ON ma.veiculomonitor_id = vm.id
+        SELECT ma.*, ma.monitor_target_id AS veiculomonitor_id,
+               COALESCE(mt.legacy_device_id,
+                 (SELECT vi.valor_externo FROM monitoramento.veiculo_identidades vi
+                   WHERE vi.vehicle_id = mt.vehicle_id
+                     AND vi.fonte_codigo = 'tracker'
+                     AND vi.tipo_identidade = 'device_id' AND vi.ativo = TRUE
+                   LIMIT 1)) AS device_id
+        FROM monitoramento.monitor_analises ma
+        JOIN monitoramento.monitor_targets mt ON ma.monitor_target_id = mt.id
         WHERE ma.monitor_id = %s
         ORDER BY ma.analisado_em DESC
         LIMIT %s
@@ -374,7 +434,7 @@ def create_alert(data: Dict) -> int:
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO monitor_alertas (analise_id, monitor_id, veiculomonitor_id, device_id,
+        INSERT INTO monitoramento.monitor_alertas (analise_id, monitor_id, monitor_target_id, device_id,
                                     nome_motorista, titulo, mensagem, severidade, tipo,
                                     total_eventos_relacionados)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -404,7 +464,7 @@ def get_alerts(filters: Dict = None) -> List[Dict]:
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    sql = "SELECT * FROM monitor_alertas WHERE 1=1"
+    sql = "SELECT ma.*, ma.monitor_target_id AS veiculomonitor_id FROM monitoramento.monitor_alertas ma WHERE 1=1"
     params = []
 
     if filters:
@@ -441,7 +501,11 @@ def get_alert_by_id(alert_id: int) -> Optional[Dict]:
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM monitor_alertas WHERE id = %s", (alert_id,))
+    cursor.execute(
+        "SELECT ma.*, ma.monitor_target_id AS veiculomonitor_id "
+        "FROM monitoramento.monitor_alertas ma WHERE id = %s",
+        (alert_id,),
+    )
     alert = cursor.fetchone()
 
     if alert:
@@ -462,7 +526,7 @@ def acknowledge_alert(alert_id: int, reconhecido_por: str) -> bool:
     cursor = conn.cursor()
 
     cursor.execute("""
-        UPDATE monitor_alertas
+        UPDATE monitoramento.monitor_alertas
         SET status = 'acknowledged', reconhecido_em = NOW(), reconhecido_por = %s
         WHERE id = %s
     """, (reconhecido_por, alert_id))
@@ -481,7 +545,7 @@ def resolve_alert(alert_id: int) -> bool:
     cursor = conn.cursor()
 
     cursor.execute("""
-        UPDATE monitor_alertas SET status = 'resolved' WHERE id = %s
+        UPDATE monitoramento.monitor_alertas SET status = 'resolved' WHERE id = %s
     """, (alert_id,))
 
     success = cursor.rowcount > 0
@@ -498,7 +562,7 @@ def dismiss_alert(alert_id: int) -> bool:
     cursor = conn.cursor()
 
     cursor.execute("""
-        UPDATE monitor_alertas SET status = 'dismissed' WHERE id = %s
+        UPDATE monitoramento.monitor_alertas SET status = 'dismissed' WHERE id = %s
     """, (alert_id,))
 
     success = cursor.rowcount > 0
@@ -527,7 +591,7 @@ def get_alert_stats() -> Dict:
             SUM(CASE WHEN severidade = 'high' THEN 1 ELSE 0 END) as high,
             SUM(CASE WHEN severidade = 'medium' THEN 1 ELSE 0 END) as medium,
             SUM(CASE WHEN severidade = 'low' THEN 1 ELSE 0 END) as low
-        FROM monitor_alertas
+        FROM monitoramento.monitor_alertas
     """)
 
     stats = cursor.fetchone()
@@ -546,10 +610,10 @@ def get_monitor_stats() -> Dict:
         SELECT
             COUNT(*) as total_monitores,
             SUM(CASE WHEN ativo = TRUE THEN 1 ELSE 0 END) as ativos,
-            (SELECT COUNT(*) FROM veiculomonitor WHERE ativo = TRUE) as total_veiculos,
-            (SELECT COUNT(*) FROM monitor_analises) as total_analises,
-            (SELECT COUNT(*) FROM monitor_alertas WHERE status = 'pending') as alertas_pendentes
-        FROM monitores
+            (SELECT COUNT(*) FROM monitoramento.monitor_targets WHERE ativo = TRUE) as total_veiculos,
+            (SELECT COUNT(*) FROM monitoramento.monitor_analises) as total_analises,
+            (SELECT COUNT(*) FROM monitoramento.monitor_alertas WHERE status = 'pending') as alertas_pendentes
+        FROM monitoramento.monitores
     """)
 
     stats = cursor.fetchone()
