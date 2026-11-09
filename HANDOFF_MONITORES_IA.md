@@ -1080,6 +1080,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-08 | UI-3.0E2 | este commit | 10 atribuições viraram alvos canônicos; análise/alerta real migrados em prova; 4 seeds falsos excluídos, zero órfãos e 135 testes passaram. |
 | 2026-11-09 | UI-3.0E3A | este commit | Runtime de incidentes virou para monitoramento; API e correlação Tracker/Dirija Bem reais passaram, concorrência 3/3 e regressão 138 testes. |
 | 2026-11-09 | UI-3.0E3B | este commit | Runtime de monitores/alvos/análises/alertas virou para monitoramento; ciclo real passou sem escrita legada e seeds falsos ficaram fora. |
+| 2026-11-09 | UI-3.0F | este commit | Identidade operacional virou padrão fail-closed; legado/fallback exigem configuração explícita. Validação integrada registrada ao final da UI-3.1. |
 
 ---
 

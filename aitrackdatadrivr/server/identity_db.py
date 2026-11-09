@@ -13,12 +13,12 @@ VALID_READ_MODES = {'legacy', 'shadow', 'operational'}
 
 
 def configured_read_mode() -> str:
-    mode = os.getenv('AITRACK_IDENTITY_READ_MODEL', 'shadow').strip().lower()
+    mode = os.getenv('AITRACK_IDENTITY_READ_MODEL', 'operational').strip().lower()
     if mode not in VALID_READ_MODES:
         logger.warning(
-            'AITRACK_IDENTITY_READ_MODEL=%r inválido; usando shadow', mode,
+            'AITRACK_IDENTITY_READ_MODEL=%r inválido; usando operational', mode,
         )
-        return 'shadow'
+        return 'operational'
     return mode
 
 
@@ -141,7 +141,7 @@ def get_unified_vehicle_records(
         operational = operational_loader()
     except Exception:
         if mode == 'operational' and os.getenv(
-            'AITRACK_IDENTITY_ALLOW_FALLBACK', '1',
+            'AITRACK_IDENTITY_ALLOW_FALLBACK', '0',
         ).strip().lower() not in {'1', 'true', 'yes'}:
             raise
         logger.exception(

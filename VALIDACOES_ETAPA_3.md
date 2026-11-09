@@ -237,3 +237,20 @@
 - Endpoints reais: 5 monitores, 2 alvos no monitor #1, zero alertas operacionais;
   lista, detalhe, alvos, estatísticas e alertas responderam HTTP 200.
 - Testes focais e integração real: `4 passed`.
+
+## UI-3.0F — Identidade operacional como fonte oficial
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `e92f5af`
+
+- `AITRACK_IDENTITY_READ_MODEL` agora assume `operational` quando ausente.
+- `AITRACK_IDENTITY_ALLOW_FALLBACK` assume `0`; indisponibilidade operacional
+  gera erro explícito em vez de dados legados silenciosos.
+- `legacy`, `shadow` e fallback continuam disponíveis somente por configuração
+  deliberada para diagnóstico ou rollback.
+- A etapa 3.0 foi marcada concluída após a virada de identidade, incidentes,
+  monitores, alvos, análises e alertas.
+- Sem variáveis de override, `/api/v1/vehicles`, `/api/unified/vehicles`,
+  `/api/unified/stats` e `/api/vehicles/unified` responderam HTTP 200 e total 26.
+- Testes focais de identidade, APIs e ponte de incidente: `16 passed`.

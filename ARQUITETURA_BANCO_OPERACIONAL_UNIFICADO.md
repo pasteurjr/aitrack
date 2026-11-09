@@ -67,12 +67,12 @@ de incidentes e atribuições de monitor da UI-3.0E.
 | Modo | Comportamento | Uso |
 |---|---|---|
 | `legacy` | lê somente `tracker.veiculo_unificado` | rollback operacional |
-| `shadow` | lê ambos, compara e responde com legado | padrão durante a transição |
-| `operational` | responde com `monitoramento`, com fallback configurável | após UI-3.0E |
+| `shadow` | lê ambos, compara e responde com legado | diagnóstico/rollback assistido |
+| `operational` | responde com `monitoramento`, fail-closed por padrão | padrão desde UI-3.0F |
 
 Variáveis: `AITRACK_IDENTITY_READ_MODEL` e
-`AITRACK_IDENTITY_ALLOW_FALLBACK`. O fallback pode ser desabilitado para falhar
-de forma explícita quando a camada operacional se tornar a fonte oficial.
+`AITRACK_IDENTITY_ALLOW_FALLBACK`. O fallback só é habilitado com valor explícito
+`1`; por padrão, uma falha da camada operacional é propagada.
 
 Na UI-3.0E1, as tabelas operacionais de monitores-base, incidentes e timeline
 foram criadas. O runtime permanece no legado até que atribuições, análises e
@@ -90,3 +90,7 @@ resolvidos na borda; eles não voltam a ser usados como chave operacional.
 Na UI-3.0E3B, monitores, alvos, análises e alertas também passaram a ler e
 escrever somente em `monitoramento`. Os nomes legados permanecem apenas no
 contrato HTTP para manter o frontend compatível durante a transição.
+
+Na UI-3.0F, `operational` tornou-se o modo padrão e o fallback automático foi
+desabilitado. Retornar ao legado exige configuração explícita; uma falha no banco
+operacional deixa de ser mascarada como resposta válida.

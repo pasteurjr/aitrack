@@ -71,3 +71,15 @@ def test_comparison_exposes_coverage_gap_without_equating_ids():
 def test_invalid_explicit_mode_is_rejected():
     with pytest.raises(ValueError, match='Modo de identidade inválido'):
         identity_db.get_unified_vehicle_records(mode='silencioso')
+
+
+def test_operational_is_default_and_fallback_is_opt_in(monkeypatch):
+    monkeypatch.delenv('AITRACK_IDENTITY_READ_MODEL', raising=False)
+    monkeypatch.delenv('AITRACK_IDENTITY_ALLOW_FALLBACK', raising=False)
+
+    assert identity_db.configured_read_mode() == 'operational'
+    with pytest.raises(RuntimeError, match='offline'):
+        identity_db.get_unified_vehicle_records(
+            legacy_loader=lambda: LEGACY,
+            operational_loader=lambda: (_ for _ in ()).throw(RuntimeError('offline')),
+        )
