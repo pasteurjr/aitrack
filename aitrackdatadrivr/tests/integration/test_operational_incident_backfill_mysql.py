@@ -62,6 +62,18 @@ def test_backfill_preserves_id_timeline_monitor_and_maps_canonical_vehicle():
         """, (incident_id, f'ui30e1:{token}:timeline'))
         conn.commit()
 
+        cursor.execute(
+            'SELECT correlation_key FROM monitoramento.incidents WHERE id = %s',
+            (incident_id,),
+        )
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute('DELETE FROM tracker.incident_timeline WHERE incident_id = %s', (incident_id,))
+            cursor.execute('DELETE FROM tracker.incidents WHERE id = %s', (incident_id,))
+            conn.commit()
+            incident_id = None
+            pytest.skip('ID legado colide com incidente operacional ativo')
+
         backfill.apply_backfill(conn)
 
         cursor.execute("""

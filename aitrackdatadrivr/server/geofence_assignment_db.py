@@ -27,7 +27,7 @@ def _serialize(row: Dict) -> Dict:
             result[key] = value.isoformat()
         elif isinstance(value, Decimal):
             result[key] = float(value)
-        elif key in {'ativo', 'notify_on_entry', 'notify_on_exit'}:
+        elif key in {'ativo', 'notify_on_entry', 'notify_on_exit', 'crosses_midnight'}:
             result[key] = bool(value)
         else:
             result[key] = value
@@ -169,7 +169,18 @@ def list_assignments(reference: str, include_inactive: bool = False) -> List[Dic
             ASSIGNMENT_SELECT + f' WHERE ga.geofence_id = %s{active_clause} ORDER BY ga.ativo DESC, ga.id',
             (fence['id'],),
         )
-        return [_serialize(row) for row in cursor.fetchall()]
+        assignments = [_serialize(row) for row in cursor.fetchall()]
+        for assignment in assignments:
+            cursor.execute("""
+                SELECT id, day_of_week, CAST(start_time AS CHAR) AS start_time,
+                       CAST(end_time AS CHAR) AS end_time,
+                       crosses_midnight, ativo
+                  FROM monitoramento.geofence_assignment_schedules
+                 WHERE assignment_id = %s AND ativo = TRUE
+                 ORDER BY day_of_week, start_time, id
+            """, (assignment['id'],))
+            assignment['schedules'] = [_serialize(row) for row in cursor.fetchall()]
+        return assignments
     finally:
         cursor.close()
         conn.close()
@@ -229,6 +240,7 @@ def assign_target(reference: str, data: Dict) -> Dict:
             assignment_id = cursor.lastrowid
         cursor.execute(ASSIGNMENT_SELECT + ' WHERE ga.id = %s', (assignment_id,))
         result = _serialize(cursor.fetchone())
+        result['schedules'] = []
         conn.commit()
         return result
     except Exception:
@@ -261,6 +273,66 @@ def deactivate_assignment(reference: str, assignment_id: int, data: Dict) -> Dic
         """, (data['actor_id'], assignment_id, data['expected_version']))
         cursor.execute(ASSIGNMENT_SELECT + ' WHERE ga.id = %s', (assignment_id,))
         result = _serialize(cursor.fetchone())
+        conn.commit()
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_assignment_policy(reference: str, assignment_id: int, data: Dict) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        fence = _geofence(cursor, reference)
+        cursor.execute("""
+            SELECT id, version FROM monitoramento.geofence_assignments
+             WHERE id = %s AND geofence_id = %s AND ativo = TRUE FOR UPDATE
+        """, (assignment_id, fence['id']))
+        row = cursor.fetchone()
+        if not row:
+            raise AssignmentNotFound()
+        if int(row['version']) != data['expected_version']:
+            raise AssignmentConflict()
+        cursor.execute("""
+            UPDATE monitoramento.geofence_assignments
+               SET timezone_name = %s, dwell_threshold_seconds = %s,
+                   atualizado_por = %s, version = version + 1
+             WHERE id = %s AND version = %s
+        """, (
+            data['timezone_name'], data['dwell_threshold_seconds'], data['actor_id'],
+            assignment_id, data['expected_version'],
+        ))
+        cursor.execute("""
+            UPDATE monitoramento.geofence_assignment_schedules
+               SET ativo = FALSE WHERE assignment_id = %s AND ativo = TRUE
+        """, (assignment_id,))
+        for schedule in data['schedules']:
+            cursor.execute("""
+                INSERT INTO monitoramento.geofence_assignment_schedules
+                    (assignment_id, day_of_week, start_time, end_time,
+                     crosses_midnight, ativo)
+                VALUES (%s, %s, %s, %s, %s, TRUE)
+                ON DUPLICATE KEY UPDATE ativo = TRUE
+            """, (
+                assignment_id, schedule['day_of_week'], schedule['start_time'],
+                schedule['end_time'], schedule['crosses_midnight'],
+            ))
+        cursor.execute(ASSIGNMENT_SELECT + ' WHERE ga.id = %s', (assignment_id,))
+        result = _serialize(cursor.fetchone())
+        cursor.execute("""
+            SELECT id, day_of_week, CAST(start_time AS CHAR) AS start_time,
+                   CAST(end_time AS CHAR) AS end_time,
+                   crosses_midnight, ativo
+              FROM monitoramento.geofence_assignment_schedules
+             WHERE assignment_id = %s AND ativo = TRUE
+             ORDER BY day_of_week, start_time, id
+        """, (assignment_id,))
+        result['schedules'] = [_serialize(item) for item in cursor.fetchall()]
         conn.commit()
         return result
     except Exception:

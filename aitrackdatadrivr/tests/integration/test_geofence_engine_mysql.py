@@ -86,6 +86,18 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         fences.append(driver_fence['id'])
 
         now = datetime.now()
+        tracker_assignment = geofence_assignment_db.update_assignment_policy(
+            tracker_fence['public_id'], tracker_assignment['id'], {
+                'expected_version': 1,
+                'timezone_name': 'America/Sao_Paulo',
+                'dwell_threshold_seconds': 2,
+                'schedules': [{
+                    'day_of_week': now.weekday(), 'start_time': '00:00:00',
+                    'end_time': '23:59:59', 'crosses_midnight': False,
+                }],
+                'actor_id': 'codex-integration-test',
+            },
+        )
         tracker_clock = now + timedelta(hours=3)
         inside = (-46.6333, -23.5505)
         outside = (-46.6200, -23.5505)
@@ -107,16 +119,23 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         assert [event['event_type'] for event in tracker_events] == ['geofence_exit']
         assert tracker_events[0]['assignment_id'] == tracker_assignment['id']
 
+        dwell_events = geofence_engine.evaluate_dirijabem_position(
+            dirijabem['codusu'], *outside, now + timedelta(seconds=3),
+            received_at=now + timedelta(seconds=4),
+            external_position_id=f'{marker}:dirijabem:3',
+        )
+        assert [event['event_type'] for event in dwell_events] == ['geofence_dwell']
+
         assert geofence_engine.evaluate_tracker_position(
             tracker['device_id'], tracker['veicod'], *inside,
             tracker_clock + timedelta(seconds=1),
-            received_at=now + timedelta(seconds=3),
+            received_at=now + timedelta(seconds=5),
             external_position_id=f'{marker}:tracker:2',
         ) == []
         driver_events = geofence_engine.evaluate_tracker_position(
             tracker['device_id'], tracker['veicod'], *inside,
             tracker_clock + timedelta(seconds=2),
-            received_at=now + timedelta(seconds=4),
+            received_at=now + timedelta(seconds=6),
             external_position_id=f'{marker}:tracker:3',
         )
         assert [event['event_type'] for event in driver_events] == ['geofence_entry']
@@ -126,13 +145,13 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         assert geofence_engine.evaluate_tracker_position(
             tracker['device_id'], tracker['veicod'], *inside,
             tracker_clock + timedelta(seconds=2),
-            received_at=now + timedelta(seconds=4),
+            received_at=now + timedelta(seconds=6),
             external_position_id=f'{marker}:tracker:3',
         ) == []
         assert geofence_engine.evaluate_tracker_position(
             tracker['device_id'], tracker['veicod'], *inside,
             tracker_clock + timedelta(seconds=3),
-            received_at=now + timedelta(seconds=5),
+            received_at=now + timedelta(seconds=7),
             external_position_id=f'{marker}:tracker:4',
         ) == []
 
@@ -140,16 +159,20 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         cursor.execute("""
             SELECT source_code, event_type, crossing_direction
               FROM monitoramento.geofence_events
-             WHERE geofence_id IN (%s, %s) ORDER BY source_code
+             WHERE geofence_id IN (%s, %s) ORDER BY observed_at, id
         """, tuple(fences))
         assert cursor.fetchall() == [
             {
-                'source_code': 'tracker', 'event_type': 'geofence_entry',
-                'crossing_direction': 'outside_to_inside',
-            },
-            {
                 'source_code': 'dirijabem', 'event_type': 'geofence_exit',
                 'crossing_direction': 'inside_to_outside',
+            },
+            {
+                'source_code': 'dirijabem', 'event_type': 'geofence_dwell',
+                'crossing_direction': None,
+            },
+            {
+                'source_code': 'tracker', 'event_type': 'geofence_entry',
+                'crossing_direction': 'outside_to_inside',
             },
         ]
     finally:
@@ -161,6 +184,12 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
             )
             cursor.execute(
                 f'DELETE FROM monitoramento.geofence_target_states WHERE assignment_id IN '
+                f'(SELECT id FROM monitoramento.geofence_assignments '
+                f'WHERE geofence_id IN ({placeholders}))',
+                tuple(fences),
+            )
+            cursor.execute(
+                f'DELETE FROM monitoramento.geofence_assignment_schedules WHERE assignment_id IN '
                 f'(SELECT id FROM monitoramento.geofence_assignments '
                 f'WHERE geofence_id IN ({placeholders}))',
                 tuple(fences),

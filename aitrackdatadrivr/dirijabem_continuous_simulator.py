@@ -16,7 +16,6 @@ from dirijabem_simulator import (
     BehavioralMetricsCalculator,
     DB_CONFIG
 )
-from server.geofence_engine import evaluate_dirijabem_position
 
 
 class VirtualDriver:
@@ -129,24 +128,7 @@ class VirtualDriver:
                 point['ACELLINATU'],
                 point['VARDIRATU']
             ))
-            position_id = cursor.lastrowid
-
             conn.commit()
-
-            # O simulador continua sendo o único responsável pela escrita no
-            # Dirija Bem; o estado comum da cerca fica em monitoramento.
-            try:
-                evaluate_dirijabem_position(
-                    user_id=self.codusu,
-                    longitude=point['coords'][0],
-                    latitude=point['coords'][1],
-                    observed_at=datetime.now(),
-                    plate=f'SIM-D{self.driver_id}',
-                    received_at=datetime.now(),
-                    external_position_id=position_id,
-                )
-            except Exception as geofence_error:
-                print(f"[DRIVER-{self.driver_id}] ⚠️ Erro ao avaliar cerca: {geofence_error}")
 
             # Debug a cada 60 pontos (1 minuto)
             if self.current_point_index % 60 == 0:

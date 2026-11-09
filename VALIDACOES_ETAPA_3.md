@@ -480,9 +480,10 @@
   ingênuo do Tracker bloqueie uma posição local posterior do Dirija Bem.
   Agenda/permanência e correlação com incidente continuam isoladas nas UI-3.9 e
   UI-3.10, respectivamente.
-- O caminho de ingestão Tracker e os dois fluxos Dirija Bem (contínuo e replay)
-  chamam o motor após persistirem a posição. Além disso, uma cauda incremental
-  lê pela PK as novas posições inseridas por integrações externas no Dirija Bem.
+- O Tracker chama o motor após persistir a posição. Para Dirija Bem, uma única
+  cauda incremental lê pela PK tanto simulador contínuo/replay quanto inserções
+  externas, evitando que processos separados consumam o mesmo ponto com versões
+  diferentes da política.
   O cursor persiste em `monitoramento`, inicia no fim do histórico e os recibos
   por ID externo tornam o reprocessamento idempotente. Falha na cerca é isolada
   e não interrompe a telemetria de origem.
@@ -508,3 +509,31 @@
   avanço do watermark e quarentena após o limite de retentativas.
 - Regressão final com integrações MariaDB: `211 passed`. Runner: zero migrations
   pendentes.
+
+## UI-3.9 — Agenda e permanência
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `999b214`
+
+- A política temporal pertence à atribuição: fuso IANA, vigência, limite de
+  permanência e janelas podem variar por veículo, motorista ou grupo.
+- Dia `0` é segunda-feira. Início é inclusivo, fim exclusivo e janelas overnight
+  aplicam a parte após meia-noite ao dia seguinte. Sem agenda, funciona 24×7.
+- Vigência e agenda usam o fuso do vínculo e horário de recebimento. Fuso inválido
+  falha fechado e a API impede sua persistência.
+- Fora da agenda, o lado geométrico é atualizado sem alerta, e o cronômetro é
+  zerado. Área permitida viola fora; área proibida viola dentro.
+- `geofence_dwell` sai uma vez ao atingir o limiar e só pode repetir após terminar
+  a violação ou a janela ativa.
+- A migration 020 persistiu início/notificação do episódio e permitiu evento de
+  permanência sem direção de cruzamento.
+- O PUT versionado substitui agenda atomicamente, valida horários/overnight e
+  sobreposição semanal, e invalida imediatamente o cache do avaliador.
+- A interface mostra o resumo e permite configurar fuso, permanência e múltiplas
+  janelas semanais, inclusive cruzando meia-noite.
+- Integração MariaDB provou saída, permanência única e retorno compartilhando
+  estado Tracker/Dirija Bem, com limpeza integral.
+- Regressão: `220 passed, 1 skipped` backend; o skip protege um teste histórico
+  de backfill quando seu ID colide com incidente operacional ativo. App 2 teve
+  `51 passed`, TypeScript e build aprovados. Runner: zero migrations pendentes.

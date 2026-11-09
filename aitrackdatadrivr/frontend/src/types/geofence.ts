@@ -89,6 +89,34 @@ export interface GeofenceAssignment {
   group_id: number | null;
   notify_on_entry: boolean;
   notify_on_exit: boolean;
+  timezone_name: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  dwell_threshold_seconds: number | null;
+  hysteresis_meters: number;
+  schedules: GeofenceAssignmentSchedule[];
   ativo: boolean;
   version: number;
+}
+
+export interface GeofenceAssignmentSchedule {
+  id: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  crosses_midnight: boolean;
+  ativo: boolean;
+}
+
+export interface UpdateGeofenceAssignmentBody {
+  expected_version: number;
+  timezone_name: string;
+  dwell_threshold_seconds: number | null;
+  schedules: Array<{
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    crosses_midnight: boolean;
+  }>;
+  operator: { id: string; name: string };
 }

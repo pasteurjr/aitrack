@@ -80,6 +80,20 @@ def test_assigns_vehicle_driver_and_group_with_safe_reactivation():
         try:
             if geofence_id:
                 cursor.execute(
+                    'DELETE FROM monitoramento.geofence_events WHERE geofence_id = %s',
+                    (geofence_id,),
+                )
+                cursor.execute(
+                    'DELETE FROM monitoramento.geofence_target_states WHERE assignment_id IN '
+                    '(SELECT id FROM monitoramento.geofence_assignments WHERE geofence_id = %s)',
+                    (geofence_id,),
+                )
+                cursor.execute(
+                    'DELETE FROM monitoramento.geofence_assignment_schedules WHERE assignment_id IN '
+                    '(SELECT id FROM monitoramento.geofence_assignments WHERE geofence_id = %s)',
+                    (geofence_id,),
+                )
+                cursor.execute(
                     'DELETE FROM monitoramento.geofence_assignments WHERE geofence_id = %s',
                     (geofence_id,),
                 )

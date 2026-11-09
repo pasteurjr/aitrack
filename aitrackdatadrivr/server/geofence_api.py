@@ -1,11 +1,14 @@
 """API operacional de criação e consulta de cercas eletrônicas."""
 
 import logging
+from datetime import time
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request
 
 from . import geofence_db
 from . import geofence_assignment_db
+from . import geofence_engine
 from .geofence_geometry import normalize_geometry
 
 
@@ -32,6 +35,78 @@ def _optional_text(data, field: str, maximum: int):
     if not isinstance(value, str) or len(value.strip()) > maximum:
         raise ValueError(f'{field} deve ter no máximo {maximum} caracteres')
     return value.strip() or None
+
+
+def _assignment_policy_payload(data):
+    expected_version = data.get('expected_version')
+    if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
+        raise ValueError('expected_version deve ser inteiro positivo')
+    timezone_name = str(data.get('timezone_name') or '').strip()
+    try:
+        ZoneInfo(timezone_name)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise ValueError('timezone_name inválido') from exc
+    dwell = data.get('dwell_threshold_seconds')
+    if dwell is not None and (
+        not isinstance(dwell, int) or isinstance(dwell, bool) or not 1 <= dwell <= 2_592_000
+    ):
+        raise ValueError('dwell_threshold_seconds deve estar entre 1 e 2592000')
+    raw_schedules = data.get('schedules', [])
+    if not isinstance(raw_schedules, list) or len(raw_schedules) > 50:
+        raise ValueError('schedules deve ser lista com até 50 janelas')
+    schedules = []
+    seen = set()
+    for item in raw_schedules:
+        if not isinstance(item, dict):
+            raise ValueError('janela de agenda inválida')
+        day = item.get('day_of_week')
+        if not isinstance(day, int) or isinstance(day, bool) or not 0 <= day <= 6:
+            raise ValueError('day_of_week deve estar entre 0 e 6')
+        try:
+            start = time.fromisoformat(str(item.get('start_time')))
+            end = time.fromisoformat(str(item.get('end_time')))
+        except ValueError as exc:
+            raise ValueError('start_time/end_time devem usar HH:MM[:SS]') from exc
+        crosses = bool(item.get('crosses_midnight', end <= start))
+        if (not crosses and end <= start) or (crosses and end > start):
+            raise ValueError('janela e crosses_midnight são incompatíveis')
+        normalized = (day, start.isoformat(), end.isoformat(), crosses)
+        if normalized in seen:
+            raise ValueError('janela duplicada')
+        seen.add(normalized)
+        schedules.append({
+            'day_of_week': day, 'start_time': start.isoformat(),
+            'end_time': end.isoformat(), 'crosses_midnight': crosses,
+        })
+    week_seconds = 7 * 86_400
+    intervals = []
+    for schedule in schedules:
+        start = time.fromisoformat(schedule['start_time'])
+        end = time.fromisoformat(schedule['end_time'])
+        start_second = (
+            schedule['day_of_week'] * 86_400 + start.hour * 3600
+            + start.minute * 60 + start.second
+        )
+        end_second = (
+            schedule['day_of_week'] * 86_400 + end.hour * 3600
+            + end.minute * 60 + end.second
+            + (86_400 if schedule['crosses_midnight'] else 0)
+        )
+        intervals.append((start_second, end_second))
+    for index, first in enumerate(intervals):
+        for second in intervals[index + 1:]:
+            if any(
+                max(first[0], second[0] + shift) < min(first[1], second[1] + shift)
+                for shift in (-week_seconds, 0, week_seconds)
+            ):
+                raise ValueError('janelas de agenda não podem se sobrepor')
+    return {
+        'expected_version': expected_version,
+        'timezone_name': timezone_name,
+        'dwell_threshold_seconds': dwell,
+        'schedules': schedules,
+        'actor_id': _operator(data),
+    }
 
 
 def _creation_payload():
@@ -327,6 +402,7 @@ def assign_geofence_target(reference: str):
             'target_id': target_id,
             'actor_id': _operator(data),
         })
+        geofence_engine.clear_assignment_cache()
         return jsonify({'schema_version': 'geofence-assignment.v1', 'assignment': assignment}), 201
     except Exception as exc:
         return _assignment_error(exc)
@@ -345,6 +421,25 @@ def deactivate_geofence_assignment(reference: str, assignment_id: int):
             'expected_version': expected_version,
             'actor_id': _operator(data),
         })
+        geofence_engine.clear_assignment_cache()
         return jsonify({'schema_version': 'geofence-assignment.v1', 'assignment': assignment})
+    except Exception as exc:
+        return _assignment_error(exc)
+
+
+@geofence_bp.route('/<string:reference>/assignments/<int:assignment_id>', methods=['PUT'])
+def update_geofence_assignment_policy(reference: str, assignment_id: int):
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise ValueError('Corpo JSON é obrigatório')
+        assignment = geofence_assignment_db.update_assignment_policy(
+            reference, assignment_id, _assignment_policy_payload(data),
+        )
+        geofence_engine.clear_assignment_cache()
+        return jsonify({
+            'schema_version': 'geofence-assignment.v1',
+            'assignment': assignment,
+        })
     except Exception as exc:
         return _assignment_error(exc)

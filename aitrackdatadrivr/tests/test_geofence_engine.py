@@ -1,10 +1,13 @@
 import pytest
+from datetime import datetime
 
 from server.geofence_engine import (
     classify_with_hysteresis,
     effective_hysteresis_m,
     evolve_state,
     signed_distance_m,
+    schedule_is_active,
+    active_window_start,
 )
 
 
@@ -91,3 +94,51 @@ def test_gps_accuracy_expands_the_neutral_band():
     assert margin == 50.0
     assert classify_with_hysteresis(40.0, margin) is None
     assert classify_with_hysteresis(51.0, margin) == 'inside'
+
+
+def test_schedule_without_windows_is_always_active():
+    assert schedule_is_active(
+        datetime(2026, 11, 9, 3, 0), 'America/Sao_Paulo', [],
+    )
+
+
+def test_weekly_schedule_respects_timezone_and_end_exclusive():
+    schedules = [{
+        'day_of_week': 0, 'start_time': '08:00:00',
+        'end_time': '18:00:00', 'crosses_midnight': False,
+    }]
+    assert schedule_is_active(datetime(2026, 11, 9, 8, 0), 'America/Sao_Paulo', schedules)
+    assert not schedule_is_active(datetime(2026, 11, 9, 18, 0), 'America/Sao_Paulo', schedules)
+
+
+def test_schedule_crossing_midnight_uses_previous_weekday():
+    schedules = [{
+        'day_of_week': 0, 'start_time': '22:00:00',
+        'end_time': '06:00:00', 'crosses_midnight': True,
+    }]
+    assert schedule_is_active(datetime(2026, 11, 9, 23, 0), 'America/Sao_Paulo', schedules)
+    assert schedule_is_active(datetime(2026, 11, 10, 5, 59), 'America/Sao_Paulo', schedules)
+    assert not schedule_is_active(datetime(2026, 11, 10, 6, 0), 'America/Sao_Paulo', schedules)
+
+
+def test_invalid_timezone_fails_closed():
+    schedules = [{
+        'day_of_week': 0, 'start_time': '08:00:00',
+        'end_time': '18:00:00', 'crosses_midnight': False,
+    }]
+    assert not schedule_is_active(datetime(2026, 11, 9, 9, 0), 'Invalid/Zone', schedules)
+
+
+def test_separate_daily_windows_have_distinct_episode_starts():
+    schedules = [
+        {'day_of_week': day, 'start_time': '08:00:00', 'end_time': '18:00:00',
+         'crosses_midnight': False}
+        for day in (0, 1)
+    ]
+
+    assert active_window_start(
+        datetime(2026, 11, 9, 17, 59), 'America/Sao_Paulo', schedules,
+    ) == datetime(2026, 11, 9, 8, 0)
+    assert active_window_start(
+        datetime(2026, 11, 10, 8, 5), 'America/Sao_Paulo', schedules,
+    ) == datetime(2026, 11, 10, 8, 0)

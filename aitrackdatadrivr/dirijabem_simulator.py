@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from threading import Thread, Lock
 from pathlib import Path
 from typing import List, Dict
-from server.geofence_engine import evaluate_dirijabem_position
 
 # Configuration
 SPEED_MULTIPLIER = 1  # 1 = real-time, 10 = 10x faster
@@ -592,21 +591,7 @@ class DirijabemReplayManager:
                 INSERT INTO localizacaodados (CODVIA, DATAHORA, coords, VELATU)
                 VALUES (%s, NOW(), ST_PointFromText('POINT(%s %s)'), %s)
             """, (codvia, point['lon'], point['lat'], point['speed']))
-            position_id = cursor.lastrowid
-
             conn.commit()
-            try:
-                evaluate_dirijabem_position(
-                    user_id=codusu,
-                    longitude=point['lon'],
-                    latitude=point['lat'],
-                    observed_at=datetime.now(),
-                    plate='REPLAY',
-                    received_at=datetime.now(),
-                    external_position_id=position_id,
-                )
-            except Exception as geofence_error:
-                print(f"[DIRIJABEM] Geofence evaluation error: {geofence_error}")
         except Exception as e:
             print(f"[DIRIJABEM] Error saving point: {e}")
             conn.rollback()

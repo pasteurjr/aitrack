@@ -225,6 +225,72 @@
   font-size: 12px;
 }
 
+.geofence-assignment-card {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  background: rgba(15, 23, 42, .7);
+}
+
+.geofence-assignment-buttons,
+.geofence-schedule-heading,
+.geofence-schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.geofence-assignment-buttons {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.geofence-assignment-summary {
+  margin: 5px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.geofence-assignment-config {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid #334155;
+}
+
+.geofence-schedule-heading {
+  justify-content: space-between;
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.geofence-schedule-row {
+  align-items: stretch;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+
+.geofence-schedule-row select,
+.geofence-schedule-row input[type="time"] {
+  flex: 1 1 70px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.geofence-midnight-check {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
 .geofence-assignment-item small {
   display: block;
   color: #94a3b8;

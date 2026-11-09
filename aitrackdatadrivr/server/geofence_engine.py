@@ -14,9 +14,10 @@ import math
 import os
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, time as datetime_time, timedelta
 from typing import Dict, List, NamedTuple, Optional, Tuple
 from uuid import NAMESPACE_URL, uuid5
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .monitor_db import get_connection
 
@@ -25,6 +26,7 @@ LOGGER = logging.getLogger(__name__)
 EARTH_RADIUS_M = 6_371_008.8
 CONFIRMATION_SAMPLES = max(1, int(os.getenv('GEOFENCE_CONFIRMATION_SAMPLES', '2')))
 CACHE_TTL_SECONDS = max(1, int(os.getenv('GEOFENCE_CACHE_TTL_SECONDS', '60')))
+SYSTEM_TIMEZONE = os.getenv('AITRACK_TIMEZONE', 'America/Sao_Paulo')
 Point = Tuple[float, float]
 _assignment_cache: Dict[Tuple, Tuple[float, List[Dict]]] = {}
 _cache_lock = threading.Lock()
@@ -120,6 +122,82 @@ def effective_hysteresis_m(hysteresis: float, accuracy_m: Optional[float]) -> fl
     return max(0.0, float(hysteresis)) + max(0.0, float(accuracy_m or 0))
 
 
+def _schedule_time(value) -> datetime_time:
+    if isinstance(value, datetime_time):
+        return value
+    if isinstance(value, timedelta):
+        seconds = int(value.total_seconds()) % 86_400
+        return datetime_time(seconds // 3600, (seconds % 3600) // 60, seconds % 60)
+    return datetime_time.fromisoformat(str(value))
+
+
+def schedule_is_active(received_at: datetime, timezone_name: str, schedules: List[Dict]) -> bool:
+    """Sem janelas significa 24×7; dia 0 é segunda-feira."""
+    if not schedules:
+        return True
+    try:
+        target_zone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        return False
+    system_zone = ZoneInfo(SYSTEM_TIMEZONE)
+    aware = received_at.replace(tzinfo=system_zone) if received_at.tzinfo is None else received_at
+    local = aware.astimezone(target_zone)
+    weekday, current_time = local.weekday(), local.time().replace(tzinfo=None)
+    for schedule in schedules:
+        day = int(schedule['day_of_week'])
+        start = _schedule_time(schedule['start_time'])
+        end = _schedule_time(schedule['end_time'])
+        if schedule['crosses_midnight']:
+            if (weekday == day and current_time >= start) or (
+                weekday == (day + 1) % 7 and current_time < end
+            ):
+                return True
+        elif weekday == day and start <= current_time < end:
+            return True
+    return False
+
+
+def active_window_start(
+    received_at: datetime, timezone_name: str, schedules: List[Dict],
+) -> Optional[datetime]:
+    """Início, no relógio do sistema, da janela semanal que está ativa agora."""
+    if not schedules:
+        return None
+    local = _local_datetime(received_at, timezone_name)
+    if local is None:
+        return None
+    starts = []
+    weekday, current_time = local.weekday(), local.time().replace(tzinfo=None)
+    for schedule in schedules:
+        day = int(schedule['day_of_week'])
+        start = _schedule_time(schedule['start_time'])
+        end = _schedule_time(schedule['end_time'])
+        start_date = None
+        if schedule['crosses_midnight']:
+            if weekday == day and current_time >= start:
+                start_date = local.date()
+            elif weekday == (day + 1) % 7 and current_time < end:
+                start_date = local.date() - timedelta(days=1)
+        elif weekday == day and start <= current_time < end:
+            start_date = local.date()
+        if start_date is not None:
+            local_start = datetime.combine(start_date, start, tzinfo=local.tzinfo)
+            starts.append(
+                local_start.astimezone(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
+            )
+    return min(starts) if starts else None
+
+
+def _local_datetime(received_at: datetime, timezone_name: str) -> Optional[datetime]:
+    try:
+        target_zone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        return None
+    system_zone = ZoneInfo(SYSTEM_TIMEZONE)
+    aware = received_at.replace(tzinfo=system_zone) if received_at.tzinfo is None else received_at
+    return aware.astimezone(target_zone)
+
+
 def evolve_state(
     stable_state: str,
     pending_state: Optional[str],
@@ -150,7 +228,7 @@ def _as_datetime(value) -> datetime:
     else:
         parsed = datetime.now()
     if parsed.tzinfo:
-        parsed = parsed.astimezone().replace(tzinfo=None)
+        parsed = parsed.astimezone(ZoneInfo(SYSTEM_TIMEZONE)).replace(tzinfo=None)
     return parsed
 
 
@@ -222,10 +300,14 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
     cursor.execute("""
         SELECT DISTINCT ga.id AS assignment_id, ga.target_type, ga.vehicle_id,
                ga.driver_id, ga.group_id, ga.notify_on_entry, ga.notify_on_exit,
-               ga.hysteresis_meters, g.id AS geofence_id, g.regra,
+               ga.hysteresis_meters, ga.timezone_name, ga.dwell_threshold_seconds,
+               ga.effective_from, ga.effective_to,
+               g.id AS geofence_id, g.regra,
                gv.id AS geometry_version_id, gv.geometry_type, gv.radius_meters,
                ST_AsGeoJSON(gv.geometry) AS geometry_geojson,
-               gm.vehicle_id AS group_vehicle_id, gm.driver_id AS group_driver_id
+               gm.vehicle_id AS group_vehicle_id, gm.driver_id AS group_driver_id,
+               gs.id AS schedule_id, gs.day_of_week, gs.start_time, gs.end_time,
+               gs.crosses_midnight
           FROM monitoramento.geofence_assignments ga
           JOIN monitoramento.geofences g ON g.id = ga.geofence_id
           JOIN monitoramento.geofence_versions gv ON gv.id = (
@@ -235,9 +317,9 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
           )
      LEFT JOIN monitoramento.monitoring_group_members gm
             ON gm.group_id = ga.group_id AND gm.ativo = TRUE
+     LEFT JOIN monitoramento.geofence_assignment_schedules gs
+            ON gs.assignment_id = ga.id AND gs.ativo = TRUE
          WHERE ga.ativo = TRUE AND g.status = 'active'
-           AND (ga.effective_from IS NULL OR ga.effective_from <= DATE(%s))
-           AND (ga.effective_to IS NULL OR ga.effective_to >= DATE(%s))
            AND (
              (ga.target_type = 'vehicle' AND ga.vehicle_id = %s)
              OR (ga.target_type = 'driver' AND ga.driver_id = %s)
@@ -246,13 +328,20 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
              ))
            )
          ORDER BY ga.priority, ga.id
-    """, (observed_at, observed_at, vehicle_id, driver_id, vehicle_id, driver_id))
+    """, (vehicle_id, driver_id, vehicle_id, driver_id))
     assignments = []
     grouped = {}
     for row in cursor.fetchall():
         grouped.setdefault(row['assignment_id'], []).append(row)
     for matching_rows in grouped.values():
         row = matching_rows[0]
+        local = _local_datetime(observed_at, row['timezone_name'])
+        if local is None or (
+            row['effective_from'] is not None and local.date() < row['effective_from']
+        ) or (
+            row['effective_to'] is not None and local.date() > row['effective_to']
+        ):
+            continue
         if row['target_type'] == 'vehicle':
             subject_type, subject_id = 'vehicle', row['vehicle_id']
         elif row['target_type'] == 'driver':
@@ -271,7 +360,21 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
             }
         else:
             geometry = parsed
-        row.update(subject_type=subject_type, subject_id=subject_id, geometry=geometry)
+        schedules = []
+        seen_schedules = set()
+        for item in matching_rows:
+            if item['schedule_id'] and item['schedule_id'] not in seen_schedules:
+                seen_schedules.add(item['schedule_id'])
+                schedules.append({
+                    'day_of_week': item['day_of_week'],
+                    'start_time': item['start_time'],
+                    'end_time': item['end_time'],
+                    'crosses_midnight': bool(item['crosses_midnight']),
+                })
+        row.update(
+            subject_type=subject_type, subject_id=subject_id,
+            geometry=geometry, schedules=schedules,
+        )
         assignments.append(row)
     return assignments
 
@@ -299,6 +402,12 @@ def _remember_assignments(source: str, identifiers: Dict, assignments: List[Dict
             time.monotonic() + CACHE_TTL_SECONDS,
             assignments,
         )
+
+
+def clear_assignment_cache() -> None:
+    """Invalida políticas após mutações operacionais de atribuição/agenda."""
+    with _cache_lock:
+        _assignment_cache.clear()
 
 
 def _state_clause(assignment: Dict) -> Tuple[str, Tuple]:
@@ -347,32 +456,73 @@ def _store_observation(
         current['stable_state'], current['pending_state'], int(current['pending_samples']),
         candidate,
     )
+    active_now = schedule_is_active(
+        received_at, assignment['timezone_name'], assignment['schedules'],
+    )
+    window_start = active_window_start(
+        received_at, assignment['timezone_name'], assignment['schedules'],
+    )
+    violation_state = 'inside' if assignment['regra'] == 'forbidden' else 'outside'
+    was_violation = current['stable_state'] == violation_state
+    is_violation = evolution.stable_state == violation_state
+    if active_now and is_violation:
+        previous_start = current['violation_started_at']
+        same_window = window_start is None or (
+            previous_start is not None and previous_start >= window_start
+        )
+        violation_started_at = (
+            previous_start if was_violation and previous_start and same_window else received_at
+        )
+        dwell_notified_at = (
+            current['dwell_notified_at'] if was_violation and same_window else None
+        )
+    else:
+        violation_started_at = None
+        dwell_notified_at = None
     transition_at = received_at if evolution.transition else (
         current['last_transition_at']
     )
+
+    event_type = None
+    crossing_direction = None
+    if evolution.transition and active_now:
+        candidate_event = (
+            'geofence_entry' if evolution.transition == ('outside', 'inside')
+            else 'geofence_exit'
+        )
+        should_notify = (
+            candidate_event == 'geofence_entry' and assignment['notify_on_entry']
+        ) or (
+            candidate_event == 'geofence_exit' and assignment['notify_on_exit']
+        )
+        if should_notify:
+            event_type = candidate_event
+            crossing_direction = '_to_'.join(evolution.transition)
+    threshold = assignment['dwell_threshold_seconds']
+    dwell_due = bool(
+        active_now and is_violation and threshold is not None
+        and dwell_notified_at is None and violation_started_at is not None
+        and (received_at - violation_started_at).total_seconds() >= int(threshold)
+    )
+    if dwell_due and event_type is None:
+        event_type = 'geofence_dwell'
+        dwell_notified_at = received_at
+
     cursor.execute("""
         UPDATE monitoramento.geofence_target_states
            SET stable_state = %s, pending_state = %s, pending_samples = %s,
                last_signed_distance_m = %s, last_latitude = %s,
                last_longitude = %s, last_accuracy_m = %s, last_source = %s,
                last_observed_at = %s, last_transition_at = %s,
+               violation_started_at = %s, dwell_notified_at = %s,
                version = version + 1
          WHERE id = %s
     """, (
         evolution.stable_state, evolution.pending_state, evolution.pending_samples,
         distance, latitude, longitude, accuracy_m, source, received_at,
-        transition_at, current['id'],
+        transition_at, violation_started_at, dwell_notified_at, current['id'],
     ))
-    if not evolution.transition:
-        return None
-    event_type = 'geofence_entry' if evolution.transition == ('outside', 'inside') else 'geofence_exit'
-    crossing_direction = '_to_'.join(evolution.transition)
-    should_notify = (
-        event_type == 'geofence_entry' and assignment['notify_on_entry']
-    ) or (
-        event_type == 'geofence_exit' and assignment['notify_on_exit']
-    )
-    if not should_notify:
+    if event_type is None:
         return None
     public_id = str(uuid5(
         NAMESPACE_URL,
@@ -396,6 +546,12 @@ def _store_observation(
             'confirmation_samples': CONFIRMATION_SAMPLES,
             'hysteresis_meters': float(assignment['hysteresis_meters']),
             'effective_hysteresis_meters': effective_hysteresis,
+            'schedule_active': active_now,
+            'timezone_name': assignment['timezone_name'],
+            'dwell_threshold_seconds': int(threshold) if threshold is not None else None,
+            'violation_started_at': (
+                violation_started_at.isoformat() if violation_started_at else None
+            ),
         }),
     ))
     return {
@@ -430,8 +586,8 @@ def evaluate_position(
     try:
         conn.start_transaction()
         if assignments is None:
-            subjects = _resolve_subjects(cursor, source, identifiers, timestamp)
-            assignments = _applicable_assignments(cursor, subjects, timestamp)
+            subjects = _resolve_subjects(cursor, source, identifiers, reception_timestamp)
+            assignments = _applicable_assignments(cursor, subjects, reception_timestamp)
             _remember_assignments(source, identifiers, assignments)
         if not assignments:
             conn.commit()

@@ -31,6 +31,19 @@ interface PolygonDraft {
 
 type GeofenceDraft = CircleDraft | PolygonDraft;
 
+interface ScheduleDraft {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  crossesMidnight: boolean;
+}
+
+interface AssignmentConfigDraft {
+  timezoneName: string;
+  dwellMinutes: string;
+  schedules: ScheduleDraft[];
+}
+
 const RULE_COLORS: Record<GeofenceRule, string> = {
   allowed: '#2563eb',
   forbidden: '#dc2626',
@@ -40,6 +53,28 @@ const STATUS_LABELS = {
 };
 const TARGET_LABELS: Record<AssignmentTargetType, string> = {
   vehicle: 'Veículo', driver: 'Motorista', group: 'Grupo',
+};
+const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
+const DEFAULT_SCHEDULE: ScheduleDraft = {
+  dayOfWeek: 0, startTime: '08:00', endTime: '18:00', crossesMidnight: false,
+};
+
+const displayTime = (time: string) => time.slice(0, 5);
+const apiTime = (time: string) => time.length === 5 ? `${time}:00` : time;
+
+const assignmentSummary = (assignment: GeofenceAssignment) => {
+  const timezone = assignment.timezone_name || DEFAULT_TIMEZONE;
+  const dwell = assignment.dwell_threshold_seconds == null
+    ? 'permanência desativada'
+    : `permanência ${Math.round(assignment.dwell_threshold_seconds / 60)} min`;
+  const activeSchedules = (assignment.schedules || []).filter(schedule => schedule.ativo !== false);
+  const schedule = activeSchedules.length
+    ? activeSchedules.map(item => (
+      `${DAY_LABELS[item.day_of_week]} ${displayTime(item.start_time)}–${displayTime(item.end_time)}${item.crosses_midnight ? ' (+1 dia)' : ''}`
+    )).join(' · ')
+    : '24 horas / 7 dias';
+  return `${timezone} · ${dwell} · ${schedule}`;
 };
 
 const localOperatorId = () => {
@@ -139,6 +174,8 @@ const GeofenceDesigner: React.FC = () => {
   const [targetType, setTargetType] = useState<AssignmentTargetType>('vehicle');
   const [targetId, setTargetId] = useState('');
   const [assignmentBusy, setAssignmentBusy] = useState(false);
+  const [configuringAssignmentId, setConfiguringAssignmentId] = useState<number | null>(null);
+  const [assignmentConfig, setAssignmentConfig] = useState<AssignmentConfigDraft | null>(null);
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupVehicleIds, setGroupVehicleIds] = useState<number[]>([]);
@@ -258,6 +295,79 @@ const GeofenceDesigner: React.FC = () => {
       setMessage({ type: 'success', text: 'Atribuição desativada.' });
     } catch (error: any) {
       setMessage({ type: 'error', text: error?.response?.data?.error || 'Não foi possível desativar a atribuição.' });
+    } finally {
+      setAssignmentBusy(false);
+    }
+  };
+
+  const configureAssignment = (assignment: GeofenceAssignment) => {
+    setConfiguringAssignmentId(assignment.id);
+    setAssignmentConfig({
+      timezoneName: assignment.timezone_name || DEFAULT_TIMEZONE,
+      dwellMinutes: assignment.dwell_threshold_seconds == null
+        ? '' : String(assignment.dwell_threshold_seconds / 60),
+      schedules: (assignment.schedules || []).filter(schedule => schedule.ativo !== false).map(schedule => ({
+        dayOfWeek: schedule.day_of_week,
+        startTime: displayTime(schedule.start_time),
+        endTime: displayTime(schedule.end_time),
+        crossesMidnight: schedule.crosses_midnight,
+      })),
+    });
+    setMessage(null);
+  };
+
+  const cancelAssignmentConfig = () => {
+    setConfiguringAssignmentId(null);
+    setAssignmentConfig(null);
+  };
+
+  const updateScheduleDraft = (index: number, patch: Partial<ScheduleDraft>) => {
+    setAssignmentConfig(previous => previous ? {
+      ...previous,
+      schedules: previous.schedules.map((schedule, scheduleIndex) => (
+        scheduleIndex === index ? { ...schedule, ...patch } : schedule
+      )),
+    } : previous);
+  };
+
+  const saveAssignmentConfig = async (assignment: GeofenceAssignment) => {
+    if (!editingFence || !assignmentConfig) return;
+    const dwellMinutes = assignmentConfig.dwellMinutes.trim();
+    const parsedDwell = dwellMinutes === '' ? null : Number(dwellMinutes);
+    if (!assignmentConfig.timezoneName.trim()) {
+      setMessage({ type: 'error', text: 'Informe o fuso horário da atribuição.' });
+      return;
+    }
+    if (parsedDwell !== null && (!Number.isFinite(parsedDwell) || parsedDwell <= 0)) {
+      setMessage({ type: 'error', text: 'A permanência deve ser maior que zero ou ficar vazia.' });
+      return;
+    }
+    if (!operatorName.trim()) {
+      setMessage({ type: 'error', text: 'Informe o operador antes de salvar a configuração.' });
+      return;
+    }
+    setAssignmentBusy(true);
+    setMessage(null);
+    try {
+      const response = await geofenceService.updateAssignment(editingFence.public_id, assignment.id, {
+        expected_version: assignment.version,
+        timezone_name: assignmentConfig.timezoneName.trim(),
+        dwell_threshold_seconds: parsedDwell === null ? null : Math.round(parsedDwell * 60),
+        schedules: assignmentConfig.schedules.map(schedule => ({
+          day_of_week: schedule.dayOfWeek,
+          start_time: apiTime(schedule.startTime),
+          end_time: apiTime(schedule.endTime),
+          crosses_midnight: schedule.crossesMidnight,
+        })),
+        operator: { id: operatorId, name: operatorName.trim() },
+      });
+      setAssignments(previous => previous.map(item => (
+        item.id === assignment.id ? response.data.assignment : item
+      )));
+      cancelAssignmentConfig();
+      setMessage({ type: 'success', text: 'Agenda da atribuição atualizada.' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error?.response?.data?.error || 'Não foi possível atualizar a agenda.' });
     } finally {
       setAssignmentBusy(false);
     }
@@ -535,10 +645,83 @@ const GeofenceDesigner: React.FC = () => {
               <h3>Atribuições</h3>
               <p className="geofence-help">Escolha quem será avaliado quando o detector de cerca entrar em operação.</p>
               {assignments.map(assignment => (
-                <div className="geofence-assignment-item" key={assignment.id}>
-                  <span>{assignment.target_label}<small>{TARGET_LABELS[assignment.target_type]}</small></span>
-                  <button type="button" className="geofence-danger" disabled={assignmentBusy}
-                    onClick={() => deactivateAssignment(assignment)}>Remover</button>
+                <div className="geofence-assignment-card" key={assignment.id}>
+                  <div className="geofence-assignment-item">
+                    <span>{assignment.target_label}<small>{TARGET_LABELS[assignment.target_type]}</small></span>
+                    <div className="geofence-assignment-buttons">
+                      <button type="button" className="geofence-secondary" disabled={assignmentBusy}
+                        onClick={() => configureAssignment(assignment)}>Configurar</button>
+                      <button type="button" className="geofence-danger" disabled={assignmentBusy}
+                        onClick={() => deactivateAssignment(assignment)}>Remover</button>
+                    </div>
+                  </div>
+                  <p className="geofence-assignment-summary">{assignmentSummary(assignment)}</p>
+                  {(assignment.effective_from || assignment.effective_to) && (
+                    <p className="geofence-assignment-summary">
+                      Vigência: {assignment.effective_from || 'início aberto'} até {assignment.effective_to || 'sem término'}
+                    </p>
+                  )}
+                  <p className="geofence-assignment-summary">Histerese: {assignment.hysteresis_meters ?? 0} m</p>
+                  {configuringAssignmentId === assignment.id && assignmentConfig && (
+                    <div className="geofence-assignment-config" aria-label={`Configuração de ${assignment.target_label}`}>
+                      <label className="geofence-field">Fuso horário
+                        <input aria-label="Fuso horário da atribuição" list="geofence-timezones"
+                          value={assignmentConfig.timezoneName}
+                          onChange={event => setAssignmentConfig({ ...assignmentConfig, timezoneName: event.target.value })} />
+                        <datalist id="geofence-timezones">
+                          <option value="America/Sao_Paulo" />
+                          <option value="America/Manaus" />
+                          <option value="America/Cuiaba" />
+                          <option value="America/Rio_Branco" />
+                          <option value="UTC" />
+                        </datalist>
+                      </label>
+                      <label className="geofence-field">Permanência (minutos)
+                        <input aria-label="Permanência em minutos" type="number" min="1" step="1"
+                          placeholder="Vazio desativa" value={assignmentConfig.dwellMinutes}
+                          onChange={event => setAssignmentConfig({ ...assignmentConfig, dwellMinutes: event.target.value })} />
+                      </label>
+                      <div className="geofence-schedule-heading">
+                        <strong>Janelas semanais</strong>
+                        <button type="button" className="geofence-secondary" onClick={() => setAssignmentConfig({
+                          ...assignmentConfig,
+                          schedules: [...assignmentConfig.schedules, { ...DEFAULT_SCHEDULE }],
+                        })}>Adicionar janela</button>
+                      </div>
+                      {!assignmentConfig.schedules.length && (
+                        <p className="geofence-help">Sem janelas: monitoramento ativo 24 horas por dia.</p>
+                      )}
+                      {assignmentConfig.schedules.map((schedule, index) => (
+                        <div className="geofence-schedule-row" key={`${index}-${schedule.dayOfWeek}`}>
+                          <select aria-label={`Dia da janela ${index + 1}`} value={schedule.dayOfWeek}
+                            onChange={event => updateScheduleDraft(index, { dayOfWeek: Number(event.target.value) })}>
+                            {DAY_LABELS.map((label, day) => <option key={label} value={day}>{label}</option>)}
+                          </select>
+                          <input aria-label={`Início da janela ${index + 1}`} type="time" value={schedule.startTime}
+                            onChange={event => updateScheduleDraft(index, { startTime: event.target.value })} />
+                          <input aria-label={`Fim da janela ${index + 1}`} type="time" value={schedule.endTime}
+                            onChange={event => updateScheduleDraft(index, { endTime: event.target.value })} />
+                          <label className="geofence-midnight-check">
+                            <input aria-label={`Janela ${index + 1} atravessa meia-noite`} type="checkbox"
+                              checked={schedule.crossesMidnight}
+                              onChange={event => updateScheduleDraft(index, { crossesMidnight: event.target.checked })} />
+                            +1 dia
+                          </label>
+                          <button type="button" className="geofence-danger" aria-label={`Remover janela ${index + 1}`}
+                            onClick={() => setAssignmentConfig({
+                              ...assignmentConfig,
+                              schedules: assignmentConfig.schedules.filter((_, scheduleIndex) => scheduleIndex !== index),
+                            })}>×</button>
+                        </div>
+                      ))}
+                      <div className="geofence-actions">
+                        <button type="button" className="geofence-primary" disabled={assignmentBusy}
+                          onClick={() => saveAssignmentConfig(assignment)}>Salvar configuração</button>
+                        <button type="button" className="geofence-secondary" disabled={assignmentBusy}
+                          onClick={cancelAssignmentConfig}>Cancelar</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {!assignments.length && <p className="geofence-help">Nenhum alvo atribuído.</p>}

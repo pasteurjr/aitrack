@@ -272,6 +272,75 @@ def test_deactivates_assignment_with_optimistic_version(monkeypatch):
     assert captured['data'] == {'expected_version': 2, 'actor_id': 'operator-7'}
 
 
+def test_updates_assignment_schedule_and_dwell_policy(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'update_assignment_policy',
+        lambda reference, assignment_id, data: captured.update(
+            reference=reference, assignment_id=assignment_id, data=data,
+        ) or {'id': assignment_id, 'version': 3},
+    )
+    response = _client().put('/api/geofences/fence-1/assignments/10', json={
+        'expected_version': 2,
+        'timezone_name': 'America/Sao_Paulo',
+        'dwell_threshold_seconds': 900,
+        'schedules': [{
+            'day_of_week': 0, 'start_time': '22:00', 'end_time': '06:00',
+            'crosses_midnight': True,
+        }],
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 200
+    assert captured['data']['dwell_threshold_seconds'] == 900
+    assert captured['data']['schedules'][0] == {
+        'day_of_week': 0, 'start_time': '22:00:00',
+        'end_time': '06:00:00', 'crosses_midnight': True,
+    }
+
+
+def test_rejects_incompatible_schedule_before_database(monkeypatch):
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'update_assignment_policy',
+        lambda *_args: (_ for _ in ()).throw(AssertionError('não deve consultar')),
+    )
+    response = _client().put('/api/geofences/fence-1/assignments/10', json={
+        'expected_version': 2,
+        'timezone_name': 'America/Sao_Paulo',
+        'dwell_threshold_seconds': None,
+        'schedules': [{
+            'day_of_week': 0, 'start_time': '22:00', 'end_time': '06:00',
+            'crosses_midnight': False,
+        }],
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 400
+    assert 'incompatíveis' in response.get_json()['error']
+
+
+def test_rejects_overlapping_weekly_schedules(monkeypatch):
+    monkeypatch.setattr(
+        geofence_api.geofence_assignment_db,
+        'update_assignment_policy',
+        lambda *_args: (_ for _ in ()).throw(AssertionError('não deve consultar')),
+    )
+    response = _client().put('/api/geofences/fence-1/assignments/10', json={
+        'expected_version': 2, 'timezone_name': 'America/Sao_Paulo',
+        'dwell_threshold_seconds': 60,
+        'schedules': [
+            {'day_of_week': 0, 'start_time': '08:00', 'end_time': '12:00'},
+            {'day_of_week': 0, 'start_time': '11:00', 'end_time': '13:00'},
+        ],
+        'operator': {'id': 'operator-7', 'name': 'Maria'},
+    })
+
+    assert response.status_code == 400
+    assert 'sobrepor' in response.get_json()['error']
+
+
 def test_creates_group_with_deduplicated_members(monkeypatch):
     captured = {}
     monkeypatch.setattr(

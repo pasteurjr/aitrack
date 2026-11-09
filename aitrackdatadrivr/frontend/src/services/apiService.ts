@@ -23,6 +23,7 @@ import type {
   GeofenceAssignmentOptions,
   AssignmentTargetType,
   GeofenceListResponse,
+  UpdateGeofenceAssignmentBody,
   UpdateGeofenceBody,
 } from '../types/geofence';
 
@@ -277,6 +278,14 @@ export const geofenceService = {
     operator: { id: string; name: string };
   }) => apiClient.post<{ schema_version: string; assignment: GeofenceAssignment }>(
     `/geofences/${reference}/assignments`, body,
+  ),
+
+  updateAssignment: (
+    reference: string,
+    assignmentId: number,
+    body: UpdateGeofenceAssignmentBody,
+  ) => apiClient.put<{ schema_version: string; assignment: GeofenceAssignment }>(
+    `/geofences/${reference}/assignments/${assignmentId}`, body,
   ),
 
   deactivateAssignment: (reference: string, assignmentId: number, body: {

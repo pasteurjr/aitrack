@@ -47,6 +47,7 @@ jest.mock('../services/apiService', () => ({
     getAssignmentOptions: jest.fn(),
     getAssignments: jest.fn(),
     assign: jest.fn(),
+    updateAssignment: jest.fn(),
     deactivateAssignment: jest.fn(),
     createGroup: jest.fn(),
   },
@@ -124,6 +125,8 @@ beforeEach(() => {
         id: 31, geofence_id: 7, target_type: 'vehicle', target_label: 'ABC1D23',
         vehicle_id: 11, driver_id: null, group_id: null, notify_on_entry: false,
         notify_on_exit: true, ativo: true, version: 1,
+        timezone_name: 'America/Sao_Paulo', effective_from: null, effective_to: null,
+        dwell_threshold_seconds: null, hysteresis_meters: 30, schedules: [],
       },
     },
   } as any);
@@ -269,4 +272,68 @@ test('atribui veículo canônico e atualiza a contagem da cerca', async () => {
   }));
   expect((await screen.findAllByText('ABC1D23')).length).toBeGreaterThanOrEqual(2);
   expect(screen.getByText(/1 atribuição\(ões\) ativa\(s\)/)).toBeInTheDocument();
+});
+
+test('configura fuso, permanência e múltiplas janelas semanais da atribuição', async () => {
+  const assignment = {
+    id: 31, geofence_id: 7, target_type: 'vehicle', target_label: 'ABC1D23',
+    vehicle_id: 11, driver_id: null, group_id: null, notify_on_entry: false,
+    notify_on_exit: true, ativo: true, version: 3,
+    timezone_name: 'America/Sao_Paulo', effective_from: null, effective_to: null,
+    dwell_threshold_seconds: 900, hysteresis_meters: 30,
+    schedules: [{
+      id: 91, day_of_week: 4, start_time: '22:00:00', end_time: '06:00:00',
+      crosses_midnight: true, ativo: true,
+    }],
+  };
+  mockedService.getAll.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-list.v1', total: 1, limit: 200, offset: 0,
+      geofences: [{
+        id: 7, public_id: 'fence-7', nome: 'Garagem', descricao: null,
+        regra: 'allowed', status: 'active', version: 1, geometry_type: 'circle',
+        geometry_version: 1, active_assignments: 1,
+        geometry: { type: 'Circle', center: [-46.63, -23.55], radius_meters: 500 },
+      }],
+    },
+  } as any);
+  mockedService.getAssignments.mockResolvedValue({
+    data: { schema_version: 'geofence-assignments.v1', assignments: [assignment] },
+  } as any);
+  mockedService.updateAssignment.mockResolvedValue({
+    data: {
+      schema_version: 'geofence-assignment.v1',
+      assignment: {
+        ...assignment, version: 4, timezone_name: 'America/Manaus',
+        dwell_threshold_seconds: 1800,
+      },
+    },
+  } as any);
+
+  render(<GeofenceDesigner />);
+  fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
+  await screen.findByText('1 cadastrada(s)');
+  fireEvent.change(screen.getByLabelText('Gerenciar cerca existente'), { target: { value: 'fence-7' } });
+  expect(await screen.findByText(/Sex 22:00–06:00 \(\+1 dia\)/)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Operador responsável pela cerca'), { target: { value: 'Maria' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Configurar' }));
+  fireEvent.change(screen.getByLabelText('Fuso horário da atribuição'), { target: { value: 'America/Manaus' } });
+  fireEvent.change(screen.getByLabelText('Permanência em minutos'), { target: { value: '30' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Adicionar janela' }));
+  fireEvent.change(screen.getByLabelText('Dia da janela 2'), { target: { value: '6' } });
+  fireEvent.change(screen.getByLabelText('Início da janela 2'), { target: { value: '08:30' } });
+  fireEvent.change(screen.getByLabelText('Fim da janela 2'), { target: { value: '12:00' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Salvar configuração' }));
+
+  await waitFor(() => expect(mockedService.updateAssignment).toHaveBeenCalledWith('fence-7', 31, {
+    expected_version: 3,
+    timezone_name: 'America/Manaus',
+    dwell_threshold_seconds: 1800,
+    schedules: [
+      { day_of_week: 4, start_time: '22:00:00', end_time: '06:00:00', crosses_midnight: true },
+      { day_of_week: 6, start_time: '08:30:00', end_time: '12:00:00', crosses_midnight: false },
+    ],
+    operator: expect.objectContaining({ name: 'Maria' }),
+  }));
+  expect(await screen.findByText('Agenda da atribuição atualizada.')).toBeInTheDocument();
 });

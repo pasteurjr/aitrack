@@ -141,5 +141,11 @@ apenas estabelece a linha de base; uma mudança exige duas amostras consecutivas
 além da banda configurável de histerese e da incerteza GPS declarada. Eventos
 guardam horários da fonte e de recebimento, fonte, versão exata da geometria,
 direção do cruzamento, coordenadas, precisão disponível e regra
-aplicada. Agenda e permanência serão acrescentadas na UI-3.9; correlação com
-incidente permanece na UI-3.10.
+aplicada.
+
+Na UI-3.9, agenda, vigência e permanência passaram a ser avaliadas no fuso de
+cada vínculo usando o horário de recebimento. Sem janelas, a regra funciona
+24×7; fora da agenda, o lado geométrico continua atualizado sem alerta e o
+cronômetro de violação é reiniciado. Permanência mede tempo contínuo fora de
+área permitida ou dentro de área proibida e emite `geofence_dwell` uma única vez
+por episódio. A correlação desses eventos com incidentes permanece na UI-3.10.
