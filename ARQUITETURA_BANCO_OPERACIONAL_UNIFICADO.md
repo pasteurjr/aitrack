@@ -98,3 +98,7 @@ operacional deixa de ser mascarada como resposta válida.
 Na UI-3.1, cercas e versões geométricas passaram a existir em `monitoramento`.
 Uma cerca é comum às duas fontes; o desenho versionado não contém IDs Tracker ou
 Dirija Bem. As atribuições futuras apontarão para veículos e motoristas canônicos.
+
+Na UI-3.2, cercas passaram a aceitar vínculos com veículo, motorista ou grupo
+canônico. Agendas pertencem ao vínculo, permitindo que a mesma cerca tenha
+horários e políticas diferentes conforme o alvo, sempre com fuso explícito.

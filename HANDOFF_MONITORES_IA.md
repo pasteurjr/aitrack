@@ -1083,6 +1083,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.0F | este commit | Identidade operacional virou padrão fail-closed; legado/fallback exigem configuração explícita. Validação integrada registrada ao final da UI-3.1. |
 | 2026-11-09 | UI-3.1 | este commit | Cercas comuns e versões circle/polygon criadas com auditoria, checks e índice espacial; prova MariaDB passou com rollback sem resíduos. |
 | 2026-11-09 | Validação Etapa 3 | este commit | 151 testes backend com MariaDB, 44 App 2, builds dos 2 apps, 2 simuladores e endpoints vivos passaram; Jest App 1 bloqueado por ESM preexistente. |
+| 2026-11-09 | UI-3.2 | este commit | Grupos e vínculos vehicle/driver/group com agendas semanais/overnight criados; prova MariaDB e rollback passaram; 151 regressões. |
 
 ---
 

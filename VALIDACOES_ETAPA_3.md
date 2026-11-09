@@ -314,3 +314,26 @@
 - `tracker.schema_migrations`: 14 arquivos registrados, zero pendentes.
 - Logs do backend durante posições Tracker e polling do frontend não mostraram
   exceções; scores dos primeiros ciclos foram calculados normalmente.
+
+## UI-3.2 — Grupos, vínculos e agendas de cerca
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `8e288cf`
+
+- `monitoring_groups` cria grupos operacionais sem depender das fontes.
+- `monitoring_group_members` aceita veículo ou motorista canônico e exige
+  exatamente uma referência por membro.
+- `geofence_assignments` vincula uma cerca a exatamente um veículo, motorista
+  ou grupo.
+- Cada vínculo possui fuso, período de vigência, notificações de entrada/saída,
+  permanência, histerese, cooldown, prioridade, autoria e versão.
+- `geofence_assignment_schedules` aceita múltiplas janelas por dia da semana e
+  representa explicitamente intervalos que atravessam meia-noite.
+- Ausência de janelas significa funcionamento contínuo dentro da vigência; essa
+  regra será consumida pelo avaliador da UI-3.9.
+- Prova MariaDB atribuiu uma cerca aos três tipos de alvo, criou grupo com
+  veículo e motorista e validou janelas `08:00–18:00` e `22:00–06:00`.
+- Rollback deixou zero grupos, membros, vínculos ou agendas temporários.
+- Migration 015 aplicada; runner com zero pendências.
+- Regressão backend: `151 passed, 6 skipped`.
