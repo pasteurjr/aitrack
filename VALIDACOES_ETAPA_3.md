@@ -277,3 +277,40 @@
 - Rollback deixou zero cercas temporárias; runner reportou zero pendências.
 - Vínculo com veículo/grupo, agenda e histerese pertencem às próximas tarefas e
   não foram antecipados nesta migration.
+
+## Validação integrada — UI-3.0E3B, UI-3.0F e UI-3.1
+
+**Data:** 09/11/2026
+
+### Testes automatizados
+
+- Backend com todas as integrações MariaDB habilitadas: `151 passed`.
+- App 2: `44 passed` em 12 suítes; TypeScript sem erros; build de produção
+  compilado com sucesso.
+- App 1: build de produção concluído. Há um warning ESLint preexistente de import
+  não usado em `MapComponent.tsx`.
+- O Jest do App 1 não executa testes porque a configuração antiga do CRA não
+  transpila o módulo ESM `react-leaflet`; falha antes de executar qualquer teste.
+  O problema é anterior e não está relacionado às mudanças de banco/API.
+
+### Runtime e simuladores
+
+- Backend: PID `1338479`, API 5009 e socket 9000.
+- Simulador Tracker: PID `1340359`, 10 veículos enviando; `/api/posicoes`
+  retornou 10 posições.
+- Simulador Dirija Bem: PID `1340436`, 5 motoristas em viagens contínuas a 10x;
+  pontos observados avançando sem exceções.
+- App 1: porta 3001, HTTP 200 e compilação de desenvolvimento sem erro.
+- App 2: porta 3003, HTTP 200 e polling do backend sem respostas de erro.
+
+### API e reconciliação do banco
+
+- Identidade: quatro endpoints HTTP 200 com 26 veículos operacionais.
+- Monitores: 5 configurações, 10 alvos canônicos, 2 alvos no monitor #1.
+- Alertas operacionais: zero; os 4 seeds falsos permanecem somente no legado.
+- Incidentes operacionais: zero após a limpeza dos testes; nenhuma timeline
+  residual.
+- Cercas e versões: zero registros após rollback da prova geométrica.
+- `tracker.schema_migrations`: 14 arquivos registrados, zero pendentes.
+- Logs do backend durante posições Tracker e polling do frontend não mostraram
+  exceções; scores dos primeiros ciclos foram calculados normalmente.
