@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 from .monitor_db import get_connection
+from .identity_db import configured_read_mode
 from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
 from .incident_sla import deadline_for, enrich_sla
 
@@ -21,15 +22,43 @@ class IncidentConflict(Exception):
 
 INCIDENT_SELECT = """
     SELECT i.*,
-           vu.device_id, vu.codusu, vu.placa, vu.descricao AS vehicle_name,
-           vu.tipo AS vehicle_identity_type,
+           (SELECT vi.valor_externo
+              FROM monitoramento.veiculo_identidades vi
+             WHERE vi.vehicle_id = v.id AND vi.fonte_codigo = 'tracker'
+               AND vi.tipo_identidade = 'device_id' AND vi.ativo = TRUE
+             ORDER BY vi.principal DESC, vi.id LIMIT 1) AS device_id,
+           (SELECT CAST(mi.valor_externo AS UNSIGNED)
+              FROM monitoramento.veiculo_motorista_vinculos vmv
+              JOIN monitoramento.motorista_identidades mi
+                ON mi.driver_id = vmv.driver_id
+               AND mi.fonte_codigo = 'dirijabem'
+               AND mi.tipo_identidade = 'user_id' AND mi.ativo = TRUE
+             WHERE vmv.vehicle_id = v.id
+             ORDER BY COALESCE(vmv.valido_ate, '9999-12-31') DESC,
+                      vmv.valido_desde DESC LIMIT 1) AS codusu,
+           v.placa, v.descricao AS vehicle_name,
+           CASE
+             WHEN EXISTS (
+               SELECT 1 FROM monitoramento.veiculo_identidades vi
+                WHERE vi.vehicle_id = v.id AND vi.fonte_codigo = 'tracker'
+                  AND vi.ativo = TRUE
+             ) AND EXISTS (
+               SELECT 1 FROM monitoramento.veiculo_motorista_vinculos vmv
+                WHERE vmv.vehicle_id = v.id AND vmv.fonte_codigo = 'dirijabem'
+             ) THEN 'both'
+             WHEN EXISTS (
+               SELECT 1 FROM monitoramento.veiculo_identidades vi
+                WHERE vi.vehicle_id = v.id AND vi.fonte_codigo = 'tracker'
+                  AND vi.ativo = TRUE
+             ) THEN 'tracker_only' ELSE 'app_only'
+           END AS vehicle_identity_type,
            m.nome AS monitor_name,
            (SELECT COUNT(*)
-              FROM tracker.incident_timeline it
+              FROM monitoramento.incident_timeline it
              WHERE it.incident_id = i.id) AS timeline_entries
-      FROM tracker.incidents i
-      JOIN tracker.veiculo_unificado vu ON vu.id = i.vehicle_id
- LEFT JOIN tracker.monitores m ON m.id = i.monitor_id
+      FROM monitoramento.incidents i
+      JOIN monitoramento.veiculos v ON v.id = i.vehicle_id
+ LEFT JOIN monitoramento.monitores m ON m.id = i.monitor_id
 """
 
 
@@ -79,7 +108,7 @@ def list_incidents(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], 
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            f'SELECT COUNT(*) AS total FROM tracker.incidents i{where_sql}',
+            f'SELECT COUNT(*) AS total FROM monitoramento.incidents i{where_sql}',
             tuple(params),
         )
         total = int(cursor.fetchone()['total'])
@@ -108,7 +137,7 @@ def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
             return None
 
         cursor.execute(
-            'SELECT COUNT(*) AS total FROM tracker.incident_timeline WHERE incident_id = %s',
+            'SELECT COUNT(*) AS total FROM monitoramento.incident_timeline WHERE incident_id = %s',
             (incident_id,),
         )
         timeline_total = int(cursor.fetchone()['total'])
@@ -118,7 +147,7 @@ def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
                    summary, details, event_id, evidence_type, evidence_ref,
                    correlation_id, causation_id, visibility,
                    occurred_at, recorded_at
-              FROM tracker.incident_timeline
+              FROM monitoramento.incident_timeline
              WHERE incident_id = %s
              ORDER BY occurred_at DESC, id DESC
              LIMIT %s
@@ -167,7 +196,7 @@ def transition_incident(
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            'SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE',
+            'SELECT * FROM monitoramento.incidents WHERE id = %s FOR UPDATE',
             (incident_id,),
         )
         incident = cursor.fetchone()
@@ -177,7 +206,7 @@ def transition_incident(
         # retries simultâneos aguardam a primeira transação e enxergam sua
         # timeline, em vez de falharem artificialmente por versão obsoleta.
         cursor.execute(
-            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            'SELECT incident_id FROM monitoramento.incident_timeline WHERE idempotency_key = %s',
             (idempotency_key,),
         )
         replay = cursor.fetchone()
@@ -199,7 +228,7 @@ def transition_incident(
         values = list(plan['updates'].values())
         assignments.extend(['version = version + 1', 'updated_at = CURRENT_TIMESTAMP(6)'])
         cursor.execute(
-            f'UPDATE tracker.incidents SET {", ".join(assignments)} '
+            f'UPDATE monitoramento.incidents SET {", ".join(assignments)} '
             'WHERE id = %s AND version = %s',
             tuple([*values, incident_id, expected_version]),
         )
@@ -213,7 +242,7 @@ def transition_incident(
             **{key: value for key, value in payload.items() if key != 'resolution_notes'},
         }
         cursor.execute("""
-            INSERT INTO tracker.incident_timeline
+            INSERT INTO monitoramento.incident_timeline
                 (incident_id, idempotency_key, entry_type, actor_type,
                  actor_id, actor_name, from_status, to_status,
                  summary, details, correlation_id, occurred_at)
@@ -225,7 +254,7 @@ def transition_incident(
             plan['summary'], json.dumps(details, default=str),
             payload.get('correlation_id'),
         ))
-        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s', (incident_id,))
         result = serialize_record(cursor.fetchone())
         result['idempotent_replay'] = False
         if owns_connection:
@@ -267,12 +296,12 @@ def add_incident_comment(
     conn = connection or get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s FOR UPDATE', (incident_id,))
+        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s FOR UPDATE', (incident_id,))
         incident = cursor.fetchone()
         if not incident:
             raise IncidentNotFound()
         cursor.execute(
-            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            'SELECT incident_id FROM monitoramento.incident_timeline WHERE idempotency_key = %s',
             (idempotency_key,),
         )
         replay = cursor.fetchone()
@@ -288,14 +317,14 @@ def add_incident_comment(
             )
 
         cursor.execute(
-            'UPDATE tracker.incidents SET version = version + 1, '
+            'UPDATE monitoramento.incidents SET version = version + 1, '
             'updated_at = CURRENT_TIMESTAMP(6) WHERE id = %s AND version = %s',
             (incident_id, expected_version),
         )
         if cursor.rowcount != 1:
             raise IncidentConflict('Incidente foi alterado por outro processo')
         cursor.execute("""
-            INSERT INTO tracker.incident_timeline
+            INSERT INTO monitoramento.incident_timeline
                 (incident_id, idempotency_key, entry_type, actor_type,
                  actor_id, actor_name, summary, details, occurred_at)
             VALUES (%s, %s, 'comment', 'human', %s, %s, %s, %s,
@@ -305,7 +334,7 @@ def add_incident_comment(
             str(actor['name'])[:150], comment[:300],
             json.dumps({'comment': comment}, ensure_ascii=False),
         ))
-        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s', (incident_id,))
         result = serialize_record(cursor.fetchone())
         result['idempotent_replay'] = False
         if owns_connection:
@@ -319,6 +348,50 @@ def add_incident_comment(
         cursor.close()
         if owns_connection:
             conn.close()
+
+
+def _resolve_input_vehicle_id(cursor, provided_id: int) -> int:
+    """Converte ID legado da UI ou confirma ID canônico após a virada."""
+    if configured_read_mode() == 'operational':
+        cursor.execute(
+            'SELECT id FROM monitoramento.veiculos '
+            'WHERE id = %s AND ativo = TRUE AND merged_into_id IS NULL',
+            (provided_id,),
+        )
+        vehicle = cursor.fetchone()
+        if not vehicle:
+            raise ValueError('Veículo operacional ativo não encontrado')
+        return int(vehicle['id'])
+
+    cursor.execute(
+        'SELECT device_id, placa FROM tracker.veiculo_unificado '
+        'WHERE id = %s AND ativo = TRUE',
+        (provided_id,),
+    )
+    legacy = cursor.fetchone()
+    if legacy and legacy.get('device_id'):
+        cursor.execute("""
+            SELECT vehicle_id AS id
+              FROM monitoramento.veiculo_identidades
+             WHERE fonte_codigo = 'tracker'
+               AND tipo_identidade = 'device_id'
+               AND valor_externo = %s AND ativo = TRUE
+        """, (legacy['device_id'],))
+    elif legacy and legacy.get('placa'):
+        normalized_plate = ''.join(
+            char for char in str(legacy['placa']).upper() if char.isalnum()
+        )
+        cursor.execute(
+            'SELECT id FROM monitoramento.veiculos '
+            'WHERE placa = %s AND ativo = TRUE AND merged_into_id IS NULL',
+            (normalized_plate,),
+        )
+    else:
+        raise ValueError('Veículo unificado ativo não encontrado')
+    matches = cursor.fetchall()
+    if len(matches) != 1:
+        raise ValueError('Identidade operacional do veículo não é única')
+    return int(matches[0]['id'])
 
 
 def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connection=None) -> Dict:
@@ -359,38 +432,38 @@ def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connect
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            'SELECT incident_id FROM tracker.incident_timeline WHERE idempotency_key = %s',
+            'SELECT incident_id FROM monitoramento.incident_timeline WHERE idempotency_key = %s',
             (idempotency_key,),
         )
         replay = cursor.fetchone()
         if replay:
-            cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (replay['incident_id'],))
+            cursor.execute(
+                'SELECT * FROM monitoramento.incidents WHERE id = %s',
+                (replay['incident_id'],),
+            )
             result = serialize_record(cursor.fetchone())
             result['idempotent_replay'] = True
             return result
 
-        cursor.execute(
-            'SELECT id FROM tracker.veiculo_unificado WHERE id = %s AND ativo = TRUE',
-            (vehicle_id,),
-        )
-        if not cursor.fetchone():
-            raise ValueError('Veículo unificado ativo não encontrado')
+        operational_vehicle_id = _resolve_input_vehicle_id(cursor, vehicle_id)
         cursor.execute("""
-            INSERT INTO tracker.incidents
-                (correlation_key, vehicle_id, incident_type, title, summary,
+            INSERT INTO monitoramento.incidents
+                (correlation_key, vehicle_id, legacy_vehicle_id,
+                 incident_type, title, summary,
                  status, severity, primary_source, opened_at, triaged_at,
                  detection_outcome, classification_reason, classified_by,
                  classified_at, sla_due_at, version)
-            VALUES (%s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
+            VALUES (%s, %s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
                     CURRENT_TIMESTAMP(6), 'false_negative', %s, %s,
                     CURRENT_TIMESTAMP(6), %s, 1)
         """, (
-            correlation_key, vehicle_id, incident_type, title, notes, severity,
+            correlation_key, operational_vehicle_id, vehicle_id,
+            incident_type, title, notes, severity,
             occurred_at, reason, str(actor['id'])[:100], deadline_for(severity),
         ))
         incident_id = cursor.lastrowid
         cursor.execute("""
-            INSERT INTO tracker.incident_timeline
+            INSERT INTO monitoramento.incident_timeline
                 (incident_id, idempotency_key, entry_type, actor_type,
                  actor_id, actor_name, summary, details, occurred_at)
             VALUES (%s, %s, 'false_negative_reported', 'human', %s, %s,
@@ -405,7 +478,7 @@ def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connect
                 'severity': severity,
             }, ensure_ascii=False), occurred_at,
         ))
-        cursor.execute('SELECT * FROM tracker.incidents WHERE id = %s', (incident_id,))
+        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s', (incident_id,))
         result = serialize_record(cursor.fetchone())
         result['idempotent_replay'] = False
         if owns_connection:

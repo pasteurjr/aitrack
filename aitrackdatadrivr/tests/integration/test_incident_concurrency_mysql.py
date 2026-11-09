@@ -34,7 +34,8 @@ def _create_incident(status='new'):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            'SELECT id FROM tracker.veiculo_unificado WHERE ativo = TRUE ORDER BY id LIMIT 1'
+            'SELECT id FROM monitoramento.veiculos '
+            'WHERE ativo = TRUE AND merged_into_id IS NULL ORDER BY id LIMIT 1'
         )
         vehicle = cursor.fetchone()
         if not vehicle:
@@ -42,7 +43,7 @@ def _create_incident(status='new'):
         key = f'ui210:{uuid.uuid4()}'
         cursor.execute(
             """
-            INSERT INTO tracker.incidents
+            INSERT INTO monitoramento.incidents
                 (correlation_key, vehicle_id, incident_type, title, summary,
                  status, severity, primary_source, version)
             VALUES (%s, %s, 'concurrency_test', 'Teste concorrente UI-2.10',
@@ -64,10 +65,10 @@ def _delete_incident(incident_id):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            'DELETE FROM tracker.incident_timeline WHERE incident_id = %s',
+            'DELETE FROM monitoramento.incident_timeline WHERE incident_id = %s',
             (incident_id,),
         )
-        cursor.execute('DELETE FROM tracker.incidents WHERE id = %s', (incident_id,))
+        cursor.execute('DELETE FROM monitoramento.incidents WHERE id = %s', (incident_id,))
         conn.commit()
     finally:
         cursor.close()
@@ -94,12 +95,12 @@ def _database_state(incident_id):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            'SELECT status, version FROM tracker.incidents WHERE id = %s',
+            'SELECT status, version FROM monitoramento.incidents WHERE id = %s',
             (incident_id,),
         )
         incident = cursor.fetchone()
         cursor.execute(
-            'SELECT entry_type, idempotency_key FROM tracker.incident_timeline '
+            'SELECT entry_type, idempotency_key FROM monitoramento.incident_timeline '
             'WHERE incident_id = %s ORDER BY id',
             (incident_id,),
         )

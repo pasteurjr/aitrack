@@ -82,3 +82,7 @@ Na UI-3.0E2, dez atribuições Tracker foram convertidas em alvos canônicos do
 tipo `vehicle`. O modelo também aceita alvo `driver`, necessário para monitorar
 um usuário Dirija Bem independentemente dos veículos que ele conduziu. Os quatro
 alertas seed sem análise não foram promovidos ao banco operacional.
+
+Na UI-3.0E3A, o runtime de incidentes e o correlacionador passaram a usar apenas
+`monitoramento`. IDs legados recebidos da interface em modo `shadow` são
+resolvidos na borda; eles não voltam a ser usados como chave operacional.

@@ -179,3 +179,40 @@
 - Integração real: `1 passed`.
 - Regressão backend: `135 passed, 5 skipped`.
 - O runtime permanece no legado até a virada coordenada da UI-3.0E3.
+
+## UI-3.0E3A — Virada do runtime de incidentes
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `8777fb5`
+
+### Alterações
+
+- Listagem, detalhe, transições, comentários, resolução, falsos positivos e
+  falsos negativos passaram a ler e escrever exclusivamente em
+  `monitoramento.incidents` e `monitoramento.incident_timeline`.
+- A fila enriquece o veículo usando identidades e vínculos canônicos, sem JOIN
+  com `tracker.veiculo_unificado`.
+- Enquanto a lista de veículos estiver em `shadow`, falso negativo aceita o ID
+  legado da interface e o converte para o veículo canônico. Em modo
+  `operational`, exige diretamente um ID canônico ativo.
+- O correlacionador resolve Tracker por `device_id`. Dirija Bem resolve
+  motorista por `CODUSU` e, quando houver mais de um veículo histórico, exige a
+  placa do evento para evitar atribuição incorreta.
+- Evidências conservam `event_source`; `event_id` não cria dependência física
+  com a tabela da fonte.
+
+### Evidências
+
+- API real: falso negativo criado com ID legado, convertido para veículo
+  canônico, listado e resolvido; HTTP 201/200/200.
+- Consulta posterior confirmou zero escrita correspondente em
+  `tracker.incidents`.
+- Correlação real Tracker e Dirija Bem com placa criou os dois casos no veículo
+  canônico esperado; zero escrita do correlacionador no legado.
+- Todos os registros temporários foram removidos por ID; ambos os stores ficaram
+  com zero incidentes e zero timelines ao final.
+- Concorrência/idempotência no store operacional: `3 passed`.
+- Regressão backend: `138 passed, 5 skipped`.
+- Teste de contrato impede reintroduzir `INSERT/UPDATE` de incidentes no schema
+  legado.

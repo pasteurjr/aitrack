@@ -1078,6 +1078,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-07 | UI-3.0D | este commit | Dupla leitura com shadow padrão e fallback controlado; cobertura 20/20 placas legadas + 6 operacionais; endpoints reais e 122 testes passaram. |
 | 2026-11-07 | UI-3.0E1 | este commit | Monitores-base, incidentes e timeline copiados para o operacional; prova real preservou IDs/FKs e limpou resíduos; 129 testes passaram. |
 | 2026-11-08 | UI-3.0E2 | este commit | 10 atribuições viraram alvos canônicos; análise/alerta real migrados em prova; 4 seeds falsos excluídos, zero órfãos e 135 testes passaram. |
+| 2026-11-09 | UI-3.0E3A | este commit | Runtime de incidentes virou para monitoramento; API e correlação Tracker/Dirija Bem reais passaram, concorrência 3/3 e regressão 138 testes. |
 
 ---
 

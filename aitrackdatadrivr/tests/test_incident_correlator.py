@@ -29,15 +29,18 @@ class FakeCursor:
         normalized = ' '.join(sql.split())
         self._fetchone = None
         self._fetchall = []
-        if 'FROM tracker.veiculo_unificado' in normalized:
+        if (
+            'FROM monitoramento.veiculo_identidades' in normalized
+            or 'FROM monitoramento.motorista_identidades' in normalized
+        ):
             self._fetchall = [] if self.vehicle is False else [self.vehicle]
-        elif 'INSERT INTO tracker.incidents' in normalized:
+        elif 'INSERT INTO monitoramento.incidents' in normalized:
             self.rowcount = 1 if self.incident_created else 0
-        elif 'SELECT id, primary_source FROM tracker.incidents' in normalized:
+        elif 'SELECT id, primary_source FROM monitoramento.incidents' in normalized:
             self._fetchone = {'id': 44, 'primary_source': self.incident_source}
-        elif 'INSERT INTO tracker.incident_timeline' in normalized:
+        elif 'INSERT INTO monitoramento.incident_timeline' in normalized:
             self.rowcount = 1 if self.evidence_added else 0
-        elif 'UPDATE tracker.incidents' in normalized:
+        elif 'UPDATE monitoramento.incidents' in normalized:
             self.rowcount = 1
 
     def fetchone(self):
@@ -75,11 +78,15 @@ def test_creates_incident_and_auditable_tracker_evidence():
         'evidence_added': True,
         'correlation_key': 'behavior:12:episode-shared',
     }
-    incident_insert = next(item for item in cursor.statements if 'INSERT INTO tracker.incidents' in item[0])
+    incident_insert = next(
+        item for item in cursor.statements
+        if 'INSERT INTO monitoramento.incidents' in item[0]
+    )
     assert incident_insert[1][1] == 12
     assert incident_insert[1][7] == 17.5
     timeline_insert = next(
-        item for item in cursor.statements if 'INSERT INTO tracker.incident_timeline' in item[0]
+        item for item in cursor.statements
+        if 'INSERT INTO monitoramento.incident_timeline' in item[0]
     )
     assert timeline_insert[1][6] == 900
     assert timeline_insert[1][-1] == datetime(2026, 11, 6, 15, 0)
@@ -92,7 +99,7 @@ def test_replay_does_not_increment_incident_event_count():
 
     assert result['incident_created'] is False
     assert result['evidence_added'] is False
-    assert not any('UPDATE tracker.incidents' in sql for sql, _params in cursor.statements)
+    assert not any('UPDATE monitoramento.incidents' in sql for sql, _params in cursor.statements)
 
 
 def test_tracker_and_dirijabem_share_source_independent_correlation_key():
@@ -116,11 +123,15 @@ def test_tracker_and_dirijabem_share_source_independent_correlation_key():
     })
 
     assert tracker['correlation_key'] == dirijabem['correlation_key']
-    update = next(item for item in dirijabem_cursor.statements if 'UPDATE tracker.incidents' in item[0])
+    update = next(
+        item for item in dirijabem_cursor.statements
+        if 'UPDATE monitoramento.incidents' in item[0]
+    )
     assert update[1][0] == 'fused'
     assert 'version = version + 1' in update[0]
     timeline = next(
-        item for item in dirijabem_cursor.statements if 'INSERT INTO tracker.incident_timeline' in item[0]
+        item for item in dirijabem_cursor.statements
+        if 'INSERT INTO monitoramento.incident_timeline' in item[0]
     )
     assert timeline[1][6] is None
 
@@ -131,7 +142,10 @@ def test_missing_unified_identity_is_ignored_without_partial_incident():
     result = correlate_episode(cursor, tracker_event())
 
     assert result == {'status': 'ignored', 'reason': 'vehicle_identity_not_found'}
-    assert not any('INSERT INTO tracker.incidents' in sql for sql, _params in cursor.statements)
+    assert not any(
+        'INSERT INTO monitoramento.incidents' in sql
+        for sql, _params in cursor.statements
+    )
 
 
 def test_legacy_event_without_episode_is_ignored_before_database_access():

@@ -46,19 +46,40 @@ def _resolve_vehicle(cursor, event: Dict, source: str) -> Optional[Dict]:
         if not identity:
             raise ValueError('Episódio Tracker exige device_id')
         cursor.execute(
-            'SELECT id, device_id, codusu FROM tracker.veiculo_unificado '
-            'WHERE device_id = %s AND ativo = TRUE LIMIT 2',
+            "SELECT v.id, vi.valor_externo AS device_id, NULL AS codusu "
+            "FROM monitoramento.veiculo_identidades vi "
+            "JOIN monitoramento.veiculos v ON v.id = vi.vehicle_id "
+            "WHERE vi.fonte_codigo = 'tracker' "
+            "AND vi.tipo_identidade = 'device_id' "
+            "AND vi.valor_externo = %s AND vi.ativo = TRUE "
+            "AND v.ativo = TRUE AND v.merged_into_id IS NULL LIMIT 2",
             (identity,),
         )
     else:
         codusu = event.get('codusu')
         if not isinstance(codusu, int) or isinstance(codusu, bool) or codusu <= 0:
             raise ValueError('Episódio Dirija Bem exige codusu positivo')
-        cursor.execute(
-            'SELECT id, device_id, codusu FROM tracker.veiculo_unificado '
-            'WHERE codusu = %s AND ativo = TRUE LIMIT 2',
-            (codusu,),
+        plate = ''.join(
+            char for char in str(event.get('placa') or '').upper()
+            if char.isalnum()
         )
+        plate_filter = 'AND v.placa = %s' if plate else ''
+        params = (str(codusu), plate) if plate else (str(codusu),)
+        cursor.execute(f"""
+            SELECT DISTINCT v.id, NULL AS device_id,
+                   CAST(mi.valor_externo AS UNSIGNED) AS codusu
+              FROM monitoramento.motorista_identidades mi
+              JOIN monitoramento.veiculo_motorista_vinculos vmv
+                ON vmv.driver_id = mi.driver_id
+              JOIN monitoramento.veiculos v ON v.id = vmv.vehicle_id
+             WHERE mi.fonte_codigo = 'dirijabem'
+               AND mi.tipo_identidade = 'user_id'
+               AND mi.valor_externo = %s
+               AND mi.ativo = TRUE AND v.ativo = TRUE
+               AND v.merged_into_id IS NULL
+               {plate_filter}
+             LIMIT 2
+        """, params)
 
     rows = cursor.fetchall()
     if not rows:
@@ -106,7 +127,7 @@ def correlate_episode(
     context_snapshot = json.dumps(event, default=str, ensure_ascii=False)
 
     cursor.execute("""
-        INSERT INTO tracker.incidents
+        INSERT INTO monitoramento.incidents
             (correlation_key, vehicle_id, origin_episode_id, incident_type,
              title, summary, status, severity, risk_score, primary_source,
              latitude, longitude, position_observed_at, context_snapshot,
@@ -122,7 +143,8 @@ def correlate_episode(
     ))
     incident_created = cursor.rowcount == 1
     cursor.execute(
-        'SELECT id, primary_source FROM tracker.incidents WHERE correlation_key = %s FOR UPDATE',
+        'SELECT id, primary_source FROM monitoramento.incidents '
+        'WHERE correlation_key = %s FOR UPDATE',
         (correlation_key,),
     )
     incident = cursor.fetchone()
@@ -146,25 +168,26 @@ def correlate_episode(
         'observed_at': observed_at,
     }, default=str, ensure_ascii=False)
     cursor.execute("""
-        INSERT INTO tracker.incident_timeline
+        INSERT INTO monitoramento.incident_timeline
             (incident_id, idempotency_key, entry_type, actor_type,
              actor_id, actor_name, from_status, to_status, summary,
-             details, event_id, evidence_type, evidence_ref,
+             details, event_id, event_source, evidence_type, evidence_ref,
              correlation_id, occurred_at)
         VALUES (%s, %s, 'evidence_added', 'integration', %s, %s,
-                NULL, NULL, %s, %s, %s, 'behavior_episode', %s, %s, %s)
+                NULL, NULL, %s, %s, %s, %s, 'behavior_episode', %s, %s, %s)
         ON DUPLICATE KEY UPDATE id = id
     """, (
         incident['id'], idempotency_key, source, f'Integração {source}',
         f'Evidência {event_type} recebida de {source}', details,
-        timeline_event_id, evidence_ref[:150], correlation_group[:100], observed_at,
+        timeline_event_id, source, evidence_ref[:150], correlation_group[:100],
+        observed_at,
     ))
     evidence_added = cursor.rowcount == 1
 
     if evidence_added:
         next_source = source if incident['primary_source'] == source else 'fused'
         cursor.execute("""
-            UPDATE tracker.incidents
+            UPDATE monitoramento.incidents
                SET event_count = event_count + 1,
                    version = version + 1,
                    primary_source = %s,
