@@ -5,6 +5,7 @@ import time
 from server.api import app
 from server.behavioral_engine import restore_persisted_state
 from server.socket_server import start_server
+from server.dirijabem_geofence_ingestor import run_forever as run_dirijabem_geofence_ingestor
 from dirijabem_simulator import get_replay_manager
 
 def run_socket_server():
@@ -38,6 +39,10 @@ if __name__ == "__main__":
     socket_thread = Thread(target=run_socket_server, daemon=True)
     api_thread = Thread(target=run_api_server, daemon=True)
     dirijabem_thread = Thread(target=run_dirijabem_simulator, daemon=True)
+    dirijabem_ingestor_thread = Thread(
+        target=run_dirijabem_geofence_ingestor,
+        daemon=True,
+    )
 
     print("Iniciando todos os serviços AITrack + Dirijabem...")
 
@@ -45,6 +50,7 @@ if __name__ == "__main__":
     socket_thread.start()
     api_thread.start()
     dirijabem_thread.start()
+    dirijabem_ingestor_thread.start()
 
     try:
         # Mantém o processo principal vivo, esperando que as threads filhas terminem
@@ -60,6 +66,9 @@ if __name__ == "__main__":
             if not dirijabem_thread.is_alive():
                 print("ERRO: A thread do simulador Dirijabem foi encerrada inesperadamente.")
                 break
+            if not dirijabem_ingestor_thread.is_alive():
+                print("ERRO: O ingestor de cercas Dirijabem foi encerrado inesperadamente.")
+                break
 
     except KeyboardInterrupt:
         print("\nRecebido sinal de interrupção. Encerrando os servidores...")
@@ -68,5 +77,6 @@ if __name__ == "__main__":
     socket_thread.join(timeout=2)
     api_thread.join(timeout=2)
     dirijabem_thread.join(timeout=2)
+    dirijabem_ingestor_thread.join(timeout=2)
 
     print("Todos os serviços foram encerrados.")

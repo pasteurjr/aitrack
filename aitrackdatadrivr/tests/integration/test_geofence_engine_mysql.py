@@ -42,6 +42,7 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
     conn = geofence_db.get_connection()
     cursor = conn.cursor(dictionary=True)
     fences = []
+    link_id = None
     try:
         cursor.execute("""
             SELECT device.vehicle_id, device.valor_externo AS device_id,
@@ -67,6 +68,14 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         if not tracker or not dirijabem:
             pytest.skip('identidades canônicas das duas fontes indisponíveis')
 
+        cursor.execute("""
+            INSERT INTO monitoramento.veiculo_motorista_vinculos
+                (vehicle_id, driver_id, fonte_codigo, valido_desde)
+            VALUES (%s, %s, 'dirijabem', %s)
+        """, (tracker['vehicle_id'], dirijabem['driver_id'], datetime.now()))
+        link_id = cursor.lastrowid
+        conn.commit()
+
         tracker_fence, tracker_assignment = _create_fence(
             marker, 'allowed', 'vehicle', tracker['vehicle_id'],
         )
@@ -77,42 +86,54 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         fences.append(driver_fence['id'])
 
         now = datetime.now()
+        tracker_clock = now + timedelta(hours=3)
         inside = (-46.6333, -23.5505)
         outside = (-46.6200, -23.5505)
 
         assert geofence_engine.evaluate_tracker_position(
-            tracker['device_id'], tracker['veicod'], *inside, now,
+            tracker['device_id'], tracker['veicod'], *inside, tracker_clock,
+            received_at=now, external_position_id=f'{marker}:tracker:1',
         ) == []
-        assert geofence_engine.evaluate_tracker_position(
-            tracker['device_id'], tracker['veicod'], *outside,
-            now + timedelta(seconds=1),
+        assert geofence_engine.evaluate_dirijabem_position(
+            dirijabem['codusu'], *outside, now,
+            received_at=now + timedelta(seconds=1),
+            external_position_id=f'{marker}:dirijabem:1',
         ) == []
-        tracker_events = geofence_engine.evaluate_tracker_position(
-            tracker['device_id'], tracker['veicod'], *outside,
-            now + timedelta(seconds=2),
+        tracker_events = geofence_engine.evaluate_dirijabem_position(
+            dirijabem['codusu'], *outside, now + timedelta(seconds=1),
+            received_at=now + timedelta(seconds=2),
+            external_position_id=f'{marker}:dirijabem:2',
         )
         assert [event['event_type'] for event in tracker_events] == ['geofence_exit']
         assert tracker_events[0]['assignment_id'] == tracker_assignment['id']
 
-        assert geofence_engine.evaluate_dirijabem_position(
-            dirijabem['codusu'], *outside, now,
+        assert geofence_engine.evaluate_tracker_position(
+            tracker['device_id'], tracker['veicod'], *inside,
+            tracker_clock + timedelta(seconds=1),
+            received_at=now + timedelta(seconds=3),
+            external_position_id=f'{marker}:tracker:2',
         ) == []
-        assert geofence_engine.evaluate_dirijabem_position(
-            dirijabem['codusu'], *inside, now + timedelta(seconds=1),
-        ) == []
-        driver_events = geofence_engine.evaluate_dirijabem_position(
-            dirijabem['codusu'], *inside, now + timedelta(seconds=2),
+        driver_events = geofence_engine.evaluate_tracker_position(
+            tracker['device_id'], tracker['veicod'], *inside,
+            tracker_clock + timedelta(seconds=2),
+            received_at=now + timedelta(seconds=4),
+            external_position_id=f'{marker}:tracker:3',
         )
         assert [event['event_type'] for event in driver_events] == ['geofence_entry']
         assert driver_events[0]['assignment_id'] == driver_assignment['id']
 
         # Repetição do pacote e novas posições estáveis não criam outro evento.
-        assert geofence_engine.evaluate_dirijabem_position(
-            dirijabem['codusu'], *inside, now + timedelta(seconds=2),
+        assert geofence_engine.evaluate_tracker_position(
+            tracker['device_id'], tracker['veicod'], *inside,
+            tracker_clock + timedelta(seconds=2),
+            received_at=now + timedelta(seconds=4),
+            external_position_id=f'{marker}:tracker:3',
         ) == []
         assert geofence_engine.evaluate_tracker_position(
-            tracker['device_id'], tracker['veicod'], *outside,
-            now + timedelta(seconds=3),
+            tracker['device_id'], tracker['veicod'], *inside,
+            tracker_clock + timedelta(seconds=3),
+            received_at=now + timedelta(seconds=5),
+            external_position_id=f'{marker}:tracker:4',
         ) == []
 
         conn.commit()  # encerra o snapshot aberto durante a busca das identidades
@@ -123,12 +144,12 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
         """, tuple(fences))
         assert cursor.fetchall() == [
             {
-                'source_code': 'tracker', 'event_type': 'geofence_exit',
-                'crossing_direction': 'inside_to_outside',
+                'source_code': 'tracker', 'event_type': 'geofence_entry',
+                'crossing_direction': 'outside_to_inside',
             },
             {
-                'source_code': 'dirijabem', 'event_type': 'geofence_entry',
-                'crossing_direction': 'outside_to_inside',
+                'source_code': 'dirijabem', 'event_type': 'geofence_exit',
+                'crossing_direction': 'inside_to_outside',
             },
         ]
     finally:
@@ -160,6 +181,16 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
                 f'DELETE FROM monitoramento.geofences WHERE id IN ({placeholders}) AND owner_ref = %s',
                 tuple(fences) + (marker,),
             )
+            cursor.execute(
+                'DELETE FROM monitoramento.source_position_receipts '
+                'WHERE external_position_id LIKE %s',
+                (f'{marker}:%',),
+            )
+            if link_id:
+                cursor.execute(
+                    'DELETE FROM monitoramento.veiculo_motorista_vinculos WHERE id = %s',
+                    (link_id,),
+                )
             conn.commit()
         cursor.close()
         conn.close()

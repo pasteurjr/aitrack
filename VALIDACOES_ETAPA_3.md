@@ -467,20 +467,44 @@
   duplica evento; ruído que retorna ao estado estável cancela a confirmação em
   andamento. O número de amostras pode ser configurado por
   `GEOFENCE_CONFIRMATION_SAMPLES`.
+- A margem efetiva soma a histerese configurada à precisão GPS informada. Assim,
+  uma leitura incerta precisa atravessar também seu raio de erro antes de contar
+  para a confirmação.
 - Identidade, vínculo e geometria aplicáveis usam cache de 60 segundos
   (`GEOFENCE_CACHE_TTL_SECONDS`), inclusive quando o alvo não possui cerca,
   evitando consultar o catálogo remoto a cada pacote sem atrasar mudanças por
   mais de um minuto.
 - Cada evento conserva fonte, alvo, cerca, versão geométrica, regra, sentido do
-  cruzamento, horário, coordenadas, precisão disponível e distância da borda.
+  cruzamento, horário da fonte e do recebimento, coordenadas, precisão disponível
+  e distância da borda. A ordenação usa recebimento, impedindo que timestamp UTC
+  ingênuo do Tracker bloqueie uma posição local posterior do Dirija Bem.
   Agenda/permanência e correlação com incidente continuam isoladas nas UI-3.9 e
   UI-3.10, respectivamente.
 - O caminho de ingestão Tracker e os dois fluxos Dirija Bem (contínuo e replay)
-  chamam o motor após persistirem a posição; falha na cerca é isolada e não
-  interrompe a telemetria de origem.
+  chamam o motor após persistirem a posição. Além disso, uma cauda incremental
+  lê pela PK as novas posições inseridas por integrações externas no Dirija Bem.
+  O cursor persiste em `monitoramento`, inicia no fim do histórico e os recibos
+  por ID externo tornam o reprocessamento idempotente. Falha na cerca é isolada
+  e não interrompe a telemetria de origem.
+- A cauda relê 10 mil IDs antes do watermark para recuperar transações que
+  reservaram IDs menores mas confirmaram depois de IDs maiores. Recibos fazem a
+  janela custar apenas linhas ainda não processadas e são descartados depois
+  que saem da janela, mantendo o volume limitado. Uma linha inválida não
+  bloqueia as seguintes: é tentada três vezes e então vai para quarentena
+  auditável, configurável por ambiente.
+- A criação sentinela do estado ocorre antes do `SELECT FOR UPDATE`, serializando
+  duas primeiras posições concorrentes. Inserção de evento não usa
+  `INSERT IGNORE`: qualquer rejeição causa rollback em vez de sucesso aparente.
+- Após reiniciar o backend, a cauda externa avançou automaticamente o cursor de
+  `70723605` para `70724815` enquanto o simulador escrevia no Dirija Bem, sem
+  varredura histórica nem erro no processo. API 5009 e socket 9000 permaneceram
+  saudáveis. Na versão final, a retenção estabilizou em exatamente 10.000
+  recibos (`70725702`–`70735701`) e nenhuma falha ficou em retry/quarentena.
 - Testes unitários cobriram círculo, polígono, borda, histerese, confirmação,
   ruído e não duplicidade. A integração MariaDB criou uma área permitida para
   Tracker e uma proibida para Dirija Bem, confirmou exatamente uma saída e uma
   entrada e limpou estado, eventos, vínculos, versões e cercas temporárias.
-- Regressão final com integrações MariaDB: `204 passed`. Runner: zero migrations
+- Testes funcionais do consumidor provaram continuação após linha inválida,
+  avanço do watermark e quarentena após o limite de retentativas.
+- Regressão final com integrações MariaDB: `211 passed`. Runner: zero migrations
   pendentes.

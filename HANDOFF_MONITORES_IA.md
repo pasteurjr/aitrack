@@ -1092,7 +1092,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.4/3.5 | este commit | App 2 desenha círculo por centro/borda e polígono por vértices, com prévia, desfazer/cancelar e persistência tipada; 47 testes, build e Playwright real passaram sem resíduos. |
 | 2026-11-09 | UI-3.6 | este commit | Edição usa versão otimista e histórico geométrico/auditoria; arquivamento preserva dados e bloqueia vínculos ativos; 182 backend, 49 frontend, build, integração e Playwright passaram sem resíduos. |
 | 2026-11-09 | UI-3.7 | este commit | Tela/API atribuem cerca a veículo, motorista ou grupo canônico; remoção/reativação são versionadas; 187 backend, 50 frontend, build, integração e Playwright passaram sem resíduos. |
-| 2026-11-09 | UI-3.8 | este commit | Motor comum detecta entrada/saída de círculo ou polígono nas origens Tracker e Dirija Bem; histerese, confirmação consecutiva, estado persistente e idempotência provados; 204 testes backend passaram sem resíduos. |
+| 2026-11-09 | UI-3.8 | `32c712e` + este commit | Motor comum detecta entrada/saída de círculo ou polígono nas origens Tracker e Dirija Bem, inclusive inserções externas via cauda incremental com releitura e quarentena; histerese + precisão, relógio de recebimento, concorrência e idempotência provados; 211 testes backend passaram sem resíduos. |
 
 ---
 

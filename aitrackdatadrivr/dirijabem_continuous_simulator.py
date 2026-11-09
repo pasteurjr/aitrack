@@ -129,6 +129,7 @@ class VirtualDriver:
                 point['ACELLINATU'],
                 point['VARDIRATU']
             ))
+            position_id = cursor.lastrowid
 
             conn.commit()
 
@@ -141,6 +142,8 @@ class VirtualDriver:
                     latitude=point['coords'][1],
                     observed_at=datetime.now(),
                     plate=f'SIM-D{self.driver_id}',
+                    received_at=datetime.now(),
+                    external_position_id=position_id,
                 )
             except Exception as geofence_error:
                 print(f"[DRIVER-{self.driver_id}] ⚠️ Erro ao avaliar cerca: {geofence_error}")

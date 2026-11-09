@@ -115,6 +115,11 @@ def classify_with_hysteresis(signed_distance: float, hysteresis: float) -> Optio
     return None
 
 
+def effective_hysteresis_m(hysteresis: float, accuracy_m: Optional[float]) -> float:
+    """Exige que o ponto ultrapasse também seu raio declarado de incerteza."""
+    return max(0.0, float(hysteresis)) + max(0.0, float(accuracy_m or 0))
+
+
 def evolve_state(
     stable_state: str,
     pending_state: Optional[str],
@@ -243,16 +248,18 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
          ORDER BY ga.priority, ga.id
     """, (observed_at, observed_at, vehicle_id, driver_id, vehicle_id, driver_id))
     assignments = []
-    seen = set()
+    grouped = {}
     for row in cursor.fetchall():
-        if row['assignment_id'] in seen:
-            continue
-        seen.add(row['assignment_id'])
+        grouped.setdefault(row['assignment_id'], []).append(row)
+    for matching_rows in grouped.values():
+        row = matching_rows[0]
         if row['target_type'] == 'vehicle':
             subject_type, subject_id = 'vehicle', row['vehicle_id']
         elif row['target_type'] == 'driver':
             subject_type, subject_id = 'driver', row['driver_id']
-        elif row['group_vehicle_id'] == vehicle_id and vehicle_id is not None:
+        elif vehicle_id is not None and any(
+            item['group_vehicle_id'] == vehicle_id for item in matching_rows
+        ):
             subject_type, subject_id = 'vehicle', vehicle_id
         else:
             subject_type, subject_id = 'driver', driver_id
@@ -309,56 +316,53 @@ def _store_observation(
     latitude: float,
     accuracy_m: Optional[float],
     observed_at: datetime,
+    received_at: datetime,
 ) -> Optional[Dict]:
     clause, params = _state_clause(assignment)
+    vehicle_id = assignment['subject_id'] if assignment['subject_type'] == 'vehicle' else None
+    driver_id = assignment['subject_id'] if assignment['subject_type'] == 'driver' else None
+    # O upsert cria a linha sentinela antes do lock. Duas primeiras posições
+    # concorrentes passam a serializar na mesma linha, sem perder uma amostra.
+    cursor.execute("""
+        INSERT INTO monitoramento.geofence_target_states
+            (assignment_id, subject_type, vehicle_id, driver_id)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE id = id
+    """, (
+        assignment['assignment_id'], assignment['subject_type'], vehicle_id, driver_id,
+    ))
     cursor.execute(
         f'SELECT * FROM monitoramento.geofence_target_states WHERE {clause} FOR UPDATE',
         params,
     )
     current = cursor.fetchone()
-    if current and current['last_observed_at'] and observed_at <= current['last_observed_at']:
+    if current['last_observed_at'] and received_at <= current['last_observed_at']:
         return None
     distance = signed_distance_m(assignment['geometry'], longitude, latitude)
-    candidate = classify_with_hysteresis(distance, float(assignment['hysteresis_meters']))
+    effective_hysteresis = effective_hysteresis_m(
+        assignment['hysteresis_meters'], accuracy_m,
+    )
+    candidate = classify_with_hysteresis(distance, effective_hysteresis)
     evolution = evolve_state(
-        current['stable_state'] if current else 'unknown',
-        current['pending_state'] if current else None,
-        int(current['pending_samples']) if current else 0,
+        current['stable_state'], current['pending_state'], int(current['pending_samples']),
         candidate,
     )
-    vehicle_id = assignment['subject_id'] if assignment['subject_type'] == 'vehicle' else None
-    driver_id = assignment['subject_id'] if assignment['subject_type'] == 'driver' else None
-    transition_at = observed_at if evolution.transition else (
-        current['last_transition_at'] if current else None
+    transition_at = received_at if evolution.transition else (
+        current['last_transition_at']
     )
-    if current:
-        cursor.execute("""
-            UPDATE monitoramento.geofence_target_states
-               SET stable_state = %s, pending_state = %s, pending_samples = %s,
-                   last_signed_distance_m = %s, last_latitude = %s,
-                   last_longitude = %s, last_accuracy_m = %s, last_source = %s,
-                   last_observed_at = %s, last_transition_at = %s,
-                   version = version + 1
-             WHERE id = %s
-        """, (
-            evolution.stable_state, evolution.pending_state, evolution.pending_samples,
-            distance, latitude, longitude, accuracy_m, source, observed_at,
-            transition_at, current['id'],
-        ))
-    else:
-        cursor.execute("""
-            INSERT INTO monitoramento.geofence_target_states
-                (assignment_id, subject_type, vehicle_id, driver_id, stable_state,
-                 pending_state, pending_samples, last_signed_distance_m,
-                 last_latitude, last_longitude, last_accuracy_m, last_source,
-                 last_observed_at, last_transition_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            assignment['assignment_id'], assignment['subject_type'], vehicle_id,
-            driver_id, evolution.stable_state, evolution.pending_state,
-            evolution.pending_samples, distance, latitude, longitude, accuracy_m,
-            source, observed_at, transition_at,
-        ))
+    cursor.execute("""
+        UPDATE monitoramento.geofence_target_states
+           SET stable_state = %s, pending_state = %s, pending_samples = %s,
+               last_signed_distance_m = %s, last_latitude = %s,
+               last_longitude = %s, last_accuracy_m = %s, last_source = %s,
+               last_observed_at = %s, last_transition_at = %s,
+               version = version + 1
+         WHERE id = %s
+    """, (
+        evolution.stable_state, evolution.pending_state, evolution.pending_samples,
+        distance, latitude, longitude, accuracy_m, source, received_at,
+        transition_at, current['id'],
+    ))
     if not evolution.transition:
         return None
     event_type = 'geofence_entry' if evolution.transition == ('outside', 'inside') else 'geofence_exit'
@@ -373,24 +377,25 @@ def _store_observation(
     public_id = str(uuid5(
         NAMESPACE_URL,
         f"aitrack:geofence:{assignment['assignment_id']}:{assignment['subject_type']}:"
-        f"{assignment['subject_id']}:{event_type}:{observed_at.isoformat(timespec='microseconds')}",
+        f"{assignment['subject_id']}:{event_type}:{received_at.isoformat(timespec='microseconds')}",
     ))
     cursor.execute("""
-        INSERT IGNORE INTO monitoramento.geofence_events
+        INSERT INTO monitoramento.geofence_events
             (public_id, assignment_id, geofence_id, geometry_version_id,
              source_code, event_type, crossing_direction, rule_applied,
              subject_type, vehicle_id, driver_id, latitude, longitude,
-             accuracy_m, signed_distance_m, observed_at, details_json)
+             accuracy_m, signed_distance_m, observed_at, received_at, details_json)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s)
+                %s, %s, %s, %s, %s)
     """, (
         public_id, assignment['assignment_id'], assignment['geofence_id'],
         assignment['geometry_version_id'], source, event_type,
         crossing_direction, assignment['regra'], assignment['subject_type'],
         vehicle_id, driver_id, latitude, longitude, accuracy_m, distance,
-        observed_at, json.dumps({
+        observed_at, received_at, json.dumps({
             'confirmation_samples': CONFIRMATION_SAMPLES,
             'hysteresis_meters': float(assignment['hysteresis_meters']),
+            'effective_hysteresis_meters': effective_hysteresis,
         }),
     ))
     return {
@@ -409,11 +414,14 @@ def evaluate_position(
     latitude: float,
     observed_at=None,
     accuracy_m: Optional[float] = None,
+    received_at=None,
+    external_position_id=None,
 ) -> List[Dict]:
     """Resolve identidades canônicas e persiste transições confirmadas."""
     if source not in {'tracker', 'dirijabem'}:
         raise ValueError('Fonte deve ser tracker ou dirijabem')
     timestamp = _as_datetime(observed_at)
+    reception_timestamp = _as_datetime(received_at)
     assignments = _cached_assignments(source, identifiers)
     if assignments == []:
         return []
@@ -428,11 +436,22 @@ def evaluate_position(
         if not assignments:
             conn.commit()
             return []
+        if external_position_id is not None:
+            cursor.execute("""
+                INSERT INTO monitoramento.source_position_receipts
+                    (source_code, external_position_id, received_at)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE external_position_id = external_position_id
+            """, (source, str(external_position_id), reception_timestamp))
+            if cursor.rowcount == 0:
+                conn.commit()
+                return []
         events = []
         for assignment in assignments:
             event = _store_observation(
                 cursor, assignment, source, float(longitude), float(latitude),
                 float(accuracy_m) if accuracy_m is not None else None, timestamp,
+                reception_timestamp,
             )
             if event:
                 events.append(event)
@@ -448,17 +467,19 @@ def evaluate_position(
 
 def evaluate_tracker_position(
     device_id, vehicle_id, longitude, latitude, observed_at=None, accuracy_m=None,
+    received_at=None, external_position_id=None,
 ) -> List[Dict]:
     return evaluate_position(
         'tracker', {'device_id': device_id, 'vehicle_id': vehicle_id},
-        longitude, latitude, observed_at, accuracy_m,
+        longitude, latitude, observed_at, accuracy_m, received_at, external_position_id,
     )
 
 
 def evaluate_dirijabem_position(
     user_id, longitude, latitude, observed_at=None, plate=None, accuracy_m=None,
+    received_at=None, external_position_id=None,
 ) -> List[Dict]:
     return evaluate_position(
         'dirijabem', {'user_id': user_id, 'plate': plate},
-        longitude, latitude, observed_at, accuracy_m,
+        longitude, latitude, observed_at, accuracy_m, received_at, external_position_id,
     )

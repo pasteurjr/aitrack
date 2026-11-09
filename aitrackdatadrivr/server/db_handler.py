@@ -102,6 +102,7 @@ def save_location(data, addr):
                  VALUES (%s, ST_PointFromText('POINT(%s %s)'), %s, %s, %s, %s)"""
         
         cursor.execute(sql, (fk_veicod, lon, lat, timestamp, speed, altitude, orient_str))
+        location_id = cursor.lastrowid
         conn.commit()
         print(f"SUCESSO: Posição salva para o veículo FK_VEICOD={fk_veicod}.")
 
@@ -140,6 +141,8 @@ def save_location(data, addr):
                 latitude=lat,
                 observed_at=timestamp,
                 accuracy_m=data.get('accuracy'),
+                received_at=datetime.now(),
+                external_position_id=location_id,
             )
         except Exception:
             LOGGER.exception('Falha ao avaliar cercas para veículo Tracker %s', fk_veicod)

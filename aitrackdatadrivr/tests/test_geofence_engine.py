@@ -2,6 +2,7 @@ import pytest
 
 from server.geofence_engine import (
     classify_with_hysteresis,
+    effective_hysteresis_m,
     evolve_state,
     signed_distance_m,
 )
@@ -82,3 +83,11 @@ def test_stable_candidate_does_not_duplicate_confirmed_transition():
     result = evolve_state('inside', None, 0, 'inside', confirmation_samples=2)
 
     assert _state_values(result) == ('inside', None, 0, None)
+
+
+def test_gps_accuracy_expands_the_neutral_band():
+    margin = effective_hysteresis_m(hysteresis=30.0, accuracy_m=20.0)
+
+    assert margin == 50.0
+    assert classify_with_hysteresis(40.0, margin) is None
+    assert classify_with_hysteresis(51.0, margin) == 'inside'

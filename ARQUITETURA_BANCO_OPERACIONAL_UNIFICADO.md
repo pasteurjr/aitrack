@@ -129,11 +129,17 @@ reativa o registro histórico. Grupos misturam veículos e motoristas sem copiar
 identificadores particulares dos bancos-fonte.
 
 Na UI-3.8, a posição recebida do Tracker e a posição emitida pelos dois fluxos
-de simulação/replay do Dirija Bem passaram pelo mesmo motor de cerca. O motor
+de simulação/replay do Dirija Bem passaram pelo mesmo motor de cerca. Um
+consumidor incremental também acompanha, pela chave primária, posições inseridas
+externamente em `dirijabem.localizacaodados`; o cursor operacional persistente
+evita varrer os 60 milhões de registros históricos. Uma janela de IDs é relida
+para recuperar commits concorrentes fora de ordem; recibos eliminam duplicidade
+e falhas permanentes seguem para quarentena auditável após retentativas. O motor
 resolve veículo/motorista canônico, mede distância assinada para círculo ou
 polígono e mantém estado persistente por vínculo e alvo. A primeira observação
 apenas estabelece a linha de base; uma mudança exige duas amostras consecutivas
-além da banda configurável de histerese. Eventos guardam fonte, versão exata da
-geometria, direção do cruzamento, coordenadas, precisão disponível e regra
+além da banda configurável de histerese e da incerteza GPS declarada. Eventos
+guardam horários da fonte e de recebimento, fonte, versão exata da geometria,
+direção do cruzamento, coordenadas, precisão disponível e regra
 aplicada. Agenda e permanência serão acrescentadas na UI-3.9; correlação com
 incidente permanece na UI-3.10.

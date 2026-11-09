@@ -592,6 +592,7 @@ class DirijabemReplayManager:
                 INSERT INTO localizacaodados (CODVIA, DATAHORA, coords, VELATU)
                 VALUES (%s, NOW(), ST_PointFromText('POINT(%s %s)'), %s)
             """, (codvia, point['lon'], point['lat'], point['speed']))
+            position_id = cursor.lastrowid
 
             conn.commit()
             try:
@@ -601,6 +602,8 @@ class DirijabemReplayManager:
                     latitude=point['lat'],
                     observed_at=datetime.now(),
                     plate='REPLAY',
+                    received_at=datetime.now(),
+                    external_position_id=position_id,
                 )
             except Exception as geofence_error:
                 print(f"[DIRIJABEM] Geofence evaluation error: {geofence_error}")
