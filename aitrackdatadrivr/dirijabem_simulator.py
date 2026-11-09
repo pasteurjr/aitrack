@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from threading import Thread, Lock
 from pathlib import Path
 from typing import List, Dict
+from server.geofence_engine import evaluate_dirijabem_position
 
 # Configuration
 SPEED_MULTIPLIER = 1  # 1 = real-time, 10 = 10x faster
@@ -581,7 +582,7 @@ class DirijabemReplayManager:
         print(f"[DIRIJABEM] Created new trip CODVIA={new_codvia} for user {codusu} (original: {original_codvia})")
         return new_codvia
 
-    def _save_point(self, codvia, point):
+    def _save_point(self, codusu, codvia, point):
         """Save GPS point to localizacaodados"""
         conn = self._get_db_connection()
         cursor = conn.cursor()
@@ -593,6 +594,16 @@ class DirijabemReplayManager:
             """, (codvia, point['lon'], point['lat'], point['speed']))
 
             conn.commit()
+            try:
+                evaluate_dirijabem_position(
+                    user_id=codusu,
+                    longitude=point['lon'],
+                    latitude=point['lat'],
+                    observed_at=datetime.now(),
+                    plate='REPLAY',
+                )
+            except Exception as geofence_error:
+                print(f"[DIRIJABEM] Geofence evaluation error: {geofence_error}")
         except Exception as e:
             print(f"[DIRIJABEM] Error saving point: {e}")
             conn.rollback()
@@ -800,7 +811,7 @@ class DirijabemReplayManager:
                         # Only emit if enough time has passed
                         if time_since_last >= wait_time:
                             point = replay.get_next_point()
-                            self._save_point(replay.codvia, point)
+                            self._save_point(codusu, replay.codvia, point)
                             last_emission[codusu] = now
                             print(f"[DIRIJABEM] User {codusu}: Emitted point {replay.current_index}/{len(replay.points)}")
                     else:

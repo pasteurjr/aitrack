@@ -1,11 +1,16 @@
 import os
 import json
+import logging
 import threading
 import mysql.connector
 from mysql.connector import pooling
 from datetime import datetime
 from .env_loader import load_dotenv
 from . import behavioral_engine
+from . import geofence_engine
+
+
+LOGGER = logging.getLogger(__name__)
 
 # carrega .env (config/.env ou .env)
 load_dotenv()
@@ -124,6 +129,20 @@ def save_location(data, addr):
 
         except Exception as behavioral_err:
             print(f"   └─ AVISO: Erro no behavioral engine: {behavioral_err}")
+
+        # Cerca eletrônica usa a mesma posição já persistida, mas falha isolada
+        # nunca interrompe a ingestão principal do rastreador.
+        try:
+            geofence_engine.evaluate_tracker_position(
+                device_id=device_id,
+                vehicle_id=fk_veicod,
+                longitude=lon,
+                latitude=lat,
+                observed_at=timestamp,
+                accuracy_m=data.get('accuracy'),
+            )
+        except Exception:
+            LOGGER.exception('Falha ao avaliar cercas para veículo Tracker %s', fk_veicod)
 
     except mysql.connector.Error as err:
         print(f"ERRO de Banco de Dados: {err}")

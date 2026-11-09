@@ -127,3 +127,13 @@ são sempre IDs canônicos de veículo, motorista ou grupo em `monitoramento`.
 Remover desativa o vínculo com concorrência otimista; reatribuir o mesmo alvo
 reativa o registro histórico. Grupos misturam veículos e motoristas sem copiar
 identificadores particulares dos bancos-fonte.
+
+Na UI-3.8, a posição recebida do Tracker e a posição emitida pelos dois fluxos
+de simulação/replay do Dirija Bem passaram pelo mesmo motor de cerca. O motor
+resolve veículo/motorista canônico, mede distância assinada para círculo ou
+polígono e mantém estado persistente por vínculo e alvo. A primeira observação
+apenas estabelece a linha de base; uma mudança exige duas amostras consecutivas
+além da banda configurável de histerese. Eventos guardam fonte, versão exata da
+geometria, direção do cruzamento, coordenadas, precisão disponível e regra
+aplicada. Agenda e permanência serão acrescentadas na UI-3.9; correlação com
+incidente permanece na UI-3.10.

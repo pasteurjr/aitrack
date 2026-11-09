@@ -447,3 +447,40 @@
   no App 2, TypeScript sem erros e build de produção compilado com sucesso.
 - Runner permaneceu com zero migrations pendentes; reconciliação confirmou zero
   cercas/grupos de teste e zero vínculos órfãos.
+
+## UI-3.8 — Entrada e saída com histerese
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `b8e49ee`
+
+- A migration 017 criou estado persistente por atribuição e alvo canônico, além
+  do histórico imutável de cruzamentos em `monitoramento`. As duas estruturas
+  referenciam somente identidades, cercas e versões geométricas operacionais.
+- O mesmo motor resolve posições Tracker por `device_id`/`VEICOD` e posições
+  Dirija Bem por `CODUSU`/placa, incluindo o vínculo temporal entre veículo e
+  motorista quando existe. Atribuições diretas e por grupo são respeitadas.
+- Círculos e polígonos usam distância assinada à borda. A classificação só muda
+  fora da banda de histerese do vínculo (30 m por padrão) e requer duas amostras
+  consecutivas. A primeira amostra confiável define a linha de base sem alerta.
+- Pacote repetido ou fora de ordem é ignorado. Permanecer no mesmo lado não
+  duplica evento; ruído que retorna ao estado estável cancela a confirmação em
+  andamento. O número de amostras pode ser configurado por
+  `GEOFENCE_CONFIRMATION_SAMPLES`.
+- Identidade, vínculo e geometria aplicáveis usam cache de 60 segundos
+  (`GEOFENCE_CACHE_TTL_SECONDS`), inclusive quando o alvo não possui cerca,
+  evitando consultar o catálogo remoto a cada pacote sem atrasar mudanças por
+  mais de um minuto.
+- Cada evento conserva fonte, alvo, cerca, versão geométrica, regra, sentido do
+  cruzamento, horário, coordenadas, precisão disponível e distância da borda.
+  Agenda/permanência e correlação com incidente continuam isoladas nas UI-3.9 e
+  UI-3.10, respectivamente.
+- O caminho de ingestão Tracker e os dois fluxos Dirija Bem (contínuo e replay)
+  chamam o motor após persistirem a posição; falha na cerca é isolada e não
+  interrompe a telemetria de origem.
+- Testes unitários cobriram círculo, polígono, borda, histerese, confirmação,
+  ruído e não duplicidade. A integração MariaDB criou uma área permitida para
+  Tracker e uma proibida para Dirija Bem, confirmou exatamente uma saída e uma
+  entrada e limpou estado, eventos, vínculos, versões e cercas temporárias.
+- Regressão final com integrações MariaDB: `204 passed`. Runner: zero migrations
+  pendentes.
