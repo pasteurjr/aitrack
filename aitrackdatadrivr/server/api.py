@@ -189,6 +189,12 @@ app.register_blueprint(vehicle_bp)
 from .incident_api import incident_bp
 app.register_blueprint(incident_bp)
 
+# ============================================
+# OPERATIONAL GEOFENCE API
+# ============================================
+from .geofence_api import geofence_bp
+app.register_blueprint(geofence_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """

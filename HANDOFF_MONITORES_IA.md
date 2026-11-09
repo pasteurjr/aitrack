@@ -968,11 +968,15 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 
 ### T4.3 — Geocercas
 
+> **Superada pelo plano UI-3.x:** cercas agora são compartilhadas no schema
+> `monitoramento`, não em `tracker`. A UI-3.3 entregou GET/POST; alteração e
+> arquivamento/exclusão segura pertencem à UI-3.6.
+
 - A tabela `tracker.geocercas` existe (0 linhas). Migration: `ADD COLUMN IF NOT EXISTS GCER_TIPO ENUM('permitida','proibida') NOT NULL DEFAULT 'permitida'`.
 - Associação: geocercas com `FK_USUCOD` valem para veículos com o mesmo `veiculos.FK_USUCOD`; geocercas com `FK_USUCOD` NULL valem para todos.
 - Carregar polígonos com `ST_AsText(GCER_AREA)`, cache de 60 s. Ponto-em-polígono em Python (ray casting), **sem nova dependência**.
 - `geofence_exit`: estava dentro de uma `permitida` e saiu. `geofence_entry`: entrou numa `proibida`. Estado dentro/fora por veículo × geocerca.
-- CRUD mínimo na API: `GET/POST/DELETE /api/geofences`, com polígono em GeoJSON na API, convertido para WKT no banco. Tela no App 2 é opcional nesta fase.
+- Contrato histórico: polígono em GeoJSON na API, convertido para WKT no banco.
 - Teste: geocerca de teste cobrindo parte de uma rota do simulador.
 
 ### T4.4 — Desvio de rota
@@ -1084,6 +1088,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.1 | este commit | Cercas comuns e versões circle/polygon criadas com auditoria, checks e índice espacial; prova MariaDB passou com rollback sem resíduos. |
 | 2026-11-09 | Validação Etapa 3 | este commit | 151 testes backend com MariaDB, 44 App 2, builds dos 2 apps, 2 simuladores e endpoints vivos passaram; Jest App 1 bloqueado por ESM preexistente. |
 | 2026-11-09 | UI-3.2 | este commit | Grupos e vínculos vehicle/driver/group com agendas semanais/overnight criados; prova MariaDB e rollback passaram; 151 regressões. |
+| 2026-11-09 | UI-3.3 | este commit | API transacional cria/lista/detalha cercas circle/polygon com validação geométrica; integração sem resíduos e 171 regressões passaram. Edição/arquivamento ficam na UI-3.6. |
 
 ---
 
@@ -1125,7 +1130,9 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | GET | `/api/alerts/stats` (inteiros + novos campos) | T3.2 |
 | POST | `/api/monitors/<id>/vehicles` (aceita `{device_id}` ou `{tipo_veiculo:"dirijabem", codusu}`) | T3.3, T4.6 |
 | GET | `/api/events/catalog` (+ `tempo_resposta_segundos`, `deteccao_ativa`) | T3.5 |
-| GET/POST/DELETE | `/api/geofences` | T4.3 |
+| GET/POST | `/api/geofences` | UI-3.3 |
+| GET | `/api/geofences/<id-ou-uuid>` | UI-3.3 |
+| PUT/DELETE seguro | `/api/geofences/<id-ou-uuid>` | UI-3.6 (planejado) |
 | GET | `/api/incidents` | UI-2.3 |
 | GET | `/api/incidents/<id>` | UI-2.3 |
 | POST | `/api/incidents/<id>/acknowledge` | UI-2.7 |

@@ -337,3 +337,25 @@
 - Rollback deixou zero grupos, membros, vínculos ou agendas temporários.
 - Migration 015 aplicada; runner com zero pendências.
 - Regressão backend: `151 passed, 6 skipped`.
+
+## UI-3.3 — API operacional de cercas
+
+**Data:** 09/11/2026
+
+**Checkpoint anterior:** `f670cd7`
+
+- `GET /api/geofences` lista cercas com paginação, busca e filtros validados de
+  estado e regra; `GET /api/geofences/<id-ou-uuid>` devolve o desenho vigente.
+- `POST /api/geofences` cria a identidade e a primeira versão geométrica na
+  mesma transação, com autor e motivo de mudança auditáveis.
+- O contrato usa GeoJSON para polígono e `Circle` com centro
+  `[longitude, latitude]` e raio em metros. O banco recebe somente WKT
+  parametrizado e conserva um hash SHA-256 canônico do desenho.
+- Validação rejeita latitude/longitude fora do domínio, números não finitos,
+  raio zero ou acima de 100 km, polígonos abertos, sem área, com pontos
+  consecutivos iguais, mais de 500 pontos ou auto-interseção.
+- Alteração de desenho e arquivamento/exclusão não foram antecipados: pertencem
+  à UI-3.6, quando serão protegidos por versão otimista e vínculos existentes.
+- Testes focais: `24 passed`. Integração MariaDB: criação, listagem e detalhe de
+  círculo e polígono passaram; limpeza por IDs temporários deixou zero resíduos.
+- Regressão completa, com integrações MariaDB habilitadas: `171 passed`.

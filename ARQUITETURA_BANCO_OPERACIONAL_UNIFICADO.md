@@ -102,3 +102,10 @@ Dirija Bem. As atribuições futuras apontarão para veículos e motoristas can�
 Na UI-3.2, cercas passaram a aceitar vínculos com veículo, motorista ou grupo
 canônico. Agendas pertencem ao vínculo, permitindo que a mesma cerca tenha
 horários e políticas diferentes conforme o alvo, sempre com fuso explícito.
+
+Na UI-3.3, a API operacional passou a criar e consultar cercas diretamente em
+`monitoramento`. A identidade da cerca e sua primeira geometria são gravadas na
+mesma transação. Polígonos entram como GeoJSON e círculos como centro mais raio;
+ambos são validados antes da conversão parametrizada para WKT. Edição,
+arquivamento e exclusão segura permanecem na UI-3.6 para respeitar versões e
+vínculos já existentes.
