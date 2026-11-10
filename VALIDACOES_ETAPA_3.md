@@ -635,3 +635,57 @@ ambiente configurado com política diferente.
 `tests/integration/test_geofence_replay_mysql.py`.
 
 **Checkpoint de implementação:** `b480a6d`.
+
+## UI-3.12 — Cercas e estado no mapa ao vivo
+
+**Data/hora:** 10/11/2026 16:55 (`America/Sao_Paulo`)
+
+**Resultado esperado:** o mapa deve mostrar geometria, regra, alvo, estado
+dentro/fora, agenda, última avaliação e episódio ativo, com atualização ao vivo
+e estados explícitos de carregamento, erro e vazio.
+
+**Resultado obtido:**
+
+- `GET /api/geofences/live-state` entrega o contrato versionado
+  `geofence-live-state.v1`, montado em três consultas em lote: cercas,
+  atribuições/estados e agendas. A quantidade de consultas não cresce por alvo.
+- A resposta inclui círculo ou polígono, regra e versão geométrica; cada alvo
+  inclui estado estável e pendente, agenda/vigência, posição avaliada, fonte,
+  horário, violação e episódio ativo. Alvo sem observação aparece como
+  `unknown`, sem desaparecer da operação.
+- A política só fica operacional quando a cerca está ativa, a vigência é válida
+  e a agenda está aberta. Cerca inativa preserva estado/agenda para diagnóstico,
+  mas não produz violação visual nem episódio ativo.
+- `GeofenceLiveLayer` atualiza o snapshot a cada 5 segundos, substitui o anterior
+  sem concatenar geometrias, mantém o último snapshot em falha e oferece nova
+  tentativa. O estado vazio real não fabrica cercas.
+- Círculo e polígono usam cores por regra/violação; a posição da última avaliação
+  recebe marcador. Painel e popup exibem alvo, dentro/fora, agenda, última
+  avaliação, fonte e episódio. O desenho administrativo foi desativado no
+  `GeofenceDesigner` para evitar geometria duplicada no mapa.
+
+**Evidências de validação:**
+
+- Suíte backend: `234 passed, 12 skipped`; skips são integrações opt-in.
+- Suíte frontend: `54 passed` em 14 suítes; `npx tsc --noEmit` aprovado.
+- Integrações MariaDB: `11 passed, 1 skipped`; o replay consultou o endpoint
+  agregado nos três cenários e a limpeza continuou sem resíduos.
+- Build de produção compilado com sucesso.
+- Playwright com API real confirmou o estado vazio, snapshot e zero erro de
+  página. Cenário controlado com círculo proibido em violação e polígono
+  permitido normal mostrou todos os campos operacionais; após 5,5 segundos,
+  permaneceu com exatamente quatro paths Leaflet, sem duplicação e sem erro.
+- O backend de desenvolvimento foi reiniciado com a nova rota e respondeu HTTP
+  200 com o contrato versionado; socket Tracker permaneceu na porta 9000 e API
+  na 5009.
+
+**Limitações registradas:** a consulta retorna no máximo 200 cercas por snapshot.
+Paginação por cursor, backoff do polling, pausa em aba invisível e indicador de
+leitura temporalmente antiga são endurecimentos futuros e não foram apresentados
+como já implementados.
+
+**Artefatos principais:** `server/geofence_live_db.py`,
+`server/geofence_api.py`, `frontend/src/components/GeofenceLiveLayer.tsx`, CSS,
+tipos, serviço e testes unitários/integração.
+
+**Checkpoint de implementação:** `e2ffb2d`.

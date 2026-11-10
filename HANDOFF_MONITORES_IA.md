@@ -1096,6 +1096,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.9 | este commit | Agenda semanal por fuso, vigência e permanência contínua passaram a ser configuráveis por atribuição; overnight, reset entre janelas e evento único de dwell foram validados; 220 backend e 51 frontend passaram. |
 | 2026-11-10 | UI-3.10 | `78090e7` | Episódio de cerca ganhou identidade persistente e correlação retomável; cruzamento, permanência e recuperação convergem para incidente/timeline idempotentes. Concorrência real produziu um incidente e uma evidência; 225 testes backend e 10 integrações passaram, sem resíduos. |
 | 2026-11-10 | UI-3.11 | `b480a6d` | Replay determinístico isolado cobriu círculo, polígono, duas direções, borda, agenda, dwell e repetição idempotente. Foram 229 testes backend e 11 integrações MariaDB aprovadas; limpeza explícita confirmou zero resíduos. |
+| 2026-11-10 | UI-3.12 | `e2ffb2d` | Estado operacional de cercas passou a ser agregado por API e exibido no mapa com círculo/polígono, alvo, dentro/fora, agenda, avaliação e episódio. Foram aprovados 234 testes backend, 54 frontend, 11 integrações MariaDB, build e Playwright sem duplicação após polling. |
 
 ---
 

@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026 16:40 (`America/Sao_Paulo`)
+**Atualizado em:** 10/11/2026 16:55 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `b480a6d` — UI-3.11 concluída
+**Checkpoint mais recente:** `e2ffb2d` — UI-3.12 concluída
 
-**Tarefas pendentes:** 72
+**Tarefas pendentes:** 71
 
-**Próxima tarefa:** **3 de 74 — UI-3.12: mostrar cercas e estado no mapa ao vivo**
+**Próxima tarefa:** **4 de 74 — UI-0.1: criar indicador global de ambiente**
 
 ## 1. Como este documento será usado
 
@@ -49,7 +49,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 |---:|---:|---|---|---|
 | 1/74 | 3.10 | Integrar episódios de cerca aos incidentes. | Entrada, saída e permanência criam/correlacionam incidente operacional idempotente, preservando cerca, versão geométrica, alvo, fonte e evidência; testes de repetição e concorrência passam. | **Concluída em 10/11/2026 12:38 -03.** **Resultado obtido:** cada ciclo possui `violation_episode_id`; cruzamento, dwell e recuperação convergem para um incidente crítico, com vínculo direto e timeline idempotente. Falha transitória mantém o evento em fila retomável. **Evidências:** 225 testes backend; 10 integrações MariaDB aprovadas e 1 opt-in pulada; duas threads geraram um incidente/uma evidência; migrations 021/022 aplicadas; zero migrations e zero resíduos. **Limitação controlada:** evento de motorista sem veículo contextual fica `deferred`, reavaliado a cada hora e sem fabricar identidade. **Artefatos:** migrations 021/022, motor, correlacionador, worker e testes. **Checkpoint:** `78090e7`. |
 | 2/74 | 3.11 | Criar replay de teste de cruzamento. | Replay determinístico cruza círculo e polígono nas duas direções, testa borda/agenda/dwell e produz exatamente os episódios esperados sem resíduos. | **Concluída em 10/11/2026 16:40 -03.** **Resultado obtido:** três cenários com relógio fixo cobrem círculo permitido, polígono proibido e agenda; borda neutra, confirmação dupla, entrada, saída, dwell e recuperação têm sequência exata. A repetição integral usa os mesmos IDs e não acrescenta registros. **Evidências:** 229 testes backend; 11 integrações MariaDB aprovadas e 1 opt-in pulada; incidentes/timelines e contagens conferidos; limpeza explícita de 10 tabelas, recibos, identidades e veículo temporário; zero resíduos. **Limitação controlada:** o replay fixa `GEOFENCE_CONFIRMATION_SAMPLES=2`, falhando explicitamente se o ambiente divergir. **Artefatos:** `geofence_replay.py` e testes unitário/MariaDB. **Checkpoint:** `b480a6d`. |
-| 3/74 | 3.12 | Mostrar cercas e estado no mapa ao vivo. | Mapa exibe desenho, regra, alvo, estado dentro/fora, agenda, última avaliação e episódio ativo com atualização ao vivo e estados de erro/vazio. | **Pendente.** |
+| 3/74 | 3.12 | Mostrar cercas e estado no mapa ao vivo. | Mapa exibe desenho, regra, alvo, estado dentro/fora, agenda, última avaliação e episódio ativo com atualização ao vivo e estados de erro/vazio. | **Concluída em 10/11/2026 16:55 -03.** **Resultado obtido:** endpoint agregado `geofence-live-state.v1` consulta cercas, atribuições, agendas e último estado sem N+1; o mapa desenha círculo/polígono, posição avaliada, regra, alvo, dentro/fora, agenda, avaliação e episódio, atualizando a cada 5 s e preservando o último snapshot em falha. **Evidências:** 234 backend, 54 frontend e 11 integrações MariaDB aprovados; TypeScript e build aprovados; Playwright real validou vazio e cenário círculo/polígono após dois ciclos sem duplicar paths e sem erro de página. **Limitação controlada:** snapshot limitado a 200 cercas; paginação, backoff e indicador temporal de leitura antiga permanecem como endurecimento futuro. **Artefatos:** `geofence_live_db.py`, rota `/api/geofences/live-state`, `GeofenceLiveLayer` e testes. **Checkpoint:** `e2ffb2d`. |
 
 ### B. Verdade e segurança da interface
 
@@ -165,8 +165,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 3 de 74 — UI-3.12: mostrar cercas e estado no mapa ao vivo.**
+**Próxima etapa 4 de 74 — UI-0.1: criar indicador global de ambiente.**
 
-Ao concluí-la, este documento deverá indicar `71 tarefas pendentes` e anunciar
-`Próxima etapa 4 de 74 — UI-0.1`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `70 tarefas pendentes` e anunciar
+`Próxima etapa 5 de 74 — UI-0.2`, preservando o denominador original para mostrar
 o avanço total da rodada.

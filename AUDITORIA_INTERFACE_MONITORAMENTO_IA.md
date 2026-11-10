@@ -701,7 +701,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **3.9** Implementar agenda e permanência.
 - [x] **3.10** Integrar episódios de cerca aos incidentes.
 - [x] **3.11** Criar replay de teste de cruzamento.
-- [ ] **3.12** Mostrar cercas e estado no mapa ao vivo.
+- [x] **3.12** Mostrar cercas e estado no mapa ao vivo.
 
 **Aceite:** uma cerca criada visualmente detecta entrada/saída real ou simulada sem oscilar na borda.
 
