@@ -587,3 +587,51 @@ fonte e evidência, sem duplicar sob repetição ou concorrência.
 unitários/concorrentes.
 
 **Checkpoint de implementação:** `78090e7`.
+
+## UI-3.11 — Replay determinístico de cruzamento
+
+**Data/hora:** 10/11/2026 16:40 (`America/Sao_Paulo`)
+
+**Resultado esperado:** reproduzir círculo e polígono nas duas direções, borda,
+agenda e permanência com relógio fixo, resultados exatos e nenhuma sobra no
+banco compartilhado.
+
+**Resultado obtido:**
+
+- `geofence_replay.py` define cenários imutáveis com pontos, horários, geometria,
+  regra, agenda e eventos esperados. O executor injeta `observed_at` e
+  `received_at` iguais e IDs externos reproduzíveis por cenário.
+- O círculo permitido estabelece baseline interno, ignora ponto na banda de
+  histerese, confirma saída em duas amostras, gera dwell no limiar exato e
+  confirma retorno. O resultado exato é `exit → dwell → entry`.
+- O polígono proibido executa o inverso com fluxo geométrico completo até
+  incidente: `entry → dwell → exit`, sem evento na borda.
+- O cenário agendado confirma que uma entrada antes das 08:00 atualiza somente
+  o estado. Às 08:00 inicia o episódio, às 08:00:02 gera dwell e a saída
+  confirmada reutiliza o mesmo incidente.
+- Cada cenário usa uma identidade operacional temporária, sem avaliar veículo
+  real. A repetição integral com os mesmos IDs retorna zero eventos novos.
+- A validação SQL exige um `violation_episode_id`, um incidente crítico por
+  cenário, `event_count` igual às evidências e timeline com a mesma contagem.
+
+**Evidências de validação:**
+
+- `229 passed, 12 skipped` na suíte backend normal; os skips são integrações
+  opt-in.
+- `11 passed, 1 skipped` em toda a pasta de integrações MariaDB; o skip é a
+  proteção histórica conhecida do backfill.
+- A prova final verifica zero registros pelos IDs criados em eventos, estados,
+  agendas, atribuições, auditoria, versões, cercas, timelines e incidentes,
+  além de zero recibos, identidades e veículo temporário.
+- Consultas independentes pelo prefixo `codex-ui-3-11-` confirmaram zero cercas,
+  identidades e recibos após a execução. Runner: zero migrations pendentes.
+
+**Desvio/limitação:** o replay declara duas amostras de confirmação e falha se
+`GEOFENCE_CONFIRMATION_SAMPLES` não for `2`; isso impede um falso sucesso em
+ambiente configurado com política diferente.
+
+**Artefatos principais:** `server/geofence_replay.py`,
+`tests/test_geofence_replay.py` e
+`tests/integration/test_geofence_replay_mysql.py`.
+
+**Checkpoint de implementação:** `b480a6d`.

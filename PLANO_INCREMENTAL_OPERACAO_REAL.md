@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026 12:38 (`America/Sao_Paulo`)
+**Atualizado em:** 10/11/2026 16:40 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `78090e7` — UI-3.10 concluída
+**Checkpoint mais recente:** `b480a6d` — UI-3.11 concluída
 
-**Tarefas pendentes:** 73
+**Tarefas pendentes:** 72
 
-**Próxima tarefa:** **2 de 74 — UI-3.11: criar replay de teste de cruzamento**
+**Próxima tarefa:** **3 de 74 — UI-3.12: mostrar cercas e estado no mapa ao vivo**
 
 ## 1. Como este documento será usado
 
@@ -48,7 +48,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
 | 1/74 | 3.10 | Integrar episódios de cerca aos incidentes. | Entrada, saída e permanência criam/correlacionam incidente operacional idempotente, preservando cerca, versão geométrica, alvo, fonte e evidência; testes de repetição e concorrência passam. | **Concluída em 10/11/2026 12:38 -03.** **Resultado obtido:** cada ciclo possui `violation_episode_id`; cruzamento, dwell e recuperação convergem para um incidente crítico, com vínculo direto e timeline idempotente. Falha transitória mantém o evento em fila retomável. **Evidências:** 225 testes backend; 10 integrações MariaDB aprovadas e 1 opt-in pulada; duas threads geraram um incidente/uma evidência; migrations 021/022 aplicadas; zero migrations e zero resíduos. **Limitação controlada:** evento de motorista sem veículo contextual fica `deferred`, reavaliado a cada hora e sem fabricar identidade. **Artefatos:** migrations 021/022, motor, correlacionador, worker e testes. **Checkpoint:** `78090e7`. |
-| 2/74 | 3.11 | Criar replay de teste de cruzamento. | Replay determinístico cruza círculo e polígono nas duas direções, testa borda/agenda/dwell e produz exatamente os episódios esperados sem resíduos. | **Pendente.** |
+| 2/74 | 3.11 | Criar replay de teste de cruzamento. | Replay determinístico cruza círculo e polígono nas duas direções, testa borda/agenda/dwell e produz exatamente os episódios esperados sem resíduos. | **Concluída em 10/11/2026 16:40 -03.** **Resultado obtido:** três cenários com relógio fixo cobrem círculo permitido, polígono proibido e agenda; borda neutra, confirmação dupla, entrada, saída, dwell e recuperação têm sequência exata. A repetição integral usa os mesmos IDs e não acrescenta registros. **Evidências:** 229 testes backend; 11 integrações MariaDB aprovadas e 1 opt-in pulada; incidentes/timelines e contagens conferidos; limpeza explícita de 10 tabelas, recibos, identidades e veículo temporário; zero resíduos. **Limitação controlada:** o replay fixa `GEOFENCE_CONFIRMATION_SAMPLES=2`, falhando explicitamente se o ambiente divergir. **Artefatos:** `geofence_replay.py` e testes unitário/MariaDB. **Checkpoint:** `b480a6d`. |
 | 3/74 | 3.12 | Mostrar cercas e estado no mapa ao vivo. | Mapa exibe desenho, regra, alvo, estado dentro/fora, agenda, última avaliação e episódio ativo com atualização ao vivo e estados de erro/vazio. | **Pendente.** |
 
 ### B. Verdade e segurança da interface
@@ -165,8 +165,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 2 de 74 — UI-3.11: criar replay de teste de cruzamento.**
+**Próxima etapa 3 de 74 — UI-3.12: mostrar cercas e estado no mapa ao vivo.**
 
-Ao concluí-la, este documento deverá indicar `72 tarefas pendentes` e anunciar
-`Próxima etapa 3 de 74 — UI-3.12`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `71 tarefas pendentes` e anunciar
+`Próxima etapa 4 de 74 — UI-0.1`, preservando o denominador original para mostrar
 o avanço total da rodada.

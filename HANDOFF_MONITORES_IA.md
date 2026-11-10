@@ -1095,6 +1095,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-09 | UI-3.8 | `32c712e` + este commit | Motor comum detecta entrada/saída de círculo ou polígono nas origens Tracker e Dirija Bem, inclusive inserções externas via cauda incremental com releitura e quarentena; histerese + precisão, relógio de recebimento, concorrência e idempotência provados; 211 testes backend passaram sem resíduos. |
 | 2026-11-09 | UI-3.9 | este commit | Agenda semanal por fuso, vigência e permanência contínua passaram a ser configuráveis por atribuição; overnight, reset entre janelas e evento único de dwell foram validados; 220 backend e 51 frontend passaram. |
 | 2026-11-10 | UI-3.10 | `78090e7` | Episódio de cerca ganhou identidade persistente e correlação retomável; cruzamento, permanência e recuperação convergem para incidente/timeline idempotentes. Concorrência real produziu um incidente e uma evidência; 225 testes backend e 10 integrações passaram, sem resíduos. |
+| 2026-11-10 | UI-3.11 | `b480a6d` | Replay determinístico isolado cobriu círculo, polígono, duas direções, borda, agenda, dwell e repetição idempotente. Foram 229 testes backend e 11 integrações MariaDB aprovadas; limpeza explícita confirmou zero resíduos. |
 
 ---
 
