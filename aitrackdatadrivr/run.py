@@ -6,6 +6,7 @@ from server.api import app
 from server.behavioral_engine import restore_persisted_state
 from server.socket_server import start_server
 from server.dirijabem_geofence_ingestor import run_forever as run_dirijabem_geofence_ingestor
+from server.geofence_incident_worker import run_forever as run_geofence_incident_worker
 from dirijabem_simulator import get_replay_manager
 
 def run_socket_server():
@@ -43,6 +44,10 @@ if __name__ == "__main__":
         target=run_dirijabem_geofence_ingestor,
         daemon=True,
     )
+    geofence_incident_thread = Thread(
+        target=run_geofence_incident_worker,
+        daemon=True,
+    )
 
     print("Iniciando todos os serviços AITrack + Dirijabem...")
 
@@ -51,6 +56,7 @@ if __name__ == "__main__":
     api_thread.start()
     dirijabem_thread.start()
     dirijabem_ingestor_thread.start()
+    geofence_incident_thread.start()
 
     try:
         # Mantém o processo principal vivo, esperando que as threads filhas terminem
@@ -69,6 +75,9 @@ if __name__ == "__main__":
             if not dirijabem_ingestor_thread.is_alive():
                 print("ERRO: O ingestor de cercas Dirijabem foi encerrado inesperadamente.")
                 break
+            if not geofence_incident_thread.is_alive():
+                print("ERRO: O worker de incidentes de cerca foi encerrado inesperadamente.")
+                break
 
     except KeyboardInterrupt:
         print("\nRecebido sinal de interrupção. Encerrando os servidores...")
@@ -78,5 +87,6 @@ if __name__ == "__main__":
     api_thread.join(timeout=2)
     dirijabem_thread.join(timeout=2)
     dirijabem_ingestor_thread.join(timeout=2)
+    geofence_incident_thread.join(timeout=2)
 
     print("Todos os serviços foram encerrados.")

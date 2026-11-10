@@ -16,6 +16,11 @@ EVENT_TITLES = {
     'speeding': 'Excesso de velocidade detectado',
     'sharp_turn': 'Curva brusca detectada',
 }
+GEOFENCE_TITLES = {
+    'geofence_entry': 'Entrada em cerca eletrônica',
+    'geofence_exit': 'Saída de cerca eletrônica',
+    'geofence_dwell': 'Permanência em violação de cerca',
+}
 
 
 def _bounded_key(prefix: str, value: str, maximum: int) -> str:
@@ -217,4 +222,193 @@ def correlate_episode(
         'incident_created': incident_created,
         'evidence_added': evidence_added,
         'correlation_key': correlation_key,
+    }
+
+
+def _geofence_is_violation(event: Dict) -> bool:
+    if event['event_type'] == 'geofence_dwell':
+        return True
+    return (
+        event['rule_applied'] == 'forbidden'
+        and event['crossing_direction'] == 'outside_to_inside'
+    ) or (
+        event['rule_applied'] == 'allowed'
+        and event['crossing_direction'] == 'inside_to_outside'
+    )
+
+
+def correlate_geofence_event(cursor, event: Dict) -> Dict:
+    """Correlaciona uma evidência de cerca usando a transação do motor.
+
+    ``violation_episode_id`` identifica todo o ciclo de violação. A restrição
+    única do incidente, a chave da timeline e o lock consultivo por episódio
+    tornam retries e chamadas concorrentes idempotentes.
+    """
+    if not isinstance(event, dict):
+        raise ValueError('event deve ser um objeto')
+    required = (
+        'public_id', 'assignment_id', 'geofence_id',
+        'geometry_version_id', 'source', 'event_type', 'rule_applied',
+        'observed_at', 'violation_episode_id',
+    )
+    missing = [field for field in required if event.get(field) in (None, '')]
+    if missing:
+        raise ValueError(f'Evento de cerca incompleto: {", ".join(missing)}')
+    if event['source'] not in VALID_SOURCES:
+        raise ValueError('source do evento de cerca inválido')
+    if event['event_type'] not in GEOFENCE_TITLES:
+        raise ValueError('event_type de cerca inválido')
+    if event['rule_applied'] not in {'allowed', 'forbidden'}:
+        raise ValueError('rule_applied de cerca inválido')
+    vehicle_id = event['vehicle_id']
+    if vehicle_id is None:
+        return {'status': 'ignored', 'reason': 'vehicle_identity_not_found'}
+    if not isinstance(vehicle_id, int) or isinstance(vehicle_id, bool) or vehicle_id <= 0:
+        raise ValueError('vehicle_id canônico deve ser inteiro positivo')
+
+    observed_at = _event_timestamp(event['observed_at'])
+    source = event['source']
+    public_id = str(event['public_id']).strip()
+    violation_episode_id = str(event['violation_episode_id']).strip()
+    correlation_key = _bounded_key('geofence', violation_episode_id, 150)
+    violation = _geofence_is_violation(event)
+    severity = 'critical' if violation else 'low'
+    title = GEOFENCE_TITLES[event['event_type']]
+    summary = (
+        f'Violação de cerca detectada por {source}.' if violation
+        else f'Retorno à condição permitida detectado por {source}.'
+    )
+    context_snapshot = json.dumps(event, default=str, ensure_ascii=False)
+    advisory_lock = 'geofence:' + hashlib.sha256(
+        correlation_key.encode('utf-8')
+    ).hexdigest()[:48]
+    cursor.execute('SELECT GET_LOCK(%s, 10) AS acquired', (advisory_lock,))
+    acquired = cursor.fetchone()
+    if not acquired or int(acquired['acquired'] or 0) != 1:
+        raise RuntimeError('Timeout ao serializar episódio de cerca')
+    try:
+        if not violation:
+            cursor.execute(
+                'SELECT id, primary_source FROM monitoramento.incidents '
+                'WHERE correlation_key = %s FOR UPDATE',
+                (correlation_key,),
+            )
+            incident = cursor.fetchone()
+            if not incident:
+                return {
+                    'status': 'ignored',
+                    'reason': 'violation_incident_not_found',
+                }
+        cursor.execute("""
+            INSERT INTO monitoramento.incidents
+                (correlation_key, vehicle_id, origin_episode_id, incident_type,
+                 title, summary, status, severity, primary_source, driver_ref,
+                 latitude, longitude, position_observed_at, context_snapshot,
+                 opened_at, sla_due_at, event_count)
+            VALUES (%s, %s, %s, 'geofence_violation', %s, %s, 'new', %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, 0)
+            ON DUPLICATE KEY UPDATE correlation_key = VALUES(correlation_key)
+        """, (
+            correlation_key, vehicle_id, violation_episode_id[:64], title, summary,
+            severity, source,
+            str(event.get('driver_id')) if event.get('driver_id') else None,
+            event.get('latitude'), event.get('longitude'), observed_at,
+            context_snapshot, observed_at, deadline_for(severity),
+        ))
+        incident_created = cursor.rowcount == 1
+        if violation:
+            cursor.execute(
+                'SELECT id, primary_source FROM monitoramento.incidents '
+                'WHERE correlation_key = %s FOR UPDATE',
+                (correlation_key,),
+            )
+            incident = cursor.fetchone()
+    finally:
+        cursor.execute('SELECT RELEASE_LOCK(%s) AS released', (advisory_lock,))
+        cursor.fetchone()
+    if not incident:
+        raise RuntimeError('Incidente de cerca correlacionado não foi localizado')
+
+    idempotency_key = _bounded_key(
+        f'incident:{incident["id"]}:geofence', public_id, 150,
+    )
+    details = json.dumps({
+        'source': source,
+        'geofence_event_id': event.get('geofence_event_id'),
+        'geofence_event_public_id': public_id,
+        'violation_episode_id': violation_episode_id,
+        'assignment_id': event['assignment_id'],
+        'geofence_id': event['geofence_id'],
+        'geometry_version_id': event['geometry_version_id'],
+        'subject_type': event.get('subject_type'),
+        'vehicle_id': vehicle_id,
+        'driver_id': event.get('driver_id'),
+        'event_type': event['event_type'],
+        'crossing_direction': event.get('crossing_direction'),
+        'rule_applied': event['rule_applied'],
+        'violation': violation,
+        'observed_at': observed_at,
+    }, default=str, ensure_ascii=False)
+    cursor.execute("""
+        INSERT INTO monitoramento.incident_timeline
+            (incident_id, idempotency_key, entry_type, actor_type,
+             actor_id, actor_name, summary, details, event_source,
+             evidence_type, evidence_ref, correlation_id, occurred_at)
+        VALUES (%s, %s, 'evidence_added', 'integration', %s, %s, %s, %s,
+                %s, 'geofence_event', %s, %s, %s)
+        ON DUPLICATE KEY UPDATE id = id
+    """, (
+        incident['id'], idempotency_key, source, f'Integração {source}', title,
+        details, source, public_id[:150], violation_episode_id[:100], observed_at,
+    ))
+    evidence_added = cursor.rowcount == 1
+    if evidence_added:
+        next_source = source if incident['primary_source'] == source else 'fused'
+        cursor.execute("""
+            UPDATE monitoramento.incidents
+               SET event_count = event_count + 1,
+                   version = version + 1,
+                   primary_source = %s,
+                   severity = CASE
+                       WHEN FIELD(%s, 'low', 'medium', 'high', 'critical')
+                          > FIELD(severity, 'low', 'medium', 'high', 'critical')
+                       THEN %s ELSE severity END,
+                   latitude = %s, longitude = %s, position_observed_at = %s,
+                   updated_at = CURRENT_TIMESTAMP(6)
+             WHERE id = %s
+        """, (
+            next_source, severity, severity, event.get('latitude'),
+            event.get('longitude'), observed_at, incident['id'],
+        ))
+
+    if event.get('geofence_event_id') is not None:
+        cursor.execute("""
+            UPDATE monitoramento.geofence_events
+               SET incident_id = COALESCE(incident_id, %s),
+                   correlation_status = 'correlated',
+                   correlation_attempts = correlation_attempts + 1,
+                   correlation_error = NULL,
+                   next_correlation_at = NULL,
+                   correlated_at = CURRENT_TIMESTAMP(6)
+             WHERE id = %s
+               AND (incident_id IS NULL OR incident_id = %s)
+        """, (incident['id'], event['geofence_event_id'], incident['id']))
+        if cursor.rowcount not in {0, 1}:
+            raise RuntimeError('Falha ao vincular evento de cerca ao incidente')
+        if cursor.rowcount == 0:
+            cursor.execute(
+                'SELECT incident_id FROM monitoramento.geofence_events WHERE id = %s',
+                (event['geofence_event_id'],),
+            )
+            linked = cursor.fetchone()
+            if not linked or int(linked['incident_id'] or 0) != int(incident['id']):
+                raise RuntimeError('Evento de cerca ausente ou ligado a outro incidente')
+
+    return {
+        'status': 'correlated',
+        'incident_id': int(incident['id']),
+        'incident_created': incident_created,
+        'evidence_added': evidence_added,
+        'correlation_key': correlation_key,
+        'violation': violation,
     }

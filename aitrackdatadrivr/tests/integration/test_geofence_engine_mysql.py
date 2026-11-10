@@ -157,31 +157,74 @@ def test_confirms_tracker_exit_and_dirijabem_entry_without_duplicates():
 
         conn.commit()  # encerra o snapshot aberto durante a busca das identidades
         cursor.execute("""
-            SELECT source_code, event_type, crossing_direction
+            SELECT source_code, event_type, crossing_direction,
+                   violation_episode_id, context_vehicle_id, incident_id,
+                   correlation_status
               FROM monitoramento.geofence_events
              WHERE geofence_id IN (%s, %s) ORDER BY observed_at, id
         """, tuple(fences))
+        stored_events = cursor.fetchall()
+        assert [
+            (event['source_code'], event['event_type'], event['crossing_direction'])
+            for event in stored_events
+        ] == [
+            ('dirijabem', 'geofence_exit', 'inside_to_outside'),
+            ('dirijabem', 'geofence_dwell', None),
+            ('tracker', 'geofence_entry', 'outside_to_inside'),
+        ]
+        assert all(event['correlation_status'] == 'correlated' for event in stored_events)
+        assert all(event['context_vehicle_id'] == tracker['vehicle_id'] for event in stored_events)
+        assert stored_events[0]['violation_episode_id'] == stored_events[1]['violation_episode_id']
+        assert stored_events[0]['incident_id'] == stored_events[1]['incident_id']
+        assert stored_events[2]['incident_id'] != stored_events[0]['incident_id']
+
+        incident_ids = sorted({event['incident_id'] for event in stored_events})
+        cursor.execute("""
+            SELECT id, incident_type, severity, event_count
+              FROM monitoramento.incidents
+             WHERE id IN (%s, %s) ORDER BY id
+        """, tuple(incident_ids))
+        incidents = cursor.fetchall()
+        assert len(incidents) == 2
+        assert all(item['incident_type'] == 'geofence_violation' for item in incidents)
+        assert sorted(item['event_count'] for item in incidents) == [1, 2]
+        assert all(item['severity'] == 'critical' for item in incidents)
+
+        cursor.execute("""
+            SELECT incident_id, evidence_type, COUNT(*) AS total
+              FROM monitoramento.incident_timeline
+             WHERE incident_id IN (%s, %s)
+             GROUP BY incident_id, evidence_type ORDER BY total
+        """, tuple(incident_ids))
         assert cursor.fetchall() == [
-            {
-                'source_code': 'dirijabem', 'event_type': 'geofence_exit',
-                'crossing_direction': 'inside_to_outside',
-            },
-            {
-                'source_code': 'dirijabem', 'event_type': 'geofence_dwell',
-                'crossing_direction': None,
-            },
-            {
-                'source_code': 'tracker', 'event_type': 'geofence_entry',
-                'crossing_direction': 'outside_to_inside',
-            },
+            {'incident_id': incidents[1]['id'], 'evidence_type': 'geofence_event', 'total': 1},
+            {'incident_id': incidents[0]['id'], 'evidence_type': 'geofence_event', 'total': 2},
         ]
     finally:
         if fences:
             placeholders = ','.join(['%s'] * len(fences))
             cursor.execute(
+                f'SELECT DISTINCT incident_id FROM monitoramento.geofence_events '
+                f'WHERE geofence_id IN ({placeholders}) AND incident_id IS NOT NULL',
+                tuple(fences),
+            )
+            incident_ids = [row['incident_id'] for row in cursor.fetchall()]
+            cursor.execute(
                 f'DELETE FROM monitoramento.geofence_events WHERE geofence_id IN ({placeholders})',
                 tuple(fences),
             )
+            if incident_ids:
+                incident_placeholders = ','.join(['%s'] * len(incident_ids))
+                cursor.execute(
+                    f'DELETE FROM monitoramento.incident_timeline '
+                    f'WHERE incident_id IN ({incident_placeholders})',
+                    tuple(incident_ids),
+                )
+                cursor.execute(
+                    f'DELETE FROM monitoramento.incidents '
+                    f'WHERE id IN ({incident_placeholders})',
+                    tuple(incident_ids),
+                )
             cursor.execute(
                 f'DELETE FROM monitoramento.geofence_target_states WHERE assignment_id IN '
                 f'(SELECT id FROM monitoramento.geofence_assignments '

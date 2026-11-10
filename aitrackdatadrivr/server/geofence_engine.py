@@ -19,6 +19,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple
 from uuid import NAMESPACE_URL, uuid5
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .incident_correlator import correlate_geofence_event
 from .monitor_db import get_connection
 
 
@@ -373,6 +374,7 @@ def _applicable_assignments(cursor, subjects: Dict, observed_at: datetime) -> Li
                 })
         row.update(
             subject_type=subject_type, subject_id=subject_id,
+            incident_vehicle_id=vehicle_id, incident_driver_id=driver_id,
             geometry=geometry, schedules=schedules,
         )
         assignments.append(row)
@@ -476,9 +478,28 @@ def _store_observation(
         dwell_notified_at = (
             current['dwell_notified_at'] if was_violation and same_window else None
         )
+        violation_episode_id = (
+            current.get('violation_episode_id')
+            if was_violation and same_window and current.get('violation_episode_id')
+            else str(uuid5(
+                NAMESPACE_URL,
+                f"aitrack:geofence-episode:{assignment['assignment_id']}:"
+                f"{assignment['subject_type']}:{assignment['subject_id']}:"
+                f"{violation_started_at.isoformat(timespec='microseconds')}",
+            ))
+        )
     else:
         violation_started_at = None
         dwell_notified_at = None
+        violation_episode_id = None
+    event_episode_id = (
+        violation_episode_id or current.get('violation_episode_id') or str(uuid5(
+            NAMESPACE_URL,
+            f"aitrack:geofence-episode:{assignment['assignment_id']}:"
+            f"{assignment['subject_type']}:{assignment['subject_id']}:"
+            f"{received_at.isoformat(timespec='microseconds')}",
+        ))
+    )
     transition_at = received_at if evolution.transition else (
         current['last_transition_at']
     )
@@ -515,12 +536,14 @@ def _store_observation(
                last_longitude = %s, last_accuracy_m = %s, last_source = %s,
                last_observed_at = %s, last_transition_at = %s,
                violation_started_at = %s, dwell_notified_at = %s,
+               violation_episode_id = %s,
                version = version + 1
          WHERE id = %s
     """, (
         evolution.stable_state, evolution.pending_state, evolution.pending_samples,
         distance, latitude, longitude, accuracy_m, source, received_at,
-        transition_at, violation_started_at, dwell_notified_at, current['id'],
+        transition_at, violation_started_at, dwell_notified_at,
+        violation_episode_id, current['id'],
     ))
     if event_type is None:
         return None
@@ -529,17 +552,37 @@ def _store_observation(
         f"aitrack:geofence:{assignment['assignment_id']}:{assignment['subject_type']}:"
         f"{assignment['subject_id']}:{event_type}:{received_at.isoformat(timespec='microseconds')}",
     ))
+    context_vehicle_id = assignment['incident_vehicle_id']
+    if assignment['subject_type'] == 'driver':
+        cursor.execute("""
+            SELECT vehicle_id
+              FROM monitoramento.veiculo_motorista_vinculos
+             WHERE driver_id = %s AND valido_desde <= %s
+               AND (valido_ate IS NULL OR valido_ate >= %s)
+             ORDER BY valido_desde DESC, id DESC LIMIT 2
+        """, (assignment['subject_id'], observed_at, observed_at))
+        linked_vehicles = cursor.fetchall()
+        resolved_from_position = assignment['incident_vehicle_id']
+        matching_position = next((
+            row['vehicle_id'] for row in linked_vehicles
+            if row['vehicle_id'] == resolved_from_position
+        ), None)
+        context_vehicle_id = matching_position if matching_position is not None else (
+            linked_vehicles[0]['vehicle_id'] if len(linked_vehicles) == 1 else None
+        )
     cursor.execute("""
         INSERT INTO monitoramento.geofence_events
             (public_id, assignment_id, geofence_id, geometry_version_id,
+             violation_episode_id, context_vehicle_id, correlation_status,
              source_code, event_type, crossing_direction, rule_applied,
              subject_type, vehicle_id, driver_id, latitude, longitude,
              accuracy_m, signed_distance_m, observed_at, received_at, details_json)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         public_id, assignment['assignment_id'], assignment['geofence_id'],
-        assignment['geometry_version_id'], source, event_type,
+        assignment['geometry_version_id'], event_episode_id,
+        context_vehicle_id, source, event_type,
         crossing_direction, assignment['regra'], assignment['subject_type'],
         vehicle_id, driver_id, latitude, longitude, accuracy_m, distance,
         observed_at, received_at, json.dumps({
@@ -552,14 +595,83 @@ def _store_observation(
             'violation_started_at': (
                 violation_started_at.isoformat() if violation_started_at else None
             ),
+            'violation_episode_id': event_episode_id,
         }),
     ))
+    geofence_event_id = cursor.lastrowid
+    incident_payload = {
+        'geofence_event_id': geofence_event_id,
+        'public_id': public_id,
+        'vehicle_id': context_vehicle_id,
+        'driver_id': assignment['incident_driver_id'],
+        'assignment_id': assignment['assignment_id'],
+        'geofence_id': assignment['geofence_id'],
+        'geometry_version_id': assignment['geometry_version_id'],
+        'source': source,
+        'event_type': event_type,
+        'crossing_direction': crossing_direction,
+        'rule_applied': assignment['regra'],
+        'subject_type': assignment['subject_type'],
+        'latitude': latitude,
+        'longitude': longitude,
+        'observed_at': observed_at,
+        'violation_episode_id': event_episode_id,
+    }
+    cursor.execute('SAVEPOINT correlate_geofence_event')
+    try:
+        incident = correlate_geofence_event(cursor, incident_payload)
+        cursor.execute('RELEASE SAVEPOINT correlate_geofence_event')
+    except Exception as error:
+        cursor.execute('ROLLBACK TO SAVEPOINT correlate_geofence_event')
+        cursor.execute("""
+            UPDATE monitoramento.geofence_events
+               SET correlation_status = 'error',
+                   correlation_attempts = correlation_attempts + 1,
+                   correlation_error = %s
+             WHERE id = %s
+        """, (str(error)[:1000], geofence_event_id))
+        LOGGER.exception(
+            'Evento de cerca %s persistido; correlação será retomada', public_id,
+        )
+        incident = {'status': 'error', 'reason': str(error)}
+    if incident['status'] == 'ignored':
+        deferred = incident['reason'] == 'vehicle_identity_not_found'
+        cursor.execute("""
+            UPDATE monitoramento.geofence_events
+               SET correlation_status = %s,
+                   correlation_attempts = correlation_attempts + 1,
+                   correlation_error = %s,
+                   next_correlation_at = CASE
+                       WHEN %s THEN CURRENT_TIMESTAMP(6) + INTERVAL 1 HOUR
+                       ELSE NULL END
+             WHERE id = %s
+        """, (
+            'deferred' if deferred else 'ignored', incident['reason'][:1000],
+            deferred, geofence_event_id,
+        ))
+        LOGGER.warning(
+            'Evento de cerca %s sem veículo canônico; incidente não criado', public_id,
+        )
+    if incident['status'] != 'correlated':
+        return {
+            'public_id': public_id,
+            'event_type': event_type,
+            'crossing_direction': crossing_direction,
+            'assignment_id': assignment['assignment_id'],
+            'geofence_id': assignment['geofence_id'],
+            'incident_id': None,
+            'incident_created': False,
+            'evidence_added': False,
+        }
     return {
         'public_id': public_id,
         'event_type': event_type,
         'crossing_direction': crossing_direction,
         'assignment_id': assignment['assignment_id'],
         'geofence_id': assignment['geofence_id'],
+        'incident_id': incident['incident_id'],
+        'incident_created': incident['incident_created'],
+        'evidence_added': incident['evidence_added'],
     }
 
 
