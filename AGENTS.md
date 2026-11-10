@@ -157,6 +157,7 @@ O banco é **remoto, compartilhado e com dados reais**: `camerascasas.no-ip.info
 - Antes de cada commit: testes da fase passando, `git status` sem arquivos acidentais. Nada de `.env`, `node_modules`, `build/`, `__pycache__`, logs ou backups.
 - Antes do push: `git pull --rebase origin main`. Outra instância (Claude Code) pode trabalhar no mesmo repositório.
 - **Ao terminar cada tarefa**, atualize a seção "Registro de progresso" no fim de `HANDOFF_MONITORES_IA.md` com data, tarefa, commit e observações. É assim que o próximo agente sabe onde você parou.
+- **Plano incremental obrigatório:** mantenha `PLANO_INCREMENTAL_OPERACAO_REAL.md` como registro único das etapas restantes. Antes de iniciar, anuncie `Próxima etapa X de 74`; ao concluir, registre descrição, resultado esperado, resultado obtido, evidências, limitações, data/hora e checkpoint. Depois regenere `PLANO_INCREMENTAL_OPERACAO_REAL.pdf`. O denominador `74` identifica esta rodada e não deve ser reduzido; informe separadamente quantas tarefas ainda estão pendentes.
 
 ---
 
