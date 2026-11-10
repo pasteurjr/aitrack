@@ -1,9 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026  
-**Checkpoint de origem:** `2cdd6d2` — UI-3.9 concluída  
-**Tarefas pendentes:** 74  
-**Próxima tarefa:** **1 de 74 — UI-3.10: integrar episódios de cerca aos incidentes**
+**Atualizado em:** 10/11/2026 12:38 (`America/Sao_Paulo`)
+
+**Checkpoint mais recente:** `78090e7` — UI-3.10 concluída
+
+**Tarefas pendentes:** 73
+
+**Próxima tarefa:** **2 de 74 — UI-3.11: criar replay de teste de cruzamento**
 
 ## 1. Como este documento será usado
 
@@ -44,7 +47,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
-| 1/74 | 3.10 | Integrar episódios de cerca aos incidentes. | Entrada, saída e permanência criam/correlacionam incidente operacional idempotente, preservando cerca, versão geométrica, alvo, fonte e evidência; testes de repetição e concorrência passam. | **Pendente.** |
+| 1/74 | 3.10 | Integrar episódios de cerca aos incidentes. | Entrada, saída e permanência criam/correlacionam incidente operacional idempotente, preservando cerca, versão geométrica, alvo, fonte e evidência; testes de repetição e concorrência passam. | **Concluída em 10/11/2026 12:38 -03.** **Resultado obtido:** cada ciclo possui `violation_episode_id`; cruzamento, dwell e recuperação convergem para um incidente crítico, com vínculo direto e timeline idempotente. Falha transitória mantém o evento em fila retomável. **Evidências:** 225 testes backend; 10 integrações MariaDB aprovadas e 1 opt-in pulada; duas threads geraram um incidente/uma evidência; migrations 021/022 aplicadas; zero migrations e zero resíduos. **Limitação controlada:** evento de motorista sem veículo contextual fica `deferred`, reavaliado a cada hora e sem fabricar identidade. **Artefatos:** migrations 021/022, motor, correlacionador, worker e testes. **Checkpoint:** `78090e7`. |
 | 2/74 | 3.11 | Criar replay de teste de cruzamento. | Replay determinístico cruza círculo e polígono nas duas direções, testa borda/agenda/dwell e produz exatamente os episódios esperados sem resíduos. | **Pendente.** |
 | 3/74 | 3.12 | Mostrar cercas e estado no mapa ao vivo. | Mapa exibe desenho, regra, alvo, estado dentro/fora, agenda, última avaliação e episódio ativo com atualização ao vivo e estados de erro/vazio. | **Pendente.** |
 
@@ -162,8 +165,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 1 de 74 — UI-3.10: integrar episódios de cerca aos incidentes.**
+**Próxima etapa 2 de 74 — UI-3.11: criar replay de teste de cruzamento.**
 
-Ao concluí-la, este documento deverá indicar `73 tarefas pendentes` e anunciar
-`Próxima etapa 2 de 74 — UI-3.11`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `72 tarefas pendentes` e anunciar
+`Próxima etapa 3 de 74 — UI-3.12`, preservando o denominador original para mostrar
 o avanço total da rodada.

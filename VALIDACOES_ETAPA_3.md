@@ -537,3 +537,53 @@
 - Regressão: `220 passed, 1 skipped` backend; o skip protege um teste histórico
   de backfill quando seu ID colide com incidente operacional ativo. App 2 teve
   `51 passed`, TypeScript e build aprovados. Runner: zero migrations pendentes.
+
+## UI-3.10 — Correlação de episódios de cerca com incidentes
+
+**Data/hora:** 10/11/2026 12:38 (`America/Sao_Paulo`)
+
+**Resultado esperado:** entrada, saída e permanência devem criar ou enriquecer
+um incidente operacional único, preservando cerca, versão geométrica, alvo,
+fonte e evidência, sem duplicar sob repetição ou concorrência.
+
+**Resultado obtido:**
+
+- As migrations 021/022, aplicadas em `monitoramento`, adicionaram identidade persistente
+  do ciclo (`violation_episode_id`), veículo contextual, vínculo com incidente e
+  estado retomável da correlação. Nenhuma tabela de `tracker` ou `dirijabem` foi
+  alterada.
+- Saída de área permitida e entrada em área proibida abrem incidente crítico do
+  tipo `geofence_violation`. Permanência e retorno à condição segura reutilizam
+  o mesmo episódio e acrescentam evidências sem reduzir severidade ou resolver
+  automaticamente o atendimento.
+- A timeline conserva o UUID do evento, episódio, atribuição, cerca, versão
+  geométrica, alvo, fonte, regra, direção, posição e horário observado. O evento
+  guarda `incident_id` diretamente.
+- Chaves únicas, lock consultivo por episódio e lock do incidente tornam a
+  operação idempotente. O teste concorrente com duas conexões encontrou e levou
+  à correção de um deadlock inicial; na versão final, uma thread inseriu e a
+  outra reproduziu, resultando em um incidente, uma evidência e `event_count=1`.
+- Se a correlação falhar, um savepoint preserva evento e estado da cerca com
+  status `error`; o worker do runtime tenta novamente até o limite configurado.
+  Motorista sem veículo contextual fica `deferred`, sem associação inventada,
+  e é reavaliado de hora em hora. Eventos legados sem episódio não entram na
+  fila; retorno seguro sem violação anterior fica `ignored`, sem falso incidente.
+
+**Evidências de validação:**
+
+- `225 passed, 11 skipped` na suíte backend normal; os skips são integrações
+  opt-in.
+- `10 passed, 1 skipped` executando toda a pasta de integrações contra o MariaDB
+  compartilhado; o skip é a proteção histórica já conhecida do backfill.
+- Prova Tracker/Dirija Bem confirmou dois eventos do mesmo episódio ligados ao
+  mesmo incidente, outro episódio separado, severidade crítica e contagens 2/1.
+- Migration runner reportou `0 migrations pendentes`; worker real retornou zero
+  itens pendentes; consultas finais encontraram zero cercas temporárias, zero
+  incidentes/evidências de teste e nenhuma migration pendente.
+
+**Artefatos principais:** `021_link_geofence_events_to_incidents.sql`,
+`022_harden_geofence_incident_retry.sql`, `geofence_engine.py`,
+`incident_correlator.py`, `geofence_incident_worker.py`, `run.py` e testes
+unitários/concorrentes.
+
+**Checkpoint de implementação:** `78090e7`.

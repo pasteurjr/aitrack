@@ -699,7 +699,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 - [x] **3.7** Criar tela de atribuição a veículos/grupos.
 - [x] **3.8** Implementar entrada/saída com histerese.
 - [x] **3.9** Implementar agenda e permanência.
-- [ ] **3.10** Integrar episódios de cerca aos incidentes.
+- [x] **3.10** Integrar episódios de cerca aos incidentes.
 - [ ] **3.11** Criar replay de teste de cruzamento.
 - [ ] **3.12** Mostrar cercas e estado no mapa ao vivo.
 
