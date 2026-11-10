@@ -647,7 +647,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 ### Etapa 0 — Verdade e segurança da interface
 
 - [x] **0.1** Criar indicador global de ambiente: simulação, replay ou produção.
-- [ ] **0.2** Etiquetar todas as seções alimentadas por mock como DEMONSTRAÇÃO.
+- [x] **0.2** Eliminar todas as seções alimentadas por mock e usar somente APIs/bancos alimentados pelos simuladores.
 - [ ] **0.3** Remover fallback silencioso de score/veículos no detalhe do monitor.
 - [ ] **0.4** Criar estado de erro, vazio e carregamento comum.
 - [ ] **0.5** Centralizar base URL e cliente HTTP em `apiService.ts`.

@@ -1098,6 +1098,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-10 | UI-3.11 | `b480a6d` | Replay determinístico isolado cobriu círculo, polígono, duas direções, borda, agenda, dwell e repetição idempotente. Foram 229 testes backend e 11 integrações MariaDB aprovadas; limpeza explícita confirmou zero resíduos. |
 | 2026-11-10 | UI-3.12 | `e2ffb2d` | Estado operacional de cercas passou a ser agregado por API e exibido no mapa com círculo/polígono, alvo, dentro/fora, agenda, avaliação e episódio. Foram aprovados 234 testes backend, 54 frontend, 11 integrações MariaDB, build e Playwright sem duplicação após polling. |
 | 2026-11-10 | UI-0.1 | `6cb3b59` | O selo global passou a consultar o backend em runtime e a mostrar produção, simulação, replay, misto ou não confirmado. Produção exige confirmação global e das duas fontes; erro, conflito ou snapshot vencido falham de modo seguro. Foram aprovados 240 testes backend, 64 frontend, TypeScript, build e Playwright nas seis abas. |
+| 2026-11-10 | UI-0.2 | `2b66658` | A decisão de apenas rotular conteúdo mock foi substituída, por ordem do proprietário, pela remoção integral. Dois arquivos `mockData` (863 linhas), eventos, veículos e catálogo inventados foram apagados; monitores e catálogo agora usam dados persistidos gerados pelos simuladores. Foram aprovados 241 testes backend, 65 frontend, TypeScript, build e Playwright com dados reais do banco. |
 
 ---
 

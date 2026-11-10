@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026 17:28 (`America/Sao_Paulo`)
+**Atualizado em:** 10/11/2026 17:44 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `6cb3b59` — UI-0.1 concluída
+**Checkpoint mais recente:** `2b66658` — UI-0.2 concluída
 
-**Tarefas pendentes:** 70
+**Tarefas pendentes:** 69
 
-**Próxima tarefa:** **5 de 74 — UI-0.2: etiquetar seções alimentadas por mock**
+**Próxima tarefa:** **6 de 74 — UI-0.3: remover fallback silencioso no detalhe do monitor**
 
 ## 1. Como este documento será usado
 
@@ -56,7 +56,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
 | 4/74 | 0.1 | Criar indicador global de ambiente. | Todas as telas mostram claramente produção, simulação ou replay a partir de fonte confiável; teste cobre cada modo. | **Concluída em 10/11/2026 17:28 -03.** **Resultado obtido:** o backend em execução virou a única fonte do selo global por meio de `runtime-environment.v1`; o frontend deixou de confiar no valor compilado. Produção exige modo global `production` e Tracker/Dirija Bem confirmados como `live`; conflito vira `MISTO`, ausência, erro, timestamp inválido ou snapshot com mais de 30 s vira `NÃO CONFIRMADO`. O contrato expõe as duas fontes, autoridade, problemas e bloqueio de ação real, sem cache, com polling a cada 15 s e sem sobreposição. **Evidências:** 240 backend e 64 frontend aprovados; TypeScript e build aprovados; matriz cobre produção, simulação, replay, misto, inválido, ausente, indisponível e vencido. Endpoint real confirmou simulação nas duas fontes; Playwright percorreu as seis abas mantendo o selo global, tooltip por fonte e zero erro de página. **Limitação controlada:** o modo é configuração declarada do processo; proveniência por pacote e bloqueio efetivo dos canais externos pertencem às etapas de sensores/ações. **Artefatos:** `runtime_environment.py`, `/api/runtime/environment`, tipos, serviço e `OperationModeBadge`. **Checkpoint:** `6cb3b59`. |
-| 5/74 | 0.2 | Etiquetar seções alimentadas por mock. | Todo conteúdo demonstrativo recebe rótulo `DEMONSTRAÇÃO` e não pode ser confundido com operação real. | **Pendente.** |
+| 5/74 | 0.2 | Eliminar seções alimentadas por mock. | Nenhum componente de produção importa dados locais inventados; monitores, eventos, catálogo e estatísticas vêm das APIs e dos bancos alimentados pelos simuladores Tracker/Dirija Bem. Teste de fronteira impede regressão. | **Concluída em 10/11/2026 17:44 -03.** **Resultado obtido:** a orientação anterior de apenas etiquetar foi rejeitada pelo proprietário e substituída por remoção integral. Foram apagadas 863 linhas de `mockData`, o catálogo local de 20 capacidades não implementadas e todos os eventos/veículos inventados. Detalhe de monitor passou a consultar atribuições e eventos persistidos por veículo; catálogo/contagens vêm de `/api/events/catalog` e `/api/events/stats`. A estatística deixou de cair numa consulta pesada por erro de import e usa eventos restaurados/persistidos mais o catálogo do banco. **Evidências:** busca no código de produção encontra zero import de `mockData`; teste de fronteira bloqueia sua reintrodução; 241 backend e 65 frontend aprovados, TypeScript e build aprovados. API real mostrou quatro tipos suportados e 70 eventos do processo; Playwright exibiu catálogo e 200 eventos persistidos do Monitor #1, sem rótulo de demonstração e sem erro de página. **Decisão de dados:** não foi necessário fabricar carga extra; os dois simuladores continuam alimentando Tracker e Dirija Bem, e o volume existente já permite demonstrar. **Limitação controlada:** os monitores atualmente atribuídos no banco são Tracker; integrar alvos Dirija Bem aos monitores exige configuração operacional, não dados locais falsos. **Checkpoint:** `2b66658`. |
 | 6/74 | 0.3 | Remover fallback silencioso no detalhe do monitor. | Falha de API gera erro explícito; nenhum score ou veículo inventado aparece como real. | **Pendente.** |
 | 7/74 | 0.4 | Criar estado comum de erro, vazio e carregamento. | Componentes reutilizam contrato visual/acessível e testes cobrem os três estados. | **Pendente.** |
 | 8/74 | 0.5 | Centralizar base URL e cliente HTTP. | App 2 faz chamadas somente pelo cliente configurável; busca estática não encontra URLs locais espalhadas. | **Pendente.** |
@@ -165,8 +165,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 5 de 74 — UI-0.2: etiquetar seções alimentadas por mock.**
+**Próxima etapa 6 de 74 — UI-0.3: remover fallback silencioso no detalhe do monitor.**
 
-Ao concluí-la, este documento deverá indicar `69 tarefas pendentes` e anunciar
-`Próxima etapa 6 de 74 — UI-0.3`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `68 tarefas pendentes` e anunciar
+`Próxima etapa 7 de 74 — UI-0.4`, preservando o denominador original para mostrar
 o avanço total da rodada.
