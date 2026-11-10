@@ -195,6 +195,12 @@ app.register_blueprint(incident_bp)
 from .geofence_api import geofence_bp
 app.register_blueprint(geofence_bp)
 
+# ============================================
+# RUNTIME ENVIRONMENT API
+# ============================================
+from .runtime_api import runtime_bp
+app.register_blueprint(runtime_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """

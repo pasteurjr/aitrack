@@ -7,6 +7,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
+import type { RuntimeEnvironment } from '../types/runtimeEnvironment';
 import type {
   IncidentDetailResponse,
   IncidentCommandBody,
@@ -250,6 +251,10 @@ export const unifiedVehicleService = {
   getAll: () => apiClient.get<UnifiedVehiclesResponse>('/v1/vehicles'),
 };
 
+export const runtimeEnvironmentService = {
+  getCurrent: () => apiClient.get<RuntimeEnvironment>('/runtime/environment'),
+};
+
 // ==================== Geofence Services ====================
 
 export const geofenceService = {
@@ -320,6 +325,7 @@ const apiService = {
   position: positionService,
   dirijabem: dirijabemService,
   unifiedVehicle: unifiedVehicleService,
+  runtimeEnvironment: runtimeEnvironmentService,
 };
 
 export default apiService;

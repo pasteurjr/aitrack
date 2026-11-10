@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
+import { runtimeEnvironmentService } from './services/apiService';
 
 const mockSelectedEpisode = {
   device_id: 'SIM-1001', type: 'harsh_brake', timestamp: '2026-11-06T12:00:00Z',
@@ -28,16 +29,34 @@ jest.mock('./components/VehicleDetailHeader', () => (props: any) => (
     ? <button type="button" onClick={props.onClear}>Fechar contexto de teste</button>
     : null
 ));
+jest.mock('./services/apiService', () => ({
+  runtimeEnvironmentService: { getCurrent: jest.fn() },
+}));
 
-test('renderiza a marca e assume simulação quando o modo não está configurado', () => {
+const mockedGetCurrent = runtimeEnvironmentService.getCurrent as jest.Mock;
+
+beforeEach(() => {
+  mockedGetCurrent.mockResolvedValue({ data: {
+    schema_version: 'runtime-environment.v1',
+    generated_at: new Date().toISOString(),
+    mode: 'simulation', authority: 'test', safe_for_real_actions: false, issues: [],
+    sources: [
+      { source: 'tracker', label: 'Tracker', mode: 'simulation', configured: true },
+      { source: 'dirijabem', label: 'Dirija Bem', mode: 'simulation', configured: true },
+    ],
+  } });
+});
+
+test('renderiza a marca e mostra o modo confirmado pelo backend', async () => {
   render(<App />);
 
   expect(screen.getByRole('heading', { name: 'AITrack + DataDrivr' })).toBeInTheDocument();
-  expect(screen.getByRole('status', { name: 'Ambiente: SIMULAÇÃO' })).toBeInTheDocument();
+  expect(await screen.findByRole('status', { name: 'Ambiente: SIMULAÇÃO' })).toBeInTheDocument();
 });
 
-test('drill-down entrega identidade e posição exatas do episódio ao mapa', () => {
+test('drill-down entrega identidade e posição exatas do episódio ao mapa', async () => {
   render(<App />);
+  await screen.findByRole('status', { name: 'Ambiente: SIMULAÇÃO' });
   fireEvent.click(screen.getByRole('button', { name: /Timeline/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Selecionar episódio de teste' }));
 

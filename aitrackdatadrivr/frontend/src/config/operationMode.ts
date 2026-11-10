@@ -1,4 +1,6 @@
-export type OperationMode = 'simulation' | 'replay' | 'production';
+import type { RuntimeMode } from '../types/runtimeEnvironment';
+
+export type OperationMode = RuntimeMode | 'checking';
 
 export interface OperationModePresentation {
   mode: OperationMode;
@@ -8,7 +10,7 @@ export interface OperationModePresentation {
   backgroundColor: string;
 }
 
-const MODE_ALIASES: Record<string, OperationMode> = {
+const MODE_ALIASES: Record<string, RuntimeMode> = {
   simulation: 'simulation',
   simulacao: 'simulation',
   simulação: 'simulation',
@@ -16,6 +18,9 @@ const MODE_ALIASES: Record<string, OperationMode> = {
   production: 'production',
   producao: 'production',
   produção: 'production',
+  mixed: 'mixed',
+  misto: 'mixed',
+  unknown: 'unknown',
 };
 
 const MODE_PRESENTATION: Record<OperationMode, OperationModePresentation> = {
@@ -40,16 +45,40 @@ const MODE_PRESENTATION: Record<OperationMode, OperationModePresentation> = {
     color: '#fee2e2',
     backgroundColor: '#991b1b',
   },
+  mixed: {
+    mode: 'mixed',
+    label: 'MISTO',
+    description: 'As fontes estão em modos diferentes. Ações reais não são seguras.',
+    color: '#fef3c7',
+    backgroundColor: '#7c2d12',
+  },
+  unknown: {
+    mode: 'unknown',
+    label: 'NÃO CONFIRMADO',
+    description: 'O backend não confirmou o ambiente operacional.',
+    color: '#f8fafc',
+    backgroundColor: '#475569',
+  },
+  checking: {
+    mode: 'checking',
+    label: 'VERIFICANDO',
+    description: 'Consultando o ambiente operacional no backend.',
+    color: '#e2e8f0',
+    backgroundColor: '#334155',
+  },
 };
 
 /**
- * Resolve o modo operacional configurado no build.
- * O fallback é sempre simulação para impedir que um ambiente sem configuração
- * seja apresentado ao operador como produção.
+ * Resolve somente valores recebidos do backend. Valores ausentes ou inválidos
+ * são indeterminados; o frontend nunca presume simulação nem produção.
  */
 export function resolveOperationMode(value?: string): OperationModePresentation {
   const normalizedValue = value?.trim().toLocaleLowerCase('pt-BR') ?? '';
-  const mode = MODE_ALIASES[normalizedValue] ?? 'simulation';
+  const mode = MODE_ALIASES[normalizedValue] ?? 'unknown';
 
   return MODE_PRESENTATION[mode];
+}
+
+export function checkingOperationMode(): OperationModePresentation {
+  return MODE_PRESENTATION.checking;
 }
