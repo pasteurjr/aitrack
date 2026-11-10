@@ -286,52 +286,38 @@ def get_events_catalog():
 def get_events_stats():
     """Retorna estatísticas de eventos"""
     try:
-        # Try to get from behavioral_engine (in-memory)
+        events = get_recent_events(limit=1000)
+        today = datetime.now().date()
+        today_events = [
+            event for event in events
+            if datetime.fromisoformat(event['timestamp']).date() == today
+        ]
+        por_tipo = {}
+        for event in today_events:
+            tipo = event['type']
+            por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
+
+        conn = monitor_db.get_connection()
+        cursor = conn.cursor(dictionary=True)
         try:
-            from behavioral_engine import get_recent_events
-            events = get_recent_events(limit=1000)
-
-            stats = {
-                'total_eventos_hoje': len(events),
-                'por_tipo': {},
-                'por_categoria': {}
+            cursor.execute('SELECT codigo, categoria FROM tipo_evento')
+            category_by_type = {
+                row['codigo']: row['categoria'] for row in cursor.fetchall()
             }
-
-            # Group by type
-            for event in events:
-                tipo = event['type']
-                stats['por_tipo'][tipo] = stats['por_tipo'].get(tipo, 0) + 1
-
-            return jsonify(stats)
-        except ImportError:
-            # Fall back to database query
-            conn = monitor_db.get_connection()
-            cursor = conn.cursor(dictionary=True)
-
-            cursor.execute("""
-                SELECT te.codigo, te.nome, te.categoria, COUNT(*) as count
-                FROM eventos e
-                JOIN tipo_evento te ON e.tipo_evento_id = te.id
-                WHERE DATE(e.timestamp) = CURDATE()
-                GROUP BY te.codigo, te.nome, te.categoria
-            """)
-
-            results = cursor.fetchall()
+        finally:
             cursor.close()
             conn.close()
 
-            stats = {
-                'total_eventos_hoje': sum(r['count'] for r in results),
-                'por_tipo': {r['codigo']: r['count'] for r in results},
-                'por_categoria': {}
-            }
+        por_categoria = {}
+        for tipo, count in por_tipo.items():
+            categoria = category_by_type.get(tipo, 'unknown')
+            por_categoria[categoria] = por_categoria.get(categoria, 0) + count
 
-            # Group by category
-            for r in results:
-                cat = r['categoria']
-                stats['por_categoria'][cat] = stats['por_categoria'].get(cat, 0) + r['count']
-
-            return jsonify(stats)
+        return jsonify({
+            'total_eventos_hoje': len(today_events),
+            'por_tipo': por_tipo,
+            'por_categoria': por_categoria,
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

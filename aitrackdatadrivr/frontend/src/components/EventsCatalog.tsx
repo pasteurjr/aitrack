@@ -1,483 +1,152 @@
-import React, { useState } from 'react';
-import { eventTypesCatalog, mockEventStats } from '../mockData/mockEvents';
-import type { EventType } from '../mockData/mockEvents';
-import DemoDataNotice from './DemoDataNotice';
+import React, { useEffect, useMemo, useState } from 'react';
+import AsyncDataState from './AsyncDataState';
+import { eventService } from '../services/apiService';
+import type { EventCategory, EventStats, EventType } from '../types/monitorEvent';
+
+const EMPTY_STATS: EventStats = {
+  total_eventos_hoje: 0,
+  por_tipo: {},
+  por_categoria: {},
+};
+
+const categoryInfo: Record<EventCategory, { label: string; color: string }> = {
+  critical: { label: 'Crítico', color: '#dc2626' },
+  behavioral: { label: 'Comportamental', color: '#f59e0b' },
+  operational: { label: 'Operacional', color: '#84cc16' },
+};
 
 const EventsCatalog: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [catalog, setCatalog] = useState<EventType[]>([]);
+  const [stats, setStats] = useState<EventStats>(EMPTY_STATS);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | EventCategory>('all');
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredEvents = selectedCategory === 'all'
-    ? eventTypesCatalog
-    : eventTypesCatalog.filter(e => e.categoria === selectedCategory);
-
-  const categoryCounts = {
-    critical: eventTypesCatalog.filter(e => e.categoria === 'critical').length,
-    behavioral: eventTypesCatalog.filter(e => e.categoria === 'behavioral').length,
-    operational: eventTypesCatalog.filter(e => e.categoria === 'operational').length,
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [catalogResponse, statsResponse] = await Promise.all([
+        eventService.getCatalog(), eventService.getStats(),
+      ]);
+      setCatalog(catalogResponse.data);
+      setStats(statsResponse.data);
+    } catch {
+      setCatalog([]);
+      setStats(EMPTY_STATS);
+      setError('Não foi possível consultar o catálogo e as estatísticas persistidas.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' }}>
-      <DemoDataNotice detail="O catálogo, as estatísticas e as capacidades apresentadas nesta tela ainda são exemplos locais." />
-      {!selectedEvent ? (
-        <>
-          <CatalogHeader stats={mockEventStats} />
-          <CategoryFilters
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            categoryCounts={categoryCounts}
-          />
-          <EventsList events={filteredEvents} onEventClick={setSelectedEvent} />
-        </>
-      ) : (
-        <EventDetails event={selectedEvent} onBack={() => setSelectedEvent(null)} />
-      )}
-    </div>
-  );
-};
+  useEffect(() => { load(); }, []);
 
-// Header with statistics
-const CatalogHeader: React.FC<{ stats: typeof mockEventStats }> = ({ stats }) => {
+  const filteredEvents = useMemo(() => (
+    selectedCategory === 'all'
+      ? catalog
+      : catalog.filter(event => event.categoria === selectedCategory)
+  ), [catalog, selectedCategory]);
+
+  if (loading) return <AsyncDataState variant="loading" message="Consultando catálogo persistido..." />;
+  if (error) return <AsyncDataState variant="error" message={error} onRetry={load} />;
+  if (!catalog.length) return <AsyncDataState variant="empty" message="Nenhum tipo de evento está cadastrado." />;
+
+  if (selectedEvent) {
+    return <EventDetails event={selectedEvent} count={stats.por_tipo[selectedEvent.codigo] || 0} onBack={() => setSelectedEvent(null)} />;
+  }
+
   return (
-    <div style={styles.header}>
-      <h2 style={styles.title}>📋 Catálogo de Eventos</h2>
-      <div style={styles.statsGrid}>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f9fafb' }}>
-            {stats.total_eventos_hoje}
-          </div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Eventos Hoje</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc2626' }}>{stats.criticos}</div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Críticos</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f59e0b' }}>{stats.comportamentais}</div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Comportamentais</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#84cc16' }}>{stats.operacionais}</div>
-          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Operacionais</div>
-        </div>
+    <div style={styles.root}>
+      <CatalogHeader stats={stats} />
+      <div style={styles.filters}>
+        <FilterButton active={selectedCategory === 'all'} onClick={() => setSelectedCategory('all')}>
+          Todos ({catalog.length})
+        </FilterButton>
+        {(Object.keys(categoryInfo) as EventCategory[]).map(category => (
+          <FilterButton key={category} active={selectedCategory === category}
+            onClick={() => setSelectedCategory(category)} activeColor={categoryInfo[category].color}>
+            {categoryInfo[category].label} ({catalog.filter(event => event.categoria === category).length})
+          </FilterButton>
+        ))}
       </div>
-    </div>
-  );
-};
-
-// Category Filters
-const CategoryFilters: React.FC<{
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
-  categoryCounts: { critical: number; behavioral: number; operational: number };
-}> = ({ selectedCategory, onCategoryChange, categoryCounts }) => {
-  return (
-    <div style={styles.filters}>
-      <button
-        style={{
-          ...styles.filterButton,
-          ...(selectedCategory === 'all' ? styles.filterButtonActive : {}),
-        }}
-        onClick={() => onCategoryChange('all')}
-      >
-        Todos ({categoryCounts.critical + categoryCounts.behavioral + categoryCounts.operational})
-      </button>
-      <button
-        style={{
-          ...styles.filterButton,
-          ...(selectedCategory === 'critical' ? { ...styles.filterButtonActive, backgroundColor: '#dc2626' } : {}),
-        }}
-        onClick={() => onCategoryChange('critical')}
-      >
-        🚨 Críticos ({categoryCounts.critical})
-      </button>
-      <button
-        style={{
-          ...styles.filterButton,
-          ...(selectedCategory === 'behavioral' ? { ...styles.filterButtonActive, backgroundColor: '#f59e0b' } : {}),
-        }}
-        onClick={() => onCategoryChange('behavioral')}
-      >
-        ⚠️ Comportamentais ({categoryCounts.behavioral})
-      </button>
-      <button
-        style={{
-          ...styles.filterButton,
-          ...(selectedCategory === 'operational' ? { ...styles.filterButtonActive, backgroundColor: '#84cc16' } : {}),
-        }}
-        onClick={() => onCategoryChange('operational')}
-      >
-        📊 Operacionais ({categoryCounts.operational})
-      </button>
-    </div>
-  );
-};
-
-// Events List
-const EventsList: React.FC<{ events: EventType[]; onEventClick: (event: EventType) => void }> = ({
-  events,
-  onEventClick,
-}) => {
-  const getCategoryInfo = (category: string) => {
-    switch (category) {
-      case 'critical':
-        return { label: 'Crítico', color: '#dc2626' };
-      case 'behavioral':
-        return { label: 'Comportamental', color: '#f59e0b' };
-      case 'operational':
-        return { label: 'Operacional', color: '#84cc16' };
-      default:
-        return { label: 'Outro', color: '#6b7280' };
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return '#dc2626';
-      case 'high':
-        return '#ea580c';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#84cc16';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const formatResponseTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    return `${Math.floor(seconds / 86400)}d`;
-  };
-
-  return (
-    <div style={styles.content}>
-      {events.map(event => {
-        const categoryInfo = getCategoryInfo(event.categoria);
-        return (
-          <div
-            key={event.codigo}
-            style={{
-              ...styles.eventCard,
-              borderLeft: `4px solid ${categoryInfo.color}`,
-              cursor: 'pointer',
-            }}
-            onClick={() => onEventClick(event)}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <span style={{ fontSize: '28px', flexShrink: 0 }}>{event.icone}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <h3 style={{ margin: 0, color: '#f9fafb', fontSize: '15px', fontWeight: 'bold' }}>
-                    {event.nome}
-                  </h3>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: categoryInfo.color,
-                      color: 'white',
-                      textTransform: 'uppercase',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    {categoryInfo.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: getSeverityColor(event.severidade_padrao),
-                      color: 'white',
-                      textTransform: 'uppercase',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    {event.severidade_padrao}
-                  </span>
-                </div>
-                <p style={{ margin: '6px 0', color: '#d1d5db', fontSize: '13px', lineHeight: '1.5' }}>
-                  {event.descricao}
-                </p>
-                <div style={{ display: 'flex', gap: '15px', marginTop: '8px', fontSize: '12px' }}>
-                  <div style={{ color: '#9ca3af' }}>
-                    Código: <span style={{ color: '#d1d5db', fontFamily: 'monospace' }}>{event.codigo}</span>
-                  </div>
-                  <div style={{ color: '#9ca3af' }}>
-                    Resposta: <span style={{ color: '#d1d5db', fontWeight: 'bold' }}>{formatResponseTime(event.tempo_resposta_segundos)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// Event Details
-const EventDetails: React.FC<{ event: EventType; onBack: () => void }> = ({ event, onBack }) => {
-  const getCategoryInfo = (category: string) => {
-    switch (category) {
-      case 'critical':
-        return { label: 'Crítico', color: '#dc2626', description: 'Eventos que requerem ação imediata (<30s). Usam Redis Pub/Sub para notificação instantânea.' };
-      case 'behavioral':
-        return { label: 'Comportamental', color: '#f59e0b', description: 'Eventos relacionados ao estilo de condução. Processados via MySQL polling (1-5min aceitável).' };
-      case 'operational':
-        return { label: 'Operacional', color: '#84cc16', description: 'Eventos de manutenção e eficiência. Polling com intervalo maior (15min-24h).' };
-      default:
-        return { label: 'Outro', color: '#6b7280', description: '' };
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return '#dc2626';
-      case 'high':
-        return '#ea580c';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#84cc16';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const formatResponseTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds} segundos`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutos`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} horas`;
-    return `${Math.floor(seconds / 86400)} dias`;
-  };
-
-  const categoryInfo = getCategoryInfo(event.categoria);
-
-  // Get top occurrences from mock stats
-  const topEvent = mockEventStats.top_tipos.find(t => t.tipo === event.codigo);
-
-  return (
-    <>
-      <div style={styles.header}>
-        <button onClick={onBack} style={styles.backButton}>
-          ← Voltar
-        </button>
-        <h2 style={{ ...styles.title, fontSize: '16px' }}>Detalhes do Evento</h2>
-      </div>
-
       <div style={styles.content}>
-        <div style={{ ...styles.eventCard, borderLeft: `4px solid ${categoryInfo.color}` }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <div style={{ fontSize: '64px', marginBottom: '10px' }}>{event.icone}</div>
-            <h3 style={{ margin: '0 0 8px 0', color: '#f9fafb', fontSize: '22px', fontWeight: 'bold' }}>
-              {event.nome}
-            </h3>
-            <div style={{ fontSize: '14px', color: '#9ca3af', fontFamily: 'monospace' }}>
-              {event.codigo}
-            </div>
-          </div>
-
-          {/* Badges */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
-            <span
-              style={{
-                fontSize: '12px',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                backgroundColor: categoryInfo.color,
-                color: 'white',
-                textTransform: 'uppercase',
-                fontWeight: 'bold',
-              }}
-            >
-              {categoryInfo.label}
+        {filteredEvents.map(event => (
+          <button type="button" key={event.codigo} style={{ ...styles.eventCard, borderLeft: `4px solid ${event.cor}` }}
+            onClick={() => setSelectedEvent(event)}>
+            <span style={{ fontSize: '28px' }}>{event.icone || '•'}</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>
+              <strong style={{ color: '#f9fafb' }}>{event.nome}</strong>
+              <small style={styles.description}>{event.descricao}</small>
+              <small style={styles.meta}>{event.codigo} · {categoryInfo[event.categoria].label} · {event.severidade_padrao}</small>
             </span>
-            <span
-              style={{
-                fontSize: '12px',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                backgroundColor: getSeverityColor(event.severidade_padrao),
-                color: 'white',
-                textTransform: 'uppercase',
-                fontWeight: 'bold',
-              }}
-            >
-              Severidade: {event.severidade_padrao}
-            </span>
-          </div>
-
-          {/* Description */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>📝 Descrição:</div>
-            <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
-              {event.descricao}
-            </p>
-          </div>
-
-          {/* Category Details */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px', borderLeft: `3px solid ${categoryInfo.color}` }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>
-              📂 Categoria: <span style={{ color: categoryInfo.color, fontWeight: 'bold' }}>{categoryInfo.label}</span>
-            </div>
-            <p style={{ margin: 0, color: '#d1d5db', fontSize: '13px', lineHeight: '1.5' }}>
-              {categoryInfo.description}
-            </p>
-          </div>
-
-          {/* Response Time */}
-          <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>⏱️ Tempo de Resposta Esperado:</div>
-            <div style={{ fontSize: '18px', color: '#f9fafb', fontWeight: 'bold' }}>
-              {formatResponseTime(event.tempo_resposta_segundos)}
-            </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-              {event.tempo_resposta_segundos < 60 && '⚡ Resposta imediata via Redis Pub/Sub'}
-              {event.tempo_resposta_segundos >= 60 && event.tempo_resposta_segundos < 900 && '📊 Polling frequente via MySQL'}
-              {event.tempo_resposta_segundos >= 900 && '🕐 Polling de longa duração'}
-            </div>
-          </div>
-
-          {/* Statistics */}
-          {topEvent && (
-            <div style={{ ...styles.infoBox, marginBottom: '15px' }}>
-              <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '8px' }}>📈 Estatísticas Hoje:</div>
-              <div style={{ fontSize: '24px', color: '#f9fafb', fontWeight: 'bold' }}>
-                {topEvent.count} ocorrências
-              </div>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                Entre os top 5 eventos mais frequentes
-              </div>
-            </div>
-          )}
-
-          {/* Technical Details */}
-          <div style={{ ...styles.infoBox, backgroundColor: '#111827' }}>
-            <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px' }}>🔧 Detalhes Técnicos:</div>
-            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-              <tbody>
-                <tr style={{ borderBottom: '1px solid #374151' }}>
-                  <td style={{ padding: '8px 0', color: '#9ca3af' }}>Código:</td>
-                  <td style={{ padding: '8px 0', color: '#d1d5db', fontFamily: 'monospace', textAlign: 'right' }}>
-                    {event.codigo}
-                  </td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #374151' }}>
-                  <td style={{ padding: '8px 0', color: '#9ca3af' }}>Categoria:</td>
-                  <td style={{ padding: '8px 0', color: '#d1d5db', textAlign: 'right' }}>{event.categoria}</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #374151' }}>
-                  <td style={{ padding: '8px 0', color: '#9ca3af' }}>Severidade Padrão:</td>
-                  <td style={{ padding: '8px 0', color: getSeverityColor(event.severidade_padrao), textAlign: 'right', fontWeight: 'bold' }}>
-                    {event.severidade_padrao}
-                  </td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #374151' }}>
-                  <td style={{ padding: '8px 0', color: '#9ca3af' }}>Tempo de Resposta:</td>
-                  <td style={{ padding: '8px 0', color: '#d1d5db', textAlign: 'right' }}>
-                    {event.tempo_resposta_segundos}s
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '8px 0', color: '#9ca3af' }}>Cor:</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right' }}>
-                    <span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: event.cor, borderRadius: '4px', verticalAlign: 'middle' }}></span>
-                    <span style={{ marginLeft: '8px', color: '#d1d5db', fontFamily: 'monospace' }}>{event.cor}</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+            <strong style={{ color: event.cor }}>{stats.por_tipo[event.codigo] || 0} hoje</strong>
+          </button>
+        ))}
       </div>
-    </>
+    </div>
   );
 };
 
-const styles: { [key: string]: React.CSSProperties } = {
-  header: {
-    padding: '15px 20px',
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-  },
-  title: {
-    margin: 0,
-    color: '#f9fafb',
-    fontSize: '18px',
-    fontWeight: 'bold',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '10px',
-    marginTop: '15px',
-  },
-  statBox: {
-    backgroundColor: '#374151',
-    padding: '10px',
-    borderRadius: '6px',
-    textAlign: 'center',
-  },
-  filters: {
-    padding: '15px 20px',
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-  },
-  filterButton: {
-    padding: '8px 16px',
-    backgroundColor: '#374151',
-    color: '#d1d5db',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500',
-    transition: 'all 0.2s ease',
-  },
-  filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '15px',
-  },
-  eventCard: {
-    backgroundColor: '#374151',
-    borderRadius: '8px',
-    padding: '15px',
-    marginBottom: '12px',
-  },
-  backButton: {
-    padding: '8px 12px',
-    backgroundColor: '#374151',
-    color: '#f9fafb',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500',
-    marginBottom: '10px',
-  },
-  infoBox: {
-    backgroundColor: '#1f2937',
-    padding: '12px',
-    borderRadius: '6px',
-  },
+const CatalogHeader: React.FC<{ stats: EventStats }> = ({ stats }) => (
+  <header style={styles.header}>
+    <h2 style={styles.title}>📋 Catálogo operacional de eventos</h2>
+    <div style={styles.statsGrid}>
+      <Stat value={stats.total_eventos_hoje} label="Eventos hoje" color="#f9fafb" />
+      <Stat value={stats.por_categoria.critical || 0} label="Críticos" color="#dc2626" />
+      <Stat value={stats.por_categoria.behavioral || 0} label="Comportamentais" color="#f59e0b" />
+      <Stat value={stats.por_categoria.operational || 0} label="Operacionais" color="#84cc16" />
+    </div>
+  </header>
+);
+
+const Stat: React.FC<{ value: number; label: string; color: string }> = ({ value, label, color }) => (
+  <div style={styles.statBox}><strong style={{ fontSize: '20px', color }}>{value}</strong><small>{label}</small></div>
+);
+
+const FilterButton: React.FC<{
+  active: boolean; onClick: () => void; activeColor?: string; children: React.ReactNode;
+}> = ({ active, onClick, activeColor = '#10b981', children }) => (
+  <button type="button" onClick={onClick} style={{ ...styles.filterButton, backgroundColor: active ? activeColor : '#374151' }}>
+    {children}
+  </button>
+);
+
+const EventDetails: React.FC<{ event: EventType; count: number; onBack: () => void }> = ({ event, count, onBack }) => (
+  <div style={styles.root}>
+    <header style={styles.header}>
+      <button type="button" onClick={onBack} style={styles.backButton}>← Voltar</button>
+      <h2 style={styles.title}>Detalhes do tipo de evento</h2>
+    </header>
+    <div style={styles.content}>
+      <article style={{ ...styles.detailsCard, borderLeft: `4px solid ${event.cor}` }}>
+        <div style={{ fontSize: '52px' }}>{event.icone || '•'}</div>
+        <h3 style={{ color: '#f9fafb', fontSize: '22px', margin: '8px 0' }}>{event.nome}</h3>
+        <code>{event.codigo}</code>
+        <p style={{ color: '#d1d5db' }}>{event.descricao}</p>
+        <p style={styles.meta}>Categoria: {categoryInfo[event.categoria].label}</p>
+        <p style={styles.meta}>Severidade padrão: {event.severidade_padrao}</p>
+        <p style={{ color: event.cor, fontSize: '22px', fontWeight: 700 }}>{count} ocorrência(s) hoje</p>
+      </article>
+    </div>
+  </div>
+);
+
+const styles: Record<string, React.CSSProperties> = {
+  root: { height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937' },
+  header: { padding: '20px', backgroundColor: '#111827', borderBottom: '1px solid #374151' },
+  title: { margin: '0 0 14px', color: '#f9fafb', fontSize: '20px' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' },
+  statBox: { display: 'flex', flexDirection: 'column', padding: '10px', backgroundColor: '#1f2937', borderRadius: '6px', color: '#9ca3af' },
+  filters: { display: 'flex', gap: '8px', padding: '12px 20px', flexWrap: 'wrap' },
+  filterButton: { border: 0, borderRadius: '5px', color: 'white', cursor: 'pointer', padding: '8px 12px' },
+  content: { overflowY: 'auto', padding: '15px 20px', flex: 1 },
+  eventCard: { alignItems: 'center', backgroundColor: '#111827', border: 0, borderRadius: '8px', color: '#d1d5db', cursor: 'pointer', display: 'flex', gap: '12px', marginBottom: '10px', padding: '14px', width: '100%' },
+  description: { color: '#d1d5db', display: 'block', marginTop: '5px' },
+  meta: { color: '#9ca3af', display: 'block', marginTop: '6px' },
+  backButton: { background: '#374151', border: 0, borderRadius: '5px', color: 'white', cursor: 'pointer', padding: '7px 12px' },
+  detailsCard: { backgroundColor: '#111827', borderRadius: '8px', padding: '24px' },
 };
 
 export default EventsCatalog;

@@ -1,36 +1,68 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import MapComponent from './MapComponent';
-import { mockEvents, eventTypesCatalog } from '../mockData/mockEvents';
-import type { VehicleInMonitor } from '../mockData/mockMonitors';
-import DemoDataNotice from './DemoDataNotice';
+import AsyncDataState from './AsyncDataState';
+import { eventService, monitorService } from '../services/apiService';
+import type { MonitorEvent } from '../types/monitorEvent';
+import type { VehicleInMonitor } from '../types/monitor';
 
 interface MonitorDetailViewProps {
   monitorId: number;
-  vehicles: VehicleInMonitor[];
   selectedVehicle: VehicleInMonitor | null;
 }
 
-const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicles, selectedVehicle }) => {
-  // Get events for selected vehicle or all vehicles in monitor
-  const getEventsForDisplay = () => {
-    if (selectedVehicle) {
-      return mockEvents.filter(e => e.device_id === selectedVehicle.device_id);
-    }
-    const vehicleIds = vehicles.map(v => v.device_id);
-    return mockEvents.filter(e => vehicleIds.includes(e.device_id));
-  };
+const categoryPresentation = {
+  critical: { title: '🚨 Eventos Críticos', color: '#dc2626' },
+  behavioral: { title: '⚠️ Eventos Comportamentais', color: '#f59e0b' },
+  operational: { title: '📊 Eventos Operacionais', color: '#84cc16' },
+};
 
-  const events = getEventsForDisplay();
+const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, selectedVehicle }) => {
+  const [events, setEvents] = useState<MonitorEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Group events by category
-  const criticalEvents = events.filter(e => e.categoria === 'critical');
-  const behavioralEvents = events.filter(e => e.categoria === 'behavioral');
-  const operationalEvents = events.filter(e => e.categoria === 'operational');
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const vehiclesResponse = await monitorService.getVehicles(monitorId);
+        const vehicles = vehiclesResponse.data as VehicleInMonitor[];
+        const targetIds = selectedVehicle
+          ? new Set([selectedVehicle.device_id])
+          : new Set(vehicles.map(vehicle => vehicle.device_id));
+        const eventResponses = await Promise.all(
+          Array.from(targetIds).map(deviceId => (
+            eventService.getAll({ limit: 100, device_id: deviceId })
+          )),
+        );
+        if (active) {
+          setEvents(eventResponses
+            .flatMap(response => response.data)
+            .sort((left, right) => right.timestamp.localeCompare(left.timestamp)));
+        }
+      } catch {
+        if (active) {
+          setEvents([]);
+          setError('Não foi possível consultar os eventos persistidos deste monitor.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [monitorId, selectedVehicle]);
+
+  const groupedEvents = useMemo(() => ({
+    critical: events.filter(event => event.categoria === 'critical'),
+    behavioral: events.filter(event => event.categoria === 'behavioral'),
+    operational: events.filter(event => event.categoria === 'operational'),
+  }), [events]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-      <DemoDataNotice detail="Veículos e eventos desta visão são exemplos locais, não resultados produzidos pelo monitor ou por uma IA." />
-      {/* TOP: Map Area */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative', borderBottom: '2px solid #374151' }}>
         <MapComponent
           selectedVehicleId={selectedVehicle?.device_id || null}
@@ -41,98 +73,57 @@ const MonitorDetailView: React.FC<MonitorDetailViewProps> = ({ monitorId, vehicl
           onClearFilter={() => {}}
         />
       </div>
-
-      {/* BOTTOM: Event Analyzers */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', backgroundColor: '#111827', padding: '15px' }}>
         <h3 style={{ margin: '0 0 15px 0', color: '#f9fafb', fontSize: '16px' }}>
-          📊 Analisadores de Eventos - Monitor #{monitorId}
+          📊 Eventos persistidos — Monitor #{monitorId}
         </h3>
-
-        {/* Critical Events Analyzer */}
-        <EventAnalyzer
-          title="🚨 Eventos Críticos"
-          count={criticalEvents.length}
-          color="#dc2626"
-          events={criticalEvents}
-        />
-
-        {/* Behavioral Events Analyzer */}
-        <EventAnalyzer
-          title="⚠️ Eventos Comportamentais"
-          count={behavioralEvents.length}
-          color="#f59e0b"
-          events={behavioralEvents}
-        />
-
-        {/* Operational Events Analyzer */}
-        <EventAnalyzer
-          title="📊 Eventos Operacionais"
-          count={operationalEvents.length}
-          color="#84cc16"
-          events={operationalEvents}
-        />
+        {loading ? (
+          <AsyncDataState variant="loading" message="Consultando eventos persistidos..." />
+        ) : error ? (
+          <AsyncDataState variant="error" message={error} />
+        ) : (
+          (Object.keys(categoryPresentation) as Array<keyof typeof categoryPresentation>).map(category => (
+            <EventAnalyzer
+              key={category}
+              {...categoryPresentation[category]}
+              events={groupedEvents[category]}
+            />
+          ))
+        )}
       </div>
     </div>
   );
 };
 
-// Event Analyzer Component
 const EventAnalyzer: React.FC<{
   title: string;
-  count: number;
   color: string;
-  events: any[];
-}> = ({ title, count, color, events }) => {
+  events: MonitorEvent[];
+}> = ({ title, color, events }) => {
   const [expanded, setExpanded] = useState(true);
-
   return (
     <div style={{ ...styles.analyzerCard, borderLeft: `4px solid ${color}`, marginBottom: '15px' }}>
-      <div
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h4 style={{ margin: 0, color: '#f9fafb', fontSize: '14px' }}>{title}</h4>
-          <span style={{ ...styles.countBadge, backgroundColor: color }}>{count}</span>
-        </div>
-        <span style={{ color: '#9ca3af', fontSize: '18px' }}>{expanded ? '▼' : '▶'}</span>
-      </div>
-
+      <button type="button" onClick={() => setExpanded(value => !value)} style={styles.analyzerHeader}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <strong style={{ color: '#f9fafb', fontSize: '14px' }}>{title}</strong>
+          <span style={{ ...styles.countBadge, backgroundColor: color }}>{events.length}</span>
+        </span>
+        <span aria-hidden="true">{expanded ? '▼' : '▶'}</span>
+      </button>
       {expanded && (
         <div style={{ marginTop: '15px' }}>
-          {events.length === 0 && (
-            <div style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
-              Nenhum evento nesta categoria
-            </div>
-          )}
-          {events.slice(0, 5).map(event => (
+          {events.length === 0 && <p style={styles.empty}>Nenhum evento persistido nesta categoria.</p>}
+          {events.slice(0, 20).map(event => (
             <div key={event.id} style={styles.eventItem}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px' }}>
-                  {eventTypesCatalog.find(et => et.codigo === event.tipo_evento_codigo)?.icone || '•'}
-                </span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: '#f9fafb', fontSize: '13px', fontWeight: '500' }}>
-                    {event.tipo_evento_nome}
-                  </div>
-                  <div style={{ color: '#9ca3af', fontSize: '11px' }}>
-                    {event.device_id} {event.nome_motorista && `- ${event.nome_motorista}`}
-                  </div>
-                </div>
-                <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  {new Date(event.timestamp).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
+              <div style={{ flex: 1 }}>
+                <strong style={{ color: '#f9fafb', fontSize: '13px' }}>{event.tipo_evento_nome}</strong>
+                <div style={{ color: '#9ca3af', fontSize: '11px' }}>{event.device_id}</div>
               </div>
+              <time style={{ fontSize: '11px', color: '#9ca3af' }} dateTime={event.timestamp}>
+                {new Date(event.timestamp).toLocaleString('pt-BR')}
+              </time>
             </div>
           ))}
-          {events.length > 5 && (
-            <div style={{ marginTop: '10px', color: '#9ca3af', fontSize: '12px', textAlign: 'center' }}>
-              + {events.length - 5} eventos a mais
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -140,24 +131,17 @@ const EventAnalyzer: React.FC<{
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-  analyzerCard: {
-    backgroundColor: '#1f2937',
-    borderRadius: '8px',
-    padding: '15px',
+  analyzerCard: { backgroundColor: '#1f2937', borderRadius: '8px', padding: '15px' },
+  analyzerHeader: {
+    alignItems: 'center', background: 'transparent', border: 0, color: '#9ca3af',
+    cursor: 'pointer', display: 'flex', justifyContent: 'space-between', padding: 0, width: '100%',
   },
-  countBadge: {
-    fontSize: '11px',
-    padding: '3px 8px',
-    borderRadius: '12px',
-    color: 'white',
-    fontWeight: 'bold',
-  },
+  countBadge: { fontSize: '11px', padding: '3px 8px', borderRadius: '12px', color: 'white', fontWeight: 'bold' },
   eventItem: {
-    backgroundColor: '#374151',
-    borderRadius: '6px',
-    padding: '10px',
-    marginBottom: '8px',
+    alignItems: 'center', backgroundColor: '#374151', borderRadius: '6px', display: 'flex',
+    gap: '12px', marginBottom: '8px', padding: '10px',
   },
+  empty: { color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' },
 };
 
 export default MonitorDetailView;

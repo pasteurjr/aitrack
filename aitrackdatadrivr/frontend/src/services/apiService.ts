@@ -1,13 +1,14 @@
 /**
  * API Service Layer
  * Provides typed API calls to the Flask backend
- * Replaces all mock data with real database queries
+ * Centraliza consultas reais ao backend e aos bancos integrados.
  */
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type { RuntimeEnvironment } from '../types/runtimeEnvironment';
+import type { EventStats, EventType, MonitorEvent } from '../types/monitorEvent';
 import type {
   IncidentDetailResponse,
   IncidentCommandBody,
@@ -172,18 +173,18 @@ export const eventService = {
   /**
    * Get event catalog (tipos de eventos)
    */
-  getCatalog: () => apiClient.get('/events/catalog'),
+  getCatalog: () => apiClient.get<EventType[]>('/events/catalog'),
 
   /**
    * Get all events with optional filters
    */
   getAll: (filters?: { limit?: number; device_id?: string; categoria?: string }) =>
-    apiClient.get('/events', { params: filters }),
+    apiClient.get<MonitorEvent[]>('/events', { params: filters }),
 
   /**
    * Get event statistics
    */
-  getStats: () => apiClient.get('/events/stats'),
+  getStats: () => apiClient.get<EventStats>('/events/stats'),
 };
 
 // ==================== Vehicle Services ====================

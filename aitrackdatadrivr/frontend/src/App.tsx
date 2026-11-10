@@ -9,8 +9,7 @@ import AlertsPanel from './components/AlertsPanel';
 import EventsCatalog from './components/EventsCatalog';
 import OperationModeBadge from './components/OperationModeBadge';
 import VehicleDetailHeader from './components/VehicleDetailHeader';
-import { mockVehiclesInMonitors } from './mockData/mockMonitors';
-import type { VehicleInMonitor } from './mockData/mockMonitors';
+import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
 
@@ -143,7 +142,6 @@ function App() {
           {viewMode === 'monitors' && selectedMonitorId ? (
             <MonitorDetailView
               monitorId={selectedMonitorId}
-              vehicles={mockVehiclesInMonitors.filter(v => v.monitor_id === selectedMonitorId)}
               selectedVehicle={selectedMonitorVehicle}
             />
           ) : (

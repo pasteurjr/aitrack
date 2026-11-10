@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { monitorService } from '../services/apiService';
-import type { Monitor, VehicleInMonitor } from '../mockData/mockMonitors';
+import type { Monitor, VehicleInMonitor } from '../types/monitor';
 import AsyncDataState from './AsyncDataState';
 
 interface MonitorDashboardProps {
@@ -47,7 +47,7 @@ const MonitorDashboard: React.FC<MonitorDashboardProps> = ({
     } catch (error) {
       console.error('Erro carregando monitores:', error);
       setMonitors([]);
-      setListError('Não foi possível consultar os monitores. Nenhum dado foi substituído por valores de demonstração.');
+      setListError('Não foi possível consultar os monitores. Nenhum dado foi inventado.');
     } finally {
       setLoading(false);
     }

@@ -18,3 +18,12 @@ test('componentes não acessam Axios nem endereço do backend diretamente', () =
 
   expect(violations).toEqual([]);
 });
+
+test('código de produção não importa diretórios de dados mockados', () => {
+  const sourceDirectory = path.resolve(__dirname, '..');
+  const violations = listSourceFiles(sourceDirectory).filter(file => (
+    fs.readFileSync(file, 'utf8').includes('mockData')
+  ));
+
+  expect(violations).toEqual([]);
+});
