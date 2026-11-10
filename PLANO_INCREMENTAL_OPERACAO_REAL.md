@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026 16:55 (`America/Sao_Paulo`)
+**Atualizado em:** 10/11/2026 17:28 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `e2ffb2d` — UI-3.12 concluída
+**Checkpoint mais recente:** `6cb3b59` — UI-0.1 concluída
 
-**Tarefas pendentes:** 71
+**Tarefas pendentes:** 70
 
-**Próxima tarefa:** **4 de 74 — UI-0.1: criar indicador global de ambiente**
+**Próxima tarefa:** **5 de 74 — UI-0.2: etiquetar seções alimentadas por mock**
 
 ## 1. Como este documento será usado
 
@@ -55,7 +55,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
-| 4/74 | 0.1 | Criar indicador global de ambiente. | Todas as telas mostram claramente produção, simulação ou replay a partir de fonte confiável; teste cobre cada modo. | **Pendente.** |
+| 4/74 | 0.1 | Criar indicador global de ambiente. | Todas as telas mostram claramente produção, simulação ou replay a partir de fonte confiável; teste cobre cada modo. | **Concluída em 10/11/2026 17:28 -03.** **Resultado obtido:** o backend em execução virou a única fonte do selo global por meio de `runtime-environment.v1`; o frontend deixou de confiar no valor compilado. Produção exige modo global `production` e Tracker/Dirija Bem confirmados como `live`; conflito vira `MISTO`, ausência, erro, timestamp inválido ou snapshot com mais de 30 s vira `NÃO CONFIRMADO`. O contrato expõe as duas fontes, autoridade, problemas e bloqueio de ação real, sem cache, com polling a cada 15 s e sem sobreposição. **Evidências:** 240 backend e 64 frontend aprovados; TypeScript e build aprovados; matriz cobre produção, simulação, replay, misto, inválido, ausente, indisponível e vencido. Endpoint real confirmou simulação nas duas fontes; Playwright percorreu as seis abas mantendo o selo global, tooltip por fonte e zero erro de página. **Limitação controlada:** o modo é configuração declarada do processo; proveniência por pacote e bloqueio efetivo dos canais externos pertencem às etapas de sensores/ações. **Artefatos:** `runtime_environment.py`, `/api/runtime/environment`, tipos, serviço e `OperationModeBadge`. **Checkpoint:** `6cb3b59`. |
 | 5/74 | 0.2 | Etiquetar seções alimentadas por mock. | Todo conteúdo demonstrativo recebe rótulo `DEMONSTRAÇÃO` e não pode ser confundido com operação real. | **Pendente.** |
 | 6/74 | 0.3 | Remover fallback silencioso no detalhe do monitor. | Falha de API gera erro explícito; nenhum score ou veículo inventado aparece como real. | **Pendente.** |
 | 7/74 | 0.4 | Criar estado comum de erro, vazio e carregamento. | Componentes reutilizam contrato visual/acessível e testes cobrem os três estados. | **Pendente.** |
@@ -165,8 +165,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 4 de 74 — UI-0.1: criar indicador global de ambiente.**
+**Próxima etapa 5 de 74 — UI-0.2: etiquetar seções alimentadas por mock.**
 
-Ao concluí-la, este documento deverá indicar `70 tarefas pendentes` e anunciar
-`Próxima etapa 5 de 74 — UI-0.2`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `69 tarefas pendentes` e anunciar
+`Próxima etapa 6 de 74 — UI-0.3`, preservando o denominador original para mostrar
 o avanço total da rodada.

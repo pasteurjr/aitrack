@@ -1097,6 +1097,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-10 | UI-3.10 | `78090e7` | Episódio de cerca ganhou identidade persistente e correlação retomável; cruzamento, permanência e recuperação convergem para incidente/timeline idempotentes. Concorrência real produziu um incidente e uma evidência; 225 testes backend e 10 integrações passaram, sem resíduos. |
 | 2026-11-10 | UI-3.11 | `b480a6d` | Replay determinístico isolado cobriu círculo, polígono, duas direções, borda, agenda, dwell e repetição idempotente. Foram 229 testes backend e 11 integrações MariaDB aprovadas; limpeza explícita confirmou zero resíduos. |
 | 2026-11-10 | UI-3.12 | `e2ffb2d` | Estado operacional de cercas passou a ser agregado por API e exibido no mapa com círculo/polígono, alvo, dentro/fora, agenda, avaliação e episódio. Foram aprovados 234 testes backend, 54 frontend, 11 integrações MariaDB, build e Playwright sem duplicação após polling. |
+| 2026-11-10 | UI-0.1 | `6cb3b59` | O selo global passou a consultar o backend em runtime e a mostrar produção, simulação, replay, misto ou não confirmado. Produção exige confirmação global e das duas fontes; erro, conflito ou snapshot vencido falham de modo seguro. Foram aprovados 240 testes backend, 64 frontend, TypeScript, build e Playwright nas seis abas. |
 
 ---
 

@@ -646,7 +646,7 @@ Cada item abaixo foi delimitado para caber em até 30 minutos de execução foca
 
 ### Etapa 0 — Verdade e segurança da interface
 
-- [ ] **0.1** Criar indicador global de ambiente: simulação, replay ou produção.
+- [x] **0.1** Criar indicador global de ambiente: simulação, replay ou produção.
 - [ ] **0.2** Etiquetar todas as seções alimentadas por mock como DEMONSTRAÇÃO.
 - [ ] **0.3** Remover fallback silencioso de score/veículos no detalhe do monitor.
 - [ ] **0.4** Criar estado de erro, vazio e carregamento comum.
