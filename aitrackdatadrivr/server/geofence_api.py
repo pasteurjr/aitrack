@@ -1,7 +1,7 @@
 """API operacional de criação e consulta de cercas eletrônicas."""
 
 import logging
-from datetime import time
+from datetime import datetime, time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request
@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, request
 from . import geofence_db
 from . import geofence_assignment_db
 from . import geofence_engine
+from . import geofence_live_db
 from .geofence_geometry import normalize_geometry
 
 
@@ -272,6 +273,27 @@ def list_geofences():
         return jsonify({
             'code': 'GEOFENCES_UNAVAILABLE',
             'error': 'Não foi possível consultar as cercas',
+        }), 500
+
+
+@geofence_bp.route('/live-state', methods=['GET'])
+def live_geofence_state():
+    try:
+        limit = _bounded_int('limit', 200, 1, 200)
+        geofences = geofence_live_db.get_live_state(limit=limit)
+        return jsonify({
+            'schema_version': 'geofence-live-state.v1',
+            'generated_at': datetime.now().isoformat(),
+            'refresh_after_seconds': 5,
+            'geofences': geofences,
+        })
+    except ValueError as exc:
+        return jsonify({'code': 'INVALID_GEOFENCE_LIVE_FILTER', 'error': str(exc)}), 400
+    except Exception:
+        logger.exception('Erro consultando estado ao vivo das cercas')
+        return jsonify({
+            'code': 'GEOFENCE_LIVE_STATE_UNAVAILABLE',
+            'error': 'Não foi possível consultar o estado ao vivo das cercas',
         }), 500
 
 

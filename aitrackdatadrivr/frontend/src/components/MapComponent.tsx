@@ -7,6 +7,7 @@ import { dirijabemService, fleetService, positionService, trackerService } from 
 import { behavioralEventId } from '../types/behavioralEvent';
 import type { BehavioralEvent } from '../types/behavioralEvent';
 import GeofenceDesigner from './GeofenceDesigner';
+import GeofenceLiveLayer from './GeofenceLiveLayer';
 
 // Controlador para seguir a rota Dirijabem automaticamente
 const DirijabemMapViewUpdater: React.FC<{
@@ -494,7 +495,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
                     attribution='&copy; OpenStreetMap contributors'
                 />
 
-                <GeofenceDesigner />
+                <GeofenceLiveLayer />
+                <GeofenceDesigner showExisting={false} />
 
                 {/* MapViewUpdater DESABILITADO quando tem evento destacado */}
                 {!highlightedEvent && <MapViewUpdater points={trail} />}

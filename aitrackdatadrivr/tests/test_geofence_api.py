@@ -88,6 +88,23 @@ def test_lists_geofences_with_whitelisted_filters(monkeypatch):
     }
 
 
+def test_returns_live_geofence_snapshot(monkeypatch):
+    monkeypatch.setattr(
+        geofence_api.geofence_live_db,
+        'get_live_state',
+        lambda limit: [{'id': 7, 'targets': [{'stable_state': 'inside'}]}],
+    )
+
+    response = _client().get('/api/geofences/live-state?limit=25')
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['schema_version'] == 'geofence-live-state.v1'
+    assert body['refresh_after_seconds'] == 5
+    assert body['geofences'][0]['targets'][0]['stable_state'] == 'inside'
+    assert body['generated_at']
+
+
 def test_rejects_invalid_filter_before_database(monkeypatch):
     monkeypatch.setattr(
         geofence_api.geofence_db,

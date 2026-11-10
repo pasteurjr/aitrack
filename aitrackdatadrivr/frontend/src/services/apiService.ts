@@ -23,6 +23,7 @@ import type {
   GeofenceAssignmentOptions,
   AssignmentTargetType,
   GeofenceListResponse,
+  GeofenceLiveStateResponse,
   UpdateGeofenceAssignmentBody,
   UpdateGeofenceBody,
 } from '../types/geofence';
@@ -254,6 +255,9 @@ export const unifiedVehicleService = {
 export const geofenceService = {
   getAll: (params?: { status?: string; regra?: string; search?: string; limit?: number }) =>
     apiClient.get<GeofenceListResponse>('/geofences', { params }),
+
+  getLiveState: (limit = 200) =>
+    apiClient.get<GeofenceLiveStateResponse>('/geofences/live-state', { params: { limit } }),
 
   create: (body: CreateGeofenceBody) =>
     apiClient.post<GeofenceDetailResponse>('/geofences', body),

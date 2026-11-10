@@ -1,11 +1,12 @@
 """Replay determinístico completo contra o schema operacional real."""
 
 import os
+from datetime import timedelta
 from uuid import uuid4
 
 import pytest
 
-from server import geofence_assignment_db, geofence_db, geofence_engine
+from server import geofence_assignment_db, geofence_db, geofence_engine, geofence_live_db
 from server.geofence_geometry import normalize_geometry
 from server.geofence_replay import execute_replay, standard_scenarios, validate_replay
 
@@ -184,6 +185,26 @@ def test_standard_replay_produces_exact_episodes_without_residue():
                 (incident_id, 'geofence_event'),
             )
             assert cursor.fetchone()['total'] == len(scenario.expected_events)
+
+            snapshot = geofence_live_db.get_live_state(
+                now=scenario.start_at + timedelta(
+                    seconds=scenario.points[-1].offset_seconds,
+                ),
+            )
+            live_fence = next(item for item in snapshot if item['id'] == fence['id'])
+            assert live_fence['geometry']['type'] == scenario.geometry['type']
+            assert live_fence['regra'] == scenario.rule
+            assert live_fence['live_summary']['targets'] == 1
+            live_target = live_fence['targets'][0]
+            assert live_target['target_label']
+            assert live_target['stable_state'] == (
+                'inside' if scenario.rule == 'allowed' else 'outside'
+            )
+            assert live_target['schedule_active'] is True
+            assert live_target['active_episode'] is False
+            assert live_target['last_source'] == 'tracker'
+            assert live_target['last_evaluated_at']
+            assert live_target['last_position'] is not None
 
             _delete_fence(cursor, fence['id'])
             cursor.execute(

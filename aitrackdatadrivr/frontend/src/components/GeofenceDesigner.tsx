@@ -148,7 +148,7 @@ const ExistingGeofence: React.FC<{ geofence: Geofence }> = ({ geofence }) => {
   return <Polygon positions={geometryPositions(geofence.geometry)} pathOptions={pathOptions}>{popup}</Polygon>;
 };
 
-const GeofenceDesigner: React.FC = () => {
+const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting = true }) => {
   const map = useMap();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -779,7 +779,7 @@ const GeofenceDesigner: React.FC = () => {
 
   return (
     <>
-      {geofences.map(geofence => <ExistingGeofence key={geofence.public_id} geofence={geofence} />)}
+      {showExisting && geofences.map(geofence => <ExistingGeofence key={geofence.public_id} geofence={geofence} />)}
       {draft?.type === 'circle' && (
         <Circle center={draft.center} radius={circlePreviewRadius ?? draft.radius} pathOptions={{ color: drawingColor, fillColor: drawingColor, fillOpacity: .2, dashArray: '5 5' }} />
       )}

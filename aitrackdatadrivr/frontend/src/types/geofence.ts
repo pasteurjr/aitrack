@@ -36,6 +36,61 @@ export interface GeofenceListResponse {
   geofences: Geofence[];
 }
 
+export type GeofenceStableState = 'unknown' | 'inside' | 'outside';
+
+export interface GeofenceLiveTarget {
+  assignment_id: number;
+  target_type: AssignmentTargetType;
+  target_label: string | null;
+  subject_type: 'vehicle' | 'driver' | null;
+  subject_id: number | null;
+  subject_label: string | null;
+  stable_state: GeofenceStableState;
+  pending_state: 'inside' | 'outside' | null;
+  pending_samples: number;
+  policy_active: boolean;
+  schedule_active: boolean;
+  timezone_name: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  schedules: GeofenceAssignmentSchedule[];
+  dwell_threshold_seconds: number | null;
+  hysteresis_meters: number;
+  is_violation: boolean;
+  active_episode: boolean;
+  violation_episode_id: string | null;
+  violation_started_at: string | null;
+  dwell_notified_at: string | null;
+  last_evaluated_at: string | null;
+  last_transition_at: string | null;
+  last_source: 'tracker' | 'dirijabem' | null;
+  last_position: {
+    latitude: number;
+    longitude: number;
+    accuracy_m: number | null;
+    signed_distance_m: number | null;
+  } | null;
+}
+
+export interface LiveGeofence extends Geofence {
+  targets: GeofenceLiveTarget[];
+  live_summary: {
+    targets: number;
+    inside: number;
+    outside: number;
+    unknown: number;
+    violations: number;
+    active_episodes: number;
+  };
+}
+
+export interface GeofenceLiveStateResponse {
+  schema_version: 'geofence-live-state.v1';
+  generated_at: string;
+  refresh_after_seconds: number;
+  geofences: LiveGeofence[];
+}
+
 export interface CreateGeofenceBody {
   nome: string;
   descricao?: string;
