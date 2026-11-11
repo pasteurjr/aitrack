@@ -16,6 +16,7 @@ interface AlertsPanelProps {
 
 type StatusFilter = 'open' | 'all' | IncidentStatus;
 type SeverityFilter = 'all' | IncidentSeverity;
+type IncidentTypeFilter = 'all' | 'geofence_violation' | 'speeding' | 'sharp_turn';
 
 const STATUS_LABELS: Record<IncidentStatus, string> = {
   new: 'Novo',
@@ -140,6 +141,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
+  const [incidentTypeFilter, setIncidentTypeFilter] = useState<IncidentTypeFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -173,6 +175,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
       ...(statusFilter === 'open' ? { open_only: true } : {}),
       ...(statusFilter !== 'open' && statusFilter !== 'all' ? { status: statusFilter } : {}),
       ...(severityFilter !== 'all' ? { severity: severityFilter } : {}),
+      ...(incidentTypeFilter !== 'all' ? { incident_type: incidentTypeFilter } : {}),
     };
     let active = true;
     incidentService.getAll(filters).then(({ data }) => {
@@ -186,7 +189,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
       setLoading(false);
     });
     return () => { active = false; };
-  }, [severityFilter, statusFilter]);
+  }, [incidentTypeFilter, severityFilter, statusFilter]);
 
   useEffect(() => loadIncidents(), [loadIncidents, refreshToken]);
 
@@ -344,8 +347,10 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
           <QueueFilters
             status={statusFilter}
             severity={severityFilter}
+            incidentType={incidentTypeFilter}
             onStatusChange={setStatusFilter}
             onSeverityChange={setSeverityFilter}
+            onIncidentTypeChange={setIncidentTypeFilter}
           />
           {loading && <AsyncDataState variant="loading" message="Consultando a fila operacional de incidentes." />}
           {!loading && error && (
@@ -530,9 +535,11 @@ const Stat: React.FC<{ value: number; label: string; color: string }> = ({ value
 const QueueFilters: React.FC<{
   status: StatusFilter;
   severity: SeverityFilter;
+  incidentType: IncidentTypeFilter;
   onStatusChange: (value: StatusFilter) => void;
   onSeverityChange: (value: SeverityFilter) => void;
-}> = ({ status, severity, onStatusChange, onSeverityChange }) => (
+  onIncidentTypeChange: (value: IncidentTypeFilter) => void;
+}> = ({ status, severity, incidentType, onStatusChange, onSeverityChange, onIncidentTypeChange }) => (
   <div style={styles.filters}>
     <label style={styles.filterLabel}>
       Estado
@@ -561,6 +568,20 @@ const QueueFilters: React.FC<{
         {Object.entries(SEVERITY_LABELS).map(([value, label]) => (
           <option key={value} value={value}>{label}</option>
         ))}
+      </select>
+    </label>
+    <label style={styles.filterLabel}>
+      Tipo
+      <select
+        aria-label="Tipo de incidente"
+        style={styles.filterSelect}
+        value={incidentType}
+        onChange={event => onIncidentTypeChange(event.target.value as IncidentTypeFilter)}
+      >
+        <option value="all">Todos</option>
+        <option value="geofence_violation">Cerca eletrônica</option>
+        <option value="speeding">Excesso de velocidade</option>
+        <option value="sharp_turn">Curva acentuada</option>
       </select>
     </label>
   </div>

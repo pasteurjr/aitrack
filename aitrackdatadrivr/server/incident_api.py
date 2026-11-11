@@ -56,6 +56,16 @@ def _enum_filter(name: str, valid_values):
     return value
 
 
+def _text_filter(name: str, maximum: int = 100):
+    value = request.args.get(name)
+    if value is None:
+        return None
+    value = value.strip()
+    if not value or len(value) > maximum:
+        raise ValueError(f'{name} deve ter entre 1 e {maximum} caracteres')
+    return value
+
+
 def _boolean_filter(name: str, default: bool = False) -> bool:
     raw_value = request.args.get(name)
     if raw_value is None:
@@ -128,6 +138,7 @@ def list_incidents():
         filters = {
             'status': _enum_filter('status', VALID_STATUS),
             'severity': _enum_filter('severity', VALID_SEVERITY),
+            'incident_type': _text_filter('incident_type'),
             'primary_source': _enum_filter('primary_source', VALID_SOURCE),
             'vehicle_id': _optional_positive_int('vehicle_id'),
             'monitor_id': _optional_positive_int('monitor_id'),

@@ -88,6 +88,7 @@ def _where_clause(filters: Dict) -> Tuple[str, List]:
     field_map = {
         'status': 'i.status',
         'severity': 'i.severity',
+        'incident_type': 'i.incident_type',
         'primary_source': 'i.primary_source',
         'vehicle_id': 'i.vehicle_id',
         'monitor_id': 'i.monitor_id',

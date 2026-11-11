@@ -123,6 +123,7 @@ export const incidentService = {
   getAll: (filters?: {
     status?: IncidentStatus;
     severity?: IncidentSeverity;
+    incident_type?: string;
     open_only?: boolean;
     limit?: number;
     offset?: number;

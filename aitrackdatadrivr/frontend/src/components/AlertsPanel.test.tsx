@@ -149,17 +149,21 @@ it('renderiza incidente real e abre seu detalhe auditável', async () => {
   ));
 });
 
-it('envia filtros reais de estado e severidade ao backend', async () => {
+it('envia filtros reais de estado, severidade e tipo ao backend', async () => {
   render(<AlertsPanel />);
   await screen.findByText('Fila sem incidentes');
 
   fireEvent.change(screen.getByLabelText('Estado'), { target: { value: 'escalated' } });
   fireEvent.change(screen.getByLabelText('Severidade'), { target: { value: 'critical' } });
+  fireEvent.change(screen.getByLabelText('Tipo de incidente'), {
+    target: { value: 'geofence_violation' },
+  });
 
   await waitFor(() => expect(mockedIncidentService.getAll).toHaveBeenLastCalledWith({
     limit: 200,
     status: 'escalated',
     severity: 'critical',
+    incident_type: 'geofence_violation',
   }));
 });
 

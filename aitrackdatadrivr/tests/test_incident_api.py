@@ -24,6 +24,7 @@ def test_lists_incidents_with_validated_filters_and_pagination(monkeypatch):
     monkeypatch.setattr(incident_api.incident_db, 'list_incidents', fake_list)
     response = _client().get(
         '/api/incidents?status=new&severity=high&primary_source=tracker'
+        '&incident_type=geofence_violation'
         '&vehicle_id=2&monitor_id=3&assigned_to=operador&open_only=true'
         '&limit=25&offset=5'
     )
@@ -39,6 +40,7 @@ def test_lists_incidents_with_validated_filters_and_pagination(monkeypatch):
     assert captured == {
         'filters': {
             'status': 'new', 'severity': 'high', 'primary_source': 'tracker',
+            'incident_type': 'geofence_violation',
             'vehicle_id': 2, 'monitor_id': 3, 'assigned_to': 'operador',
             'open_only': True,
         },
@@ -72,6 +74,19 @@ def test_rejects_ambiguous_open_only_value(monkeypatch):
 
     assert response.status_code == 400
     assert response.get_json()['error'] == 'open_only deve ser booleano'
+
+
+def test_rejects_empty_incident_type_filter(monkeypatch):
+    monkeypatch.setattr(
+        incident_api.incident_db,
+        'list_incidents',
+        lambda *_args: (_ for _ in ()).throw(AssertionError('não deve consultar')),
+    )
+
+    response = _client().get('/api/incidents?incident_type=%20%20')
+
+    assert response.status_code == 400
+    assert response.get_json()['error'] == 'incident_type deve ter entre 1 e 100 caracteres'
 
 
 def test_returns_detail_with_timeline_or_not_found(monkeypatch):

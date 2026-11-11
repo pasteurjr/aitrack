@@ -1,12 +1,14 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 10/11/2026 17:44 (`America/Sao_Paulo`)
+**Atualizado em:** 11/11/2026 16:46 (`America/Sao_Paulo`)
 
 **Checkpoint mais recente:** `2b66658` — UI-0.2 concluída
 
 **Tarefas pendentes:** 69
 
 **Próxima tarefa:** **6 de 74 — UI-0.3: remover fallback silencioso no detalhe do monitor**
+
+**Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não reduz as 69 tarefas pendentes porque as tarefas 3.10–3.12 já constavam como concluídas; esta rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
 ## 1. Como este documento será usado
 
@@ -28,6 +30,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | Entrega | Resultado esperado | Resultado obtido / evidências |
 |---|---|---|
 | UI-3.9 — agenda e permanência | Aplicar vigência, fuso, agenda semanal/overnight e permanência sem duplicidade. | **Concluída.** Commit `2cdd6d2`; 220 testes backend, 51 frontend, integração MariaDB Tracker/Dirija Bem, TypeScript e build aprovados. Evidências detalhadas em `VALIDACOES_ETAPA_3.md`. |
+| Homologação de cercas — rodada extraordinária | Provar círculo e polígono persistidos, atribuídos, avaliados e correlacionados a incidentes; tornar os casos encontráveis na UI. | **Concluída em 11/11/2026 16:46 -03.** Círculo permitido/SIM-1008 abriu incidente `#3516` por saída; polígono proibido/SIM-1009 abriu `#3519` por entrada. API e UI ganharam filtro por `incident_type`. Evidências: 242 backend, 65 frontend, TypeScript, build e Playwright sem erros. Documento: `docs/VALIDACAO_CERCAS_OPERACIONAIS_2026-11-11.md`. **Checkpoint:** este commit. |
 
 ## 3. Ordem executiva
 
