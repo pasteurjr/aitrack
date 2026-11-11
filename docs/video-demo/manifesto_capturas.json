@@ -1,0 +1,93 @@
+{
+  "base_url": "http://127.0.0.1:3000",
+  "viewport": "1920x1080",
+  "capturas": [
+    {
+      "arquivo": "01_dashboard_visao_geral.png",
+      "descricao": "Dashboard, origem Tracker/Dirija Bem, indicadores e mapa.",
+      "capturado_em": "2026-11-11T13:33:45.680769-03:00"
+    },
+    {
+      "arquivo": "02_tracker_veiculo_rastreado.png",
+      "descricao": "Veículo Tracker selecionado, posição/trilha e contexto do veículo.",
+      "capturado_em": "2026-11-11T13:33:52.557500-03:00"
+    },
+    {
+      "arquivo": "03_dirijabem_motorista_viagem.png",
+      "descricao": "Motorista Dirija Bem selecionado e viagem sintética gravada no banco.",
+      "capturado_em": "2026-11-11T13:33:57.041524-03:00"
+    },
+    {
+      "arquivo": "04_frota_unificada_origens.png",
+      "descricao": "Lista unificada preservando origem, identidade e modo operacional.",
+      "capturado_em": "2026-11-11T13:33:58.041082-03:00"
+    },
+    {
+      "arquivo": "05_timeline_eventos_filtros.png",
+      "descricao": "Timeline com filtros por tipo, severidade e período.",
+      "capturado_em": "2026-11-11T13:34:00.425471-03:00"
+    },
+    {
+      "arquivo": "06_timeline_evento_no_mapa.png",
+      "descricao": "Seleção de evento correlacionada ao veículo e ao mapa.",
+      "capturado_em": "2026-11-11T13:34:03.427638-03:00"
+    },
+    {
+      "arquivo": "07_analises_comportamentais.png",
+      "descricao": "Distribuição de eventos, ranking e correlação score versus eventos.",
+      "capturado_em": "2026-11-11T13:34:05.726513-03:00"
+    },
+    {
+      "arquivo": "08_monitores_lista.png",
+      "descricao": "Lista persistida de monitores, estado e intervalos de análise.",
+      "capturado_em": "2026-11-11T13:34:07.997716-03:00"
+    },
+    {
+      "arquivo": "09_monitor_detalhe_eventos.png",
+      "descricao": "Monitor com veículos atribuídos; indisponibilidade da consulta detalhada observada.",
+      "capturado_em": "2026-11-11T13:34:24.491336-03:00"
+    },
+    {
+      "arquivo": "10_monitor_veiculo_contextualizado.png",
+      "descricao": "Veículo do monitor selecionado e contextualizado no mapa.",
+      "capturado_em": "2026-11-11T13:34:40.865189-03:00"
+    },
+    {
+      "arquivo": "11_incidentes_fila_sla.png",
+      "descricao": "Fila persistida, filtros, severidade, estados e indicadores de SLA.",
+      "capturado_em": "2026-11-11T13:34:43.185201-03:00"
+    },
+    {
+      "arquivo": "12_incidente_detalhe_auditoria.png",
+      "descricao": "Detalhe do incidente, evidência, risco, SLA e ações auditáveis.",
+      "capturado_em": "2026-11-11T13:34:44.438483-03:00"
+    },
+    {
+      "arquivo": "13_incidente_falso_negativo.png",
+      "descricao": "Formulário de falso negativo com veículo, motivo, severidade e evidência.",
+      "capturado_em": "2026-11-11T13:34:45.904445-03:00"
+    },
+    {
+      "arquivo": "14_catalogo_eventos_reais.png",
+      "descricao": "Catálogo real de detectores e contagens produzidas pelos simuladores.",
+      "capturado_em": "2026-11-11T13:34:48.395324-03:00"
+    },
+    {
+      "arquivo": "15_evento_tipo_detalhe.png",
+      "descricao": "Detalhe de um tipo suportado, severidade e ocorrências do dia.",
+      "capturado_em": "2026-11-11T13:34:49.459291-03:00"
+    },
+    {
+      "arquivo": "16_cerca_criacao_circular.png",
+      "descricao": "Protótipo visual preliminar da futura cerca circular; fluxo não validado.",
+      "capturado_em": "2026-11-11T13:34:51.760890-03:00"
+    },
+    {
+      "arquivo": "17_cerca_criacao_poligonal.png",
+      "descricao": "Protótipo visual preliminar da futura cerca poligonal; fluxo não validado.",
+      "capturado_em": "2026-11-11T13:34:52.809974-03:00"
+    }
+  ],
+  "page_errors": [],
+  "http_errors": []
+}
