@@ -1111,6 +1111,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-4.3 | `2669035` | Políticas de detector agora são versões imutáveis com escopo, parâmetros JSON, ativação exclusiva e auditoria de ator/motivo/snapshot. Migration 025 e API v1 validadas no MariaDB sem resíduos; 260 backend aprovados e 12 opt-in pulados; nenhuma regra foi ativada sem homologação. |
 | 2026-11-17 | UI-4.4 | `5fa87dd` | Aba Sensores ligada à API real mostra somente instâncias observadas e confirmadas, com estados acessíveis e sem converter eventos Dirija Bem em hardware. Simulador/socket produziram 55 sensores em 10 veículos; navegador 1440×900, 262 backend, 76 frontend, TypeScript e build aprovados. |
 | 2026-11-17 | UI-4.5 | `31df64a` | Última leitura agora expõe valor, unidade, qualidade, saúde, origem e dois relógios; atual/desatualizado/inválido/indisponível são explícitos. Migration 026 preserva clock skew em vez de alterar a fonte; API/navegador reais, 264 backend, 76 frontend, TypeScript e build aprovados. |
+| 2026-11-17 | UI-4.6 | `7c96ebd` | UI separa ativação de política do hardware e exige operador/motivo; API distingue comandos catalogados dos confirmados. Prova real ativou/auditou política e limpou resíduos; Suntech ficou com 2 comandos unknown/0 confirmados, navegador sem ação física, 264 backend e 77 frontend aprovados. |
 
 ---
 

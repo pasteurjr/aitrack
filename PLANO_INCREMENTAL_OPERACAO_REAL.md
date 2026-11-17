@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 16:23 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 16:30 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `31df64a` — UI-4.5 concluída
+**Checkpoint mais recente:** `7c96ebd` — UI-4.6 concluída
 
-**Tarefas pendentes:** 58
+**Tarefas pendentes:** 57
 
-**Próxima tarefa:** **17 de 74 — UI-4.6: ativar política, não hardware inexistente**
+**Próxima tarefa:** **18 de 74 — UI-4.7: criar estados armado/desarmado**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -76,7 +76,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 14/74 | 4.3 | Criar modelo de política de detector. | Política separa capacidade física de regra operacional, com versão, escopo, limites e auditoria. | **Concluída em 17/11/2026 16:07 -03.** **Resultado obtido:** políticas têm versão imutável, escopo global/fonte/monitor/veículo, parâmetros JSON, estado e ativação transacional; chave ativa única e auditoria guardam ator, motivo, snapshot e correlação. **Evidências:** migration 025 aplicada/idempotente; prova MariaDB ativou política/limites e rollback deixou zero resíduo; API real respondeu contrato v1; 10 testes específicos e 260 backend aprovados, 12 opt-in pulados. **Limitações:** nenhum limite foi ativado sem homologação; autenticação transversal e interface pertencem às etapas posteriores. **Artefatos:** migration 025, DB/API de políticas, testes e `docs/VALIDACAO_UI_4_3_2026-11-17.md`. **Checkpoint:** `2669035`. |
 | 15/74 | 4.4 | Criar aba Sensores do veículo. | Detalhe apresenta sensores suportados/configurados sem mock e com estados acessíveis. | **Concluída em 17/11/2026 16:17 -03.** **Resultado obtido:** contexto do veículo ganhou abas Mapa/Sensores; API v1 e cartões exibem apenas sensores observados com suporte confirmado, origem, protocolo, unidade e ciclo, além de carregamento/vazio/erro acessíveis sem fallback. **Evidências:** simulador via socket gerou 55 sensores em 10 veículos (25 Suntech/30 Queclink); navegador real 1440×900 mostrou 5 cartões de SIM-1000; 262 backend, 76 frontend, TypeScript e build aprovados. **Limitações:** valor/saúde/defasagem e normalização inequívoca do fuso pertencem à UI-4.5; servidores atuais são de homologação. **Artefatos:** `/api/vehicles/<id>/sensors`, tipos/serviço, `VehicleSensorsPanel`, integração App, testes e `docs/VALIDACAO_UI_4_4_2026-11-17.md`. **Checkpoint:** `5fa87dd`. |
 | 16/74 | 4.5 | Exibir valor, saúde, origem e última leitura. | Operador distingue leitura atual, desatualizada, inválida ou indisponível e rastreia a fonte. | **Concluída em 17/11/2026 16:23 -03.** **Resultado obtido:** API/UI mostram valor tipado, unidade, qualidade, origem, idade e horários observado/recebido/gravado; saúde distingue atual, desatualizado, inválido e indisponível. Relógios são preservados e fuso desconhecido da fonte fica explícito. **Evidências:** migration 026 aplicada/idempotente; API real devolveu cinco sensores atuais com offset BRT e desvio preservado; navegador 1440×900, 264 backend, 76 frontend, TypeScript e build aprovados. **Limitações:** 120 s é frescor visual, não incidente; offline contextual fica na UI-4.9 e histórico anterior não é reescrito. **Artefatos:** migration 026, agregação da última leitura, DTO/UI, testes e `docs/VALIDACAO_UI_4_5_2026-11-17.md`. **Checkpoint:** `31df64a`. |
-| 17/74 | 4.6 | Ativar política, não hardware inexistente. | A interface deixa explícito que habilita detecção; comando físico só aparece quando suportado e confirmado. | **Pendente.** |
+| 17/74 | 4.6 | Ativar política, não hardware inexistente. | A interface deixa explícito que habilita detecção; comando físico só aparece quando suportado e confirmado. | **Concluída em 17/11/2026 16:30 -03.** **Resultado obtido:** cartões separam detecção operacional do sensor físico; draft exige operador/motivo e ativação auditada, enquanto ausência de política não altera hardware. API separa comandos catalogados/confirmados e a UI não oferece ação quando suporte é desconhecido. **Evidências:** prova API/MariaDB ativou e auditou política sintética, removida com zero resíduo; Suntech retornou 2 comandos `unknown`/0 confirmados; navegador real, 264 backend, 77 frontend, TypeScript e build aprovados. **Limitações:** nenhuma política real ativa; autenticação transversal e contrato seguro de comandos permanecem posteriores. **Artefatos:** comandos no contrato de sensores, serviço/controle de políticas, testes e `docs/VALIDACAO_UI_4_6_2026-11-17.md`. **Checkpoint:** `7c96ebd`. |
 | 18/74 | 4.7 | Criar estados armado/desarmado. | Estado possui transições autorizadas, responsável, horário, escopo e histórico auditável. | **Pendente.** |
 | 19/74 | 4.8 | Detectar alimentação removida e bateria baixa. | Apenas protocolos com sinal comprovado geram episódio, com histerese/cooldown e testes de falso positivo. | **Pendente.** |
 | 20/74 | 4.9 | Detectar offline contextualizado. | Offline considera frequência esperada, viagem, ignição, manutenção e indisponibilidade da integração. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 17 de 74 — UI-4.6: ativar política, não hardware inexistente.**
+**Próxima etapa 18 de 74 — UI-4.7: criar estados armado/desarmado.**
 
-Ao concluí-la, este documento deverá indicar `57 tarefas pendentes` e anunciar
-`Próxima etapa 18 de 74 — UI-4.7`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `56 tarefas pendentes` e anunciar
+`Próxima etapa 19 de 74 — UI-4.8`, preservando o denominador original para mostrar
 o avanço total da rodada.
