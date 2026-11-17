@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 15:57 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 16:03 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `70b66e9` — UI-4.1 concluída
+**Checkpoint mais recente:** `2122216` — UI-4.2 concluída
 
-**Tarefas pendentes:** 62
+**Tarefas pendentes:** 61
 
-**Próxima tarefa:** **13 de 74 — UI-4.2: criar modelo de sensor e leitura**
+**Próxima tarefa:** **14 de 74 — UI-4.3: criar modelo de política de detector**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -72,7 +72,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
 | 12/74 | 4.1 | Catalogar capacidades por protocolo/dispositivo. | Catálogo versionado informa o que cada equipamento realmente mede/comanda, sem prometer recurso inexistente. | **Concluída em 17/11/2026 15:57 -03.** **Resultado obtido:** catálogo operacional comum e versionado diferencia `confirmed`, `unavailable` e `unknown`; perfis Maxtrack, Suntech e Queclink expõem somente capacidades comprovadas, e a API lista/resolve modelo exato com fallback curinga explícito. **Evidências:** migration 023 aplicada e idempotente; API real retornou 3 perfis/36 itens e resolveu os três protocolos; 10 testes específicos e 249 backend aprovados, 12 opt-in pulados. **Limitações:** perfis iniciais são por protocolo; comandos permanecem desconhecidos e pânico indisponível até documentação/homologação. **Artefatos:** migration 023, `capability_db.py`, `/api/capabilities`, testes e `docs/VALIDACAO_UI_4_1_2026-11-17.md`. **Checkpoint:** `70b66e9`. |
-| 13/74 | 4.2 | Criar modelo de sensor e leitura. | Leituras guardam sensor, valor, unidade, qualidade, fonte, horário da fonte/recebimento e correlação. | **Pendente.** |
+| 13/74 | 4.2 | Criar modelo de sensor e leitura. | Leituras guardam sensor, valor, unidade, qualidade, fonte, horário da fonte/recebimento e correlação. | **Concluída em 17/11/2026 16:03 -03.** **Resultado obtido:** instâncias de sensor e leituras imutáveis guardam valor tipado/JSON, unidade, qualidade, fonte, horários observado/recebido, correlação e referência de origem; ingestão Tracker grava somente capacidades confirmadas e não transforma `panic=False` fixo em sinal real. **Evidências:** migration 024 aplicada/idempotente; prova MariaDB inseriu 6 leituras e rollback deixou zero resíduo; 16 testes específicos e 255 backend aprovados, 12 opt-in pulados. **Limitações:** adaptador físico atual é Tracker; schema aceita Dirija Bem sem inventar sensor, backend ativo requer reinício e não há backfill fictício. **Artefatos:** migration 024, `sensor_db.py`, integração em `db_handler.py`, testes e `docs/VALIDACAO_UI_4_2_2026-11-17.md`. **Checkpoint:** `2122216`. |
 | 14/74 | 4.3 | Criar modelo de política de detector. | Política separa capacidade física de regra operacional, com versão, escopo, limites e auditoria. | **Pendente.** |
 | 15/74 | 4.4 | Criar aba Sensores do veículo. | Detalhe apresenta sensores suportados/configurados sem mock e com estados acessíveis. | **Pendente.** |
 | 16/74 | 4.5 | Exibir valor, saúde, origem e última leitura. | Operador distingue leitura atual, desatualizada, inválida ou indisponível e rastreia a fonte. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 13 de 74 — UI-4.2: criar modelo de sensor e leitura.**
+**Próxima etapa 14 de 74 — UI-4.3: criar modelo de política de detector.**
 
-Ao concluí-la, este documento deverá indicar `61 tarefas pendentes` e anunciar
-`Próxima etapa 14 de 74 — UI-4.3`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `60 tarefas pendentes` e anunciar
+`Próxima etapa 15 de 74 — UI-4.4`, preservando o denominador original para mostrar
 o avanço total da rodada.
