@@ -1104,6 +1104,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-0.4 | `cb74b0c` | A implementação histórica `b6076aa` foi revalidada: contrato comum cobre carregamento, vazio, erro e dado desatualizado com semântica acessível. Passaram 12 testes específicos e TypeScript; a regressão do ciclo registrou 65 frontend e build aprovados. |
 | 2026-11-17 | UI-0.5 | `1988622` | A implementação histórica `fa885d4` foi revalidada: base configurável fica em `config/api.ts`, Axios está isolado no `apiService` e componentes usam serviços compartilhados. Busca estática, 4 testes e TypeScript passaram; tile externo foi documentado como exceção não operacional. |
 | 2026-11-17 | UI-0.6 | `b55f1cf` | Fronteira estática passou a rejeitar URL absoluta, IP, localhost, Axios e fetch em componentes; tiles do mapa foram movidos para configuração por ambiente. Busca limpa, 14 testes específicos, 72 frontend, TypeScript e build aprovados. |
+| 2026-11-17 | UI-0.7 | `7a2ba1f` | Matriz operacional foi reconciliada com o código atual, removendo descrições obsoletas de mock/ausência para incidentes, catálogo, detalhe e cercas. Seis famílias de endpoints responderam 200; riscos e capacidades pendentes permaneceram explícitos. |
 
 ---
 
