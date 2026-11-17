@@ -249,7 +249,14 @@ def test_vehicle_sensor_health_uses_record_age_quality_and_preserves_clock(monke
         def fetchone(self):
             return {'id': 12, 'public_id': 'vehicle-12', 'placa': 'SIM1000', 'ativo': 1}
         def fetchall(self):
-            return [dict(row) for row in rows]
+            if self.call == 2:
+                return [dict(row) for row in rows]
+            return [{
+                'protocol_code': 'suntech',
+                'capability_code': 'remote_immobilization',
+                'support_status': 'unknown',
+                'evidence': 'Sem canal de comando',
+            }]
         def close(self):
             pass
 
@@ -273,3 +280,5 @@ def test_vehicle_sensor_health_uses_record_age_quality_and_preserves_clock(monke
     assert latest['observed_at'] == '2026-11-17T18:01:00'
     assert latest['observed_timezone'] == 'unspecified'
     assert latest['clock_skew_seconds'] == 10800
+    assert result['confirmed_commands'] == []
+    assert result['commands'][0]['support_status'] == 'unknown'

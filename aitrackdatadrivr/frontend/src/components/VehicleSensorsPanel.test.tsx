@@ -1,15 +1,18 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import VehicleSensorsPanel from './VehicleSensorsPanel';
-import { sensorService, unifiedVehicleService } from '../services/apiService';
+import { detectorPolicyService, sensorService, unifiedVehicleService } from '../services/apiService';
 
 jest.mock('../services/apiService', () => ({
   sensorService: { getByVehicle: jest.fn() },
+  detectorPolicyService: { getAll: jest.fn(), activate: jest.fn() },
   unifiedVehicleService: { getAll: jest.fn() },
 }));
 
 const getFleet = unifiedVehicleService.getAll as jest.Mock;
 const getSensors = sensorService.getByVehicle as jest.Mock;
+const getPolicies = detectorPolicyService.getAll as jest.Mock;
+const activatePolicy = detectorPolicyService.activate as jest.Mock;
 
 const fleet = {
   data: {
@@ -25,7 +28,9 @@ const sensors = {
   data: {
     schema_version: 'vehicle-sensors.v1',
     vehicle: { id: 12, public_id: 'vehicle-12', plate: 'SIM1000', active: true },
-    sources: ['tracker'], protocols: ['maxtrack'], count: 2,
+    sources: ['tracker'], protocols: ['maxtrack'], commands: [
+      { protocol_code: 'maxtrack', capability_code: 'remote_immobilization', support_status: 'unknown', evidence: 'Sem canal' },
+    ], confirmed_commands: [], count: 2,
     sensors: [
       {
         id: 1, source_code: 'tracker', protocol_code: 'maxtrack', device_model: '*',
@@ -63,6 +68,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   getFleet.mockResolvedValue(fleet);
   getSensors.mockResolvedValue(sensors);
+  getPolicies.mockResolvedValue({ data: { schema_version: 'detector-policies.v1', count: 0, policies: [] } });
+  activatePolicy.mockResolvedValue({ data: {} });
 });
 
 test('mostra somente sensores observados vindos da API real', async () => {
@@ -76,7 +83,34 @@ test('mostra somente sensores observados vindos da API real', async () => {
   expect(screen.getByText('12.7 V')).toBeInTheDocument();
   expect(screen.getByText('DESATUALIZADO')).toBeInTheDocument();
   expect(screen.getAllByText('SUPORTE CONFIRMADO')).toHaveLength(2);
+  expect(screen.getByText(/Nenhum comando físico confirmado/)).toBeInTheDocument();
+  expect(screen.getAllByText('Detecção não configurada')).toHaveLength(2);
   expect(getSensors).toHaveBeenCalledWith(12);
+});
+
+test('ativa política operacional com autoria sem oferecer comando físico', async () => {
+  const draft = {
+    id: 7, policy_key: 'ignition-watch', version_number: 2,
+    detector_type: 'state', capability_code: 'ignition', scope_type: 'vehicle',
+    scope_ref: '12', parameters: { expected: true }, status: 'draft',
+  };
+  const active = { ...draft, status: 'active' };
+  getPolicies
+    .mockResolvedValueOnce({ data: { schema_version: 'detector-policies.v1', count: 1, policies: [draft] } })
+    .mockResolvedValueOnce({ data: { schema_version: 'detector-policies.v1', count: 1, policies: [active] } });
+  render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
+
+  expect(await screen.findByText('Ativar detecção — política v2')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Operador da ativação'), { target: { value: 'operador-1' } });
+  fireEvent.change(screen.getByLabelText('Motivo da ativação'), { target: { value: 'Homologação operacional' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Ativar política de detecção' }));
+
+  await waitFor(() => expect(activatePolicy).toHaveBeenCalledWith(7, {
+    actor: 'operador-1', reason: 'Homologação operacional',
+    correlation_id: 'ui:vehicle:12:policy:7',
+  }));
+  expect(await screen.findByText('Detecção operacional ativa')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /bloqueio|acionamento/i })).not.toBeInTheDocument();
 });
 
 test('vazio não transforma evento Dirija Bem em sensor físico', async () => {

@@ -233,6 +233,23 @@ def get_vehicle_sensors(vehicle_id: int) -> Optional[Dict]:
                 sensor.pop(transient, None)
         protocols = sorted({sensor['protocol_code'] for sensor in sensors})
         sources = sorted({sensor['source_code'] for sensor in sensors})
+        commands = []
+        if protocols:
+            placeholders = ','.join(['%s'] * len(protocols))
+            cursor.execute(
+                "SELECT p.protocol_code, i.capability_code, i.support_status, i.evidence "
+                "FROM monitoramento.capability_profiles p "
+                "JOIN monitoramento.capability_profile_items i ON i.profile_id = p.id "
+                f"WHERE p.protocol_code IN ({placeholders}) AND p.device_model='*' "
+                "AND p.status='active' AND i.capability_type='command' "
+                "AND p.version_number=(SELECT MAX(p2.version_number) "
+                "FROM monitoramento.capability_profiles p2 "
+                "WHERE p2.protocol_code=p.protocol_code AND p2.device_model=p.device_model "
+                "AND p2.status='active') "
+                "ORDER BY p.protocol_code, i.capability_code",
+                protocols,
+            )
+            commands = cursor.fetchall()
         return {
             'schema_version': 'vehicle-sensors.v1',
             'vehicle': {
@@ -243,6 +260,11 @@ def get_vehicle_sensors(vehicle_id: int) -> Optional[Dict]:
             },
             'sources': sources,
             'protocols': protocols,
+            'commands': commands,
+            'confirmed_commands': [
+                command for command in commands
+                if command['support_status'] == 'confirmed'
+            ],
             'count': len(sensors),
             'sensors': sensors,
         }

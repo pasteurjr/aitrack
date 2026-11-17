@@ -44,6 +44,31 @@ export interface VehicleSensorsResponse {
   };
   sources: string[];
   protocols: string[];
+  commands: Array<{
+    protocol_code: string;
+    capability_code: string;
+    support_status: SensorSupportStatus;
+    evidence: string;
+  }>;
+  confirmed_commands: VehicleSensorsResponse['commands'];
   count: number;
   sensors: VehicleSensorDTO[];
+}
+
+export interface DetectorPolicyDTO {
+  id: number;
+  policy_key: string;
+  version_number: number;
+  detector_type: string;
+  capability_code: string | null;
+  scope_type: 'global' | 'source' | 'monitor' | 'vehicle';
+  scope_ref: string;
+  parameters: Record<string, unknown>;
+  status: 'draft' | 'active' | 'superseded' | 'retired';
+}
+
+export interface DetectorPoliciesResponse {
+  schema_version: 'detector-policies.v1';
+  count: number;
+  policies: DetectorPolicyDTO[];
 }
