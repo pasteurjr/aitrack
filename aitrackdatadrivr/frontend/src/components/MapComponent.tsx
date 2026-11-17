@@ -8,6 +8,7 @@ import { behavioralEventId } from '../types/behavioralEvent';
 import type { BehavioralEvent } from '../types/behavioralEvent';
 import GeofenceDesigner from './GeofenceDesigner';
 import GeofenceLiveLayer from './GeofenceLiveLayer';
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../config/map';
 
 // Controlador para seguir a rota Dirijabem automaticamente
 const DirijabemMapViewUpdater: React.FC<{
@@ -491,8 +492,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
             <MapContainer center={[-23.55, -46.63]} zoom={13} style={{ height: '100%', width: '100%' }}>
                 <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; OpenStreetMap contributors'
+                    url={MAP_TILE_URL}
+                    attribution={MAP_TILE_ATTRIBUTION}
                 />
 
                 <GeofenceLiveLayer />
