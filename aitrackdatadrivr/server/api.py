@@ -207,6 +207,9 @@ app.register_blueprint(runtime_bp)
 from .capability_api import capability_bp
 app.register_blueprint(capability_bp)
 
+from .detector_policy_api import detector_policy_bp
+app.register_blueprint(detector_policy_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """
