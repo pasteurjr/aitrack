@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 11:08 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 11:11 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `cb74b0c` — UI-0.4 revalidada
+**Checkpoint mais recente:** `1988622` — UI-0.5 revalidada
 
-**Tarefas pendentes:** 67
+**Tarefas pendentes:** 66
 
-**Próxima tarefa:** **8 de 74 — UI-0.5: centralizar base URL e cliente HTTP**
+**Próxima tarefa:** **9 de 74 — UI-0.6: impedir URL hardcoded em componentes novos**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera a contagem atual de 68 tarefas pendentes porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -62,7 +62,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 5/74 | 0.2 | Eliminar seções alimentadas por mock. | Nenhum componente de produção importa dados locais inventados; monitores, eventos, catálogo e estatísticas vêm das APIs e dos bancos alimentados pelos simuladores Tracker/Dirija Bem. Teste de fronteira impede regressão. | **Concluída em 10/11/2026 17:44 -03.** **Resultado obtido:** a orientação anterior de apenas etiquetar foi rejeitada pelo proprietário e substituída por remoção integral. Foram apagadas 863 linhas de `mockData`, o catálogo local de 20 capacidades não implementadas e todos os eventos/veículos inventados. Detalhe de monitor passou a consultar atribuições e eventos persistidos por veículo; catálogo/contagens vêm de `/api/events/catalog` e `/api/events/stats`. A estatística deixou de cair numa consulta pesada por erro de import e usa eventos restaurados/persistidos mais o catálogo do banco. **Evidências:** busca no código de produção encontra zero import de `mockData`; teste de fronteira bloqueia sua reintrodução; 241 backend e 65 frontend aprovados, TypeScript e build aprovados. API real mostrou quatro tipos suportados e 70 eventos do processo; Playwright exibiu catálogo e 200 eventos persistidos do Monitor #1, sem rótulo de demonstração e sem erro de página. **Decisão de dados:** não foi necessário fabricar carga extra; os dois simuladores continuam alimentando Tracker e Dirija Bem, e o volume existente já permite demonstrar. **Limitação controlada:** os monitores atualmente atribuídos no banco são Tracker; integrar alvos Dirija Bem aos monitores exige configuração operacional, não dados locais falsos. **Checkpoint:** `2b66658`. |
 | 6/74 | 0.3 | Remover fallback silencioso no detalhe do monitor. | Falha de API gera erro explícito; nenhum score ou veículo inventado aparece como real. | **Concluída e revalidada em 17/11/2026 11:05 -03.** **Resultado obtido:** a implementação histórica `0c2f596`, já incorporada à `main`, elimina o fallback `85/0/ok`; falha no enriquecimento retorna `503/BEHAVIORAL_DATA_UNAVAILABLE`, e a UI limpa dados anteriores, mostra erro acessível e oferece nova tentativa/voltar. **Evidências:** 242 testes backend, 65 frontend, TypeScript e build aprovados; endpoint real retornou SIM-1000/SIM-1001 com score `100.0` calculado e sem valores inventados. **Limitação:** `.venv` está ausente e o Conda `aitrack` não possui pytest; a suíte backend rodou no Python base sem instalação. **Artefato:** `docs/VALIDACAO_UI_0_3_2026-11-17.md`. **Checkpoint:** `79e38c2`. |
 | 7/74 | 0.4 | Criar estado comum de erro, vazio e carregamento. | Componentes reutilizam contrato visual/acessível e testes cobrem os três estados. | **Concluída e revalidada em 17/11/2026 11:08 -03.** **Resultado obtido:** `AsyncDataState` centraliza carregamento, vazio, erro e dado desatualizado com papéis acessíveis e ações de retorno/retry; dashboard, timeline, análises, monitores, catálogo, incidentes e detalhe reutilizam o contrato. **Evidências:** 12 testes específicos e TypeScript aprovados; regressão do ciclo confirmou 65 frontend e build. **Limitação:** estilos inline e avisos de base de navegadores permanecem fora do escopo. **Artefato:** `docs/VALIDACAO_UI_0_4_2026-11-17.md`. **Checkpoint:** `cb74b0c`. |
-| 8/74 | 0.5 | Centralizar base URL e cliente HTTP. | App 2 faz chamadas somente pelo cliente configurável; busca estática não encontra URLs locais espalhadas. | **Pendente.** |
+| 8/74 | 0.5 | Centralizar base URL e cliente HTTP. | App 2 faz chamadas somente pelo cliente configurável; busca estática não encontra URLs locais espalhadas. | **Concluída e revalidada em 17/11/2026 11:11 -03.** **Resultado obtido:** base operacional é resolvida por `config/api.ts`; somente `apiService.ts` importa Axios e instancia o cliente; componentes consomem serviços de domínio. O tile externo do OpenStreetMap foi classificado corretamente fora da API operacional. **Evidências:** busca estática limpa, 4 testes de configuração/fronteira e TypeScript aprovados. **Limitação:** produção deve definir `REACT_APP_API_BASE_URL`; prevenção ampliada pertence à UI-0.6. **Artefato:** `docs/VALIDACAO_UI_0_5_2026-11-17.md`. **Checkpoint:** `1988622`. |
 | 9/74 | 0.6 | Impedir URL hardcoded em componentes novos. | Teste automatizado falha ao introduzir `localhost`, IP ou URL absoluta fora da configuração permitida. | **Pendente.** |
 | 10/74 | 0.7 | Documentar matriz tela → endpoint → fonte → modo. | Cada bloco visual aponta endpoint, banco/fonte, modo e comportamento em erro; matriz é conferida contra o código. | **Pendente.** |
 | 11/74 | 0.8 | Separar Tracker e Dirija Bem mantendo visão unificada. | Origem fica inequívoca em lista, detalhe, eventos e relatórios, com filtros e total unificado corretos. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 8 de 74 — UI-0.5: centralizar base URL e cliente HTTP.**
+**Próxima etapa 9 de 74 — UI-0.6: impedir URL hardcoded em componentes novos.**
 
-Ao concluí-la, este documento deverá indicar `66 tarefas pendentes` e anunciar
-`Próxima etapa 9 de 74 — UI-0.6`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `65 tarefas pendentes` e anunciar
+`Próxima etapa 10 de 74 — UI-0.7`, preservando o denominador original para mostrar
 o avanço total da rodada.
