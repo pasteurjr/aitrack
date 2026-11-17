@@ -32,14 +32,28 @@ const sensors = {
         external_device_id: 'SIM-1000', capability_code: 'ignition', unit: null,
         lifecycle_status: 'active', first_seen_at: '2026-11-17T15:00:00',
         last_seen_at: '2026-11-17T15:01:00', support_status: 'confirmed',
-        evidence: 'parser', configured: true,
+        evidence: 'parser', configured: true, health_status: 'current',
+        latest_reading: {
+          value: true, value_type: 'boolean', unit: null, quality: 'valid',
+          observed_at: '2026-11-17T18:01:00', received_at: '2026-11-17T15:01:00-03:00',
+          recorded_at: '2026-11-17T15:01:00-03:00', age_seconds: 2,
+          clock_skew_seconds: 10800, observed_timezone: 'unspecified',
+          received_timezone: 'America/Sao_Paulo',
+        },
       },
       {
         id: 2, source_code: 'tracker', protocol_code: 'maxtrack', device_model: '*',
         external_device_id: 'SIM-1000', capability_code: 'external_voltage', unit: 'V',
         lifecycle_status: 'active', first_seen_at: '2026-11-17T15:00:00',
         last_seen_at: '2026-11-17T15:01:00', support_status: 'confirmed',
-        evidence: 'parser', configured: true,
+        evidence: 'parser', configured: true, health_status: 'stale',
+        latest_reading: {
+          value: 12.7, value_type: 'number', unit: 'V', quality: 'valid',
+          observed_at: '2026-11-17T18:01:00', received_at: '2026-11-17T15:01:00-03:00',
+          recorded_at: '2026-11-17T15:01:00-03:00', age_seconds: 180,
+          clock_skew_seconds: 10800, observed_timezone: 'unspecified',
+          received_timezone: 'America/Sao_Paulo',
+        },
       },
     ],
   },
@@ -58,6 +72,9 @@ test('mostra somente sensores observados vindos da API real', async () => {
   expect(await screen.findByRole('heading', { name: 'Sensores do veículo' })).toBeInTheDocument();
   expect(screen.getByText('Ignição')).toBeInTheDocument();
   expect(screen.getByText('Tensão externa')).toBeInTheDocument();
+  expect(screen.getByText('Ligado / verdadeiro')).toBeInTheDocument();
+  expect(screen.getByText('12.7 V')).toBeInTheDocument();
+  expect(screen.getByText('DESATUALIZADO')).toBeInTheDocument();
   expect(screen.getAllByText('SUPORTE CONFIRMADO')).toHaveLength(2);
   expect(getSensors).toHaveBeenCalledWith(12);
 });

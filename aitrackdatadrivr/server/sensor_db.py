@@ -1,8 +1,10 @@
 """Persistência tipada e idempotente de sensores e leituras operacionais."""
 
 import json
+import os
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Optional
+from zoneinfo import ZoneInfo
 
 from .monitor_db import get_connection
 
@@ -16,6 +18,8 @@ TRACKER_FIELDS = {
     'gps_valid': ('boolean', None),
     'altitude': ('number', 'm'),
 }
+SENSOR_STALE_AFTER_SECONDS = 120
+SERVER_TIMEZONE = ZoneInfo(os.getenv('AITRACK_TIMEZONE', 'America/Sao_Paulo'))
 
 
 def _naive_utc(value) -> datetime:
@@ -26,6 +30,14 @@ def _naive_utc(value) -> datetime:
     if value.tzinfo is not None:
         value = value.astimezone(timezone.utc).replace(tzinfo=None)
     return value
+
+
+def _iso_datetime(value, *, server_time: bool = False):
+    if not isinstance(value, datetime):
+        return value
+    if server_time and value.tzinfo is None:
+        value = value.replace(tzinfo=SERVER_TIMEZONE)
+    return value.isoformat()
 
 
 def _resolve_vehicle_id(cursor, tracker_vehicle_id: int, device_id: Optional[str]):
@@ -97,8 +109,6 @@ def persist_tracker_readings(
         raise ValueError(f'Protocolo Tracker não suportado: {protocol or "ausente"}')
     observed_at = _naive_utc(data.get('timestamp'))
     received_at = _naive_utc(received_at or datetime.utcnow())
-    if received_at < observed_at:
-        received_at = observed_at
     device_id = data.get('device_id')
     external_device_id = str(device_id or f'vehicle:{tracker_vehicle_id}')
     vehicle_id = _resolve_vehicle_id(cursor, tracker_vehicle_id, device_id)
@@ -120,7 +130,7 @@ def persist_tracker_readings(
             "ON DUPLICATE KEY UPDATE vehicle_id = COALESCE(vehicle_id, VALUES(vehicle_id)), "
             "capability_profile_item_id = VALUES(capability_profile_item_id), "
             "unit = VALUES(unit), lifecycle_status = 'active', "
-            "last_seen_at = GREATEST(last_seen_at, VALUES(last_seen_at))",
+            "last_seen_at = VALUES(last_seen_at)",
             (
                 vehicle_id, protocol, external_device_id, capability['id'],
                 capability_code, capability.get('unit') or default_unit,
@@ -166,21 +176,61 @@ def get_vehicle_sensors(vehicle_id: int) -> Optional[Dict]:
         cursor.execute(
             "SELECT s.id, s.source_code, s.protocol_code, s.device_model, "
             "s.external_device_id, s.capability_code, s.unit, s.lifecycle_status, "
-            "s.first_seen_at, s.last_seen_at, i.support_status, i.evidence "
+            "s.first_seen_at, s.last_seen_at, i.support_status, i.evidence, "
+            "r.value_type, r.value_json, r.unit AS reading_unit, r.quality, "
+            "r.observed_at, r.received_at, r.created_at AS recorded_at, "
+            "GREATEST(TIMESTAMPDIFF(SECOND, r.created_at, CURRENT_TIMESTAMP(6)), 0) "
+            "AS age_seconds, "
+            "TIMESTAMPDIFF(SECOND, r.received_at, r.observed_at) AS clock_skew_seconds "
             "FROM monitoramento.sensors s "
             "LEFT JOIN monitoramento.capability_profile_items i "
             "ON i.id = s.capability_profile_item_id "
+            "LEFT JOIN monitoramento.sensor_readings r ON r.id = ("
+            "SELECT r2.id FROM monitoramento.sensor_readings r2 "
+            "WHERE r2.sensor_id = s.id ORDER BY r2.created_at DESC, r2.id DESC LIMIT 1) "
             "WHERE s.vehicle_id = %s "
             "ORDER BY s.source_code, s.protocol_code, s.capability_code",
             (vehicle_id,),
         )
         sensors = cursor.fetchall()
         for sensor in sensors:
-            for field in ('first_seen_at', 'last_seen_at'):
-                if isinstance(sensor.get(field), datetime):
-                    sensor[field] = sensor[field].isoformat()
+            for field in ('first_seen_at', 'last_seen_at', 'received_at', 'recorded_at'):
+                sensor[field] = _iso_datetime(sensor.get(field), server_time=True)
+            sensor['observed_at'] = _iso_datetime(sensor.get('observed_at'))
             sensor['configured'] = True
             sensor['support_status'] = sensor['support_status'] or 'unknown'
+            value_json = sensor.pop('value_json', None)
+            if value_json is None:
+                sensor['health_status'] = 'unavailable'
+                sensor['latest_reading'] = None
+            else:
+                age_seconds = int(sensor.pop('age_seconds') or 0)
+                quality = sensor.pop('quality') or 'unknown'
+                if quality == 'invalid':
+                    health_status = 'invalid'
+                elif age_seconds > SENSOR_STALE_AFTER_SECONDS:
+                    health_status = 'stale'
+                else:
+                    health_status = 'current'
+                sensor['health_status'] = health_status
+                sensor['latest_reading'] = {
+                    'value': json.loads(value_json),
+                    'value_type': sensor.pop('value_type'),
+                    'unit': sensor.pop('reading_unit') or sensor.get('unit'),
+                    'quality': quality,
+                    'observed_at': sensor.pop('observed_at'),
+                    'received_at': sensor.pop('received_at'),
+                    'recorded_at': sensor.pop('recorded_at'),
+                    'age_seconds': age_seconds,
+                    'clock_skew_seconds': sensor.pop('clock_skew_seconds'),
+                    'observed_timezone': 'unspecified',
+                    'received_timezone': str(SERVER_TIMEZONE),
+                }
+            for transient in (
+                'value_type', 'reading_unit', 'quality', 'observed_at',
+                'received_at', 'recorded_at', 'age_seconds', 'clock_skew_seconds',
+            ):
+                sensor.pop(transient, None)
         protocols = sorted({sensor['protocol_code'] for sensor in sensors})
         sources = sorted({sensor['source_code'] for sensor in sensors})
         return {

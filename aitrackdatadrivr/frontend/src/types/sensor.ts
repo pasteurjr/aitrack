@@ -1,5 +1,20 @@
 export type SensorSupportStatus = 'confirmed' | 'unavailable' | 'unknown';
 export type SensorLifecycleStatus = 'active' | 'inactive';
+export type SensorHealthStatus = 'current' | 'stale' | 'invalid' | 'unavailable';
+
+export interface SensorReadingDTO {
+  value: boolean | number | string | Record<string, unknown>;
+  value_type: 'boolean' | 'number' | 'string' | 'geo' | 'json';
+  unit: string | null;
+  quality: 'valid' | 'invalid' | 'estimated' | 'unknown';
+  observed_at: string;
+  received_at: string;
+  recorded_at: string;
+  age_seconds: number;
+  clock_skew_seconds: number | null;
+  observed_timezone: 'unspecified';
+  received_timezone: string;
+}
 
 export interface VehicleSensorDTO {
   id: number;
@@ -15,6 +30,8 @@ export interface VehicleSensorDTO {
   support_status: SensorSupportStatus;
   evidence: string | null;
   configured: true;
+  health_status: SensorHealthStatus;
+  latest_reading: SensorReadingDTO | null;
 }
 
 export interface VehicleSensorsResponse {

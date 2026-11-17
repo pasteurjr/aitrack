@@ -11,6 +11,7 @@ from server import sensor_api
 
 
 MIGRATION = Path(__file__).resolve().parents[1] / 'migrations' / '024_create_sensor_readings.sql'
+CLOCK_SKEW_MIGRATION = Path(__file__).resolve().parents[1] / 'migrations' / '026_allow_sensor_clock_skew.sql'
 
 
 class FakeCursor:
@@ -117,7 +118,7 @@ def test_repeated_correlation_is_idempotent(monkeypatch):
     assert sensor_db.persist_tracker_readings(cursor, **kwargs) == 0
 
 
-def test_future_device_time_is_clamped_to_preserve_receive_invariant(monkeypatch):
+def test_source_and_receive_times_are_preserved_when_device_clock_is_ahead(monkeypatch):
     cursor = FakeCursor()
     monkeypatch.setattr(sensor_db, '_resolve_vehicle_id', lambda *_args: 123)
     monkeypatch.setattr(sensor_db, '_confirmed_capabilities', lambda *_args: confirmed())
@@ -134,7 +135,17 @@ def test_future_device_time_is_clamped_to_preserve_receive_invariant(monkeypatch
         params for sql, params in cursor.statements
         if 'INSERT IGNORE INTO monitoramento.sensor_readings' in sql
     )
-    assert params[4] == params[5] == datetime(2026, 11, 17, 15, 0)
+    assert params[4] == datetime(2026, 11, 17, 15, 0)
+    assert params[5] == datetime(2026, 11, 17, 14, 59, 59)
+
+
+def test_clock_skew_migration_removes_only_invalid_time_order_constraint():
+    sql = CLOCK_SKEW_MIGRATION.read_text(encoding='utf-8').lower()
+
+    assert 'alter table monitoramento.sensor_readings' in sql
+    assert 'drop constraint chk_sensor_reading_times' in sql
+    assert 'drop table' not in sql
+    assert 'delete from' not in sql
 
 
 def test_unsupported_protocol_is_rejected():
@@ -205,3 +216,60 @@ def test_vehicle_sensor_api_has_explicit_not_found_and_failure(monkeypatch):
     failure = _sensor_client().get('/api/vehicles/12/sensors')
     assert failure.status_code == 500
     assert failure.get_json()['code'] == 'VEHICLE_SENSORS_UNAVAILABLE'
+
+
+def test_vehicle_sensor_health_uses_record_age_quality_and_preserves_clock(monkeypatch):
+    base = {
+        'id': 1, 'source_code': 'tracker', 'protocol_code': 'suntech',
+        'device_model': '*', 'external_device_id': 'SIM-1000',
+        'capability_code': 'ignition', 'unit': None, 'lifecycle_status': 'active',
+        'first_seen_at': datetime(2026, 11, 17, 15, 0),
+        'last_seen_at': datetime(2026, 11, 17, 15, 1),
+        'support_status': 'confirmed', 'evidence': 'parser',
+        'value_type': 'boolean', 'value_json': 'true', 'reading_unit': None,
+        'quality': 'valid', 'observed_at': datetime(2026, 11, 17, 18, 1),
+        'received_at': datetime(2026, 11, 17, 15, 1),
+        'recorded_at': datetime(2026, 11, 17, 15, 1), 'age_seconds': 2,
+        'clock_skew_seconds': 10800,
+    }
+    rows = [
+        dict(base),
+        dict(base, id=2, capability_code='speed', value_type='number',
+             value_json='42.5', age_seconds=121),
+        dict(base, id=3, capability_code='gps_valid', quality='invalid'),
+        dict(base, id=4, capability_code='altitude', value_json=None,
+             value_type=None, quality=None, observed_at=None, received_at=None,
+             recorded_at=None, age_seconds=None, clock_skew_seconds=None),
+    ]
+
+    class Cursor:
+        call = 0
+        def execute(self, *_args):
+            self.call += 1
+        def fetchone(self):
+            return {'id': 12, 'public_id': 'vehicle-12', 'placa': 'SIM1000', 'ativo': 1}
+        def fetchall(self):
+            return [dict(row) for row in rows]
+        def close(self):
+            pass
+
+    class Connection:
+        cursor_instance = Cursor()
+        def cursor(self, **_kwargs):
+            return self.cursor_instance
+        def close(self):
+            pass
+
+    monkeypatch.setattr(sensor_db, 'get_connection', Connection)
+
+    result = sensor_db.get_vehicle_sensors(12)
+
+    assert [item['health_status'] for item in result['sensors']] == [
+        'current', 'stale', 'invalid', 'unavailable',
+    ]
+    latest = result['sensors'][0]['latest_reading']
+    assert latest['value'] is True
+    assert latest['received_at'].endswith('-03:00')
+    assert latest['observed_at'] == '2026-11-17T18:01:00'
+    assert latest['observed_timezone'] == 'unspecified'
+    assert latest['clock_skew_seconds'] == 10800
