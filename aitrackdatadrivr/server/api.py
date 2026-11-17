@@ -201,6 +201,12 @@ app.register_blueprint(geofence_bp)
 from .runtime_api import runtime_bp
 app.register_blueprint(runtime_bp)
 
+# ============================================
+# VERSIONED DEVICE CAPABILITY CATALOG
+# ============================================
+from .capability_api import capability_bp
+app.register_blueprint(capability_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """
