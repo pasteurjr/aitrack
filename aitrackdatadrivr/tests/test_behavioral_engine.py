@@ -456,3 +456,20 @@ def test_legacy_events_without_episode_id_remain_individual():
     ]
 
     assert engine._dedupe_episode_events(events) == events
+
+
+def test_runtime_events_expose_tracker_source_without_frontend_inference(monkeypatch):
+    engine.reset_all()
+    start = datetime(2026, 11, 17, 10, 0)
+    detected = {
+        'device_id': 'SIM-1', 'type': 'speeding', 'severity': 'high',
+        'timestamp': (start + timedelta(seconds=5)).isoformat(),
+        'lat': -23.55, 'lon': -46.63, 'icon': '🚨',
+    }
+    monkeypatch.setattr(engine, 'detect_events', lambda *_args, **_kwargs: [detected.copy()])
+    monkeypatch.setattr(engine, 'get_veicod_from_device_id', lambda _device_id: None)
+
+    engine.add_position('SIM-1', position(start, speed=80))
+    engine.add_position('SIM-1', position(start + timedelta(seconds=5), speed=90))
+
+    assert engine.get_recent_events(limit=1)[0]['source'] == 'tracker'

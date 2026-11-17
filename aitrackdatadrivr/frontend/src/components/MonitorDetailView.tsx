@@ -117,7 +117,9 @@ const EventAnalyzer: React.FC<{
             <div key={event.id} style={styles.eventItem}>
               <div style={{ flex: 1 }}>
                 <strong style={{ color: '#f9fafb', fontSize: '13px' }}>{event.tipo_evento_nome}</strong>
-                <div style={{ color: '#9ca3af', fontSize: '11px' }}>{event.device_id}</div>
+                <div style={{ color: '#9ca3af', fontSize: '11px' }}>
+                  {event.device_id} · {event.source === 'tracker' ? 'Tracker' : 'Dirija Bem'}
+                </div>
               </div>
               <time style={{ fontSize: '11px', color: '#9ca3af' }} dateTime={event.timestamp}>
                 {new Date(event.timestamp).toLocaleString('pt-BR')}

@@ -19,6 +19,7 @@ export interface MonitorEvent {
   categoria: EventCategory;
   severidade: EventSeverity;
   device_id: string;
+  source: 'tracker' | 'dirijabem';
   timestamp: string;
   latitude: number | null;
   longitude: number | null;

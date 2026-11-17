@@ -26,6 +26,17 @@ const items: UnifiedFleetItem[] = [
     modes: ['replay'],
     lastCommunicationAt: null,
   },
+  {
+    id: 'vehicle:both',
+    source: 'both',
+    primaryLabel: 'Veículo integrado',
+    secondaryLabel: 'SIM-2000 · Usuário 2000',
+    score: 91,
+    trackerDeviceId: 'SIM-2000',
+    dirijabemCodusu: 2000,
+    modes: ['simulation', 'replay'],
+    lastCommunicationAt: null,
+  },
 ];
 
 test('preserva a origem e não inventa score na visão unificada', () => {
@@ -35,17 +46,21 @@ test('preserva a origem e não inventa score na visão unificada', () => {
   expect(screen.getByText('Motorista Dirija Bem')).toBeInTheDocument();
   expect(screen.getByText('Score 82.5')).toBeInTheDocument();
   expect(screen.getByText('Score indisponível')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Todos (2)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: 'Todos (3)' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: 'Tracker (2)' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Dirija Bem (2)' })).toBeInTheDocument();
 });
 
 test('filtra por fonte sem perder a opção de visão conjunta', () => {
   render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={jest.fn()} />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Tracker (1)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Tracker (2)' }));
   expect(screen.getByText('ABC-1D23')).toBeInTheDocument();
   expect(screen.queryByText('Motorista Dirija Bem')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Todos (2)' }));
+  expect(screen.getByText('Veículo integrado')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Todos (3)' }));
   expect(screen.getByText('Motorista Dirija Bem')).toBeInTheDocument();
 });
 

@@ -11,6 +11,7 @@ interface EventsTimelineProps {
 const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
     const [events, setEvents] = useState<BehavioralEvent[]>([]);
     const [deviceQuery, setDeviceQuery] = useState('');
+    const [sourceFilter, setSourceFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [severityFilter, setSeverityFilter] = useState('all');
     const [periodFilter, setPeriodFilter] = useState('all');
@@ -71,19 +72,22 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
             .filter(event => {
                 const timestamp = new Date(event.timestamp).getTime();
                 return (!normalizedDevice || event.device_id.toLocaleLowerCase('pt-BR').includes(normalizedDevice))
+                    && (sourceFilter === 'all' || event.source === sourceFilter)
                     && (typeFilter === 'all' || event.type === typeFilter)
                     && (severityFilter === 'all' || event.severity === severityFilter)
                     && (periodMs === null || (!Number.isNaN(timestamp) && now - timestamp <= periodMs));
             });
-    }, [deviceQuery, events, periodFilter, severityFilter, typeFilter]);
+    }, [deviceQuery, events, periodFilter, severityFilter, sourceFilter, typeFilter]);
 
     const filtersActive = Boolean(deviceQuery)
+        || sourceFilter !== 'all'
         || typeFilter !== 'all'
         || severityFilter !== 'all'
         || periodFilter !== 'all';
 
     const clearFilters = () => {
         setDeviceQuery('');
+        setSourceFilter('all');
         setTypeFilter('all');
         setSeverityFilter('all');
         setPeriodFilter('all');
@@ -101,6 +105,11 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
                     placeholder="Veículo ou dispositivo"
                     style={styles.control}
                 />
+                <select aria-label="Filtrar por origem" value={sourceFilter} onChange={event => setSourceFilter(event.target.value)} style={styles.control}>
+                    <option value="all">Todas as origens</option>
+                    <option value="tracker">Tracker</option>
+                    <option value="dirijabem">Dirija Bem</option>
+                </select>
                 <select aria-label="Filtrar por tipo" value={typeFilter} onChange={event => setTypeFilter(event.target.value)} style={styles.control}>
                     <option value="all">Todos os tipos</option>
                     {Object.entries(eventLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -173,6 +182,9 @@ const EventsTimeline: React.FC<EventsTimelineProps> = ({ onEventClick }) => {
 
                             <div style={styles.eventDetails}>
                                 <span style={styles.deviceId}>{event.device_id}</span>
+                                <span style={{ ...styles.sourceBadge, backgroundColor: event.source === 'tracker' ? '#065f46' : '#1e40af' }}>
+                                    {event.source === 'tracker' ? 'Tracker' : 'Dirija Bem'}
+                                </span>
                                 <span style={{
                                     ...styles.severityBadge,
                                     backgroundColor: getSeverityColor(event.severity)
@@ -264,6 +276,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     deviceId: {
         color: '#9ca3af',
+    },
+    sourceBadge: {
+        borderRadius: '999px',
+        color: '#fff',
+        fontSize: '9px',
+        fontWeight: 700,
+        padding: '2px 6px',
     },
     severityBadge: {
         padding: '2px 8px',

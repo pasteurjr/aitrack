@@ -1,5 +1,6 @@
 export interface BehavioralEvent {
   device_id: string;
+  source: 'tracker' | 'dirijabem';
   type: string;
   timestamp: string;
   severity: string;

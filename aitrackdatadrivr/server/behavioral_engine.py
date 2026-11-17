@@ -311,6 +311,7 @@ def _merge_persisted_state(score_rows: List[Dict], event_rows: List[Dict]) -> Di
                 '_persisted_event_id': row.get('id'),
                 **extras,
             }
+            event.setdefault('source', 'tracker')
             vehicle_events.append(event)
             loaded_event_ids.add(row.get('id'))
             loaded += 1
@@ -430,6 +431,11 @@ def add_position(device_id: str, data: Dict):
                 vehicle_detector_state[device_id],
             )
             for event in events:
+                # O motor comportamental atual recebe a ingestão Tracker. A
+                # origem explícita evita que a interface tenha de inferi-la
+                # pelo formato do device_id. A ingestão Dirija Bem deverá
+                # informar sua própria origem quando entrar neste motor.
+                event.setdefault('source', 'tracker')
                 vehicle_events.append(event)
             score_after = calculate_vehicle_score(device_id)
             vehicle_scores[device_id] = score_after

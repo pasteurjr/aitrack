@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Flask
 
 from server import monitor_api
@@ -93,3 +95,43 @@ def test_event_stats_use_persisted_runtime_events_and_catalog(monkeypatch):
         'por_tipo': {'speeding': 2},
         'por_categoria': {'behavioral': 2},
     }
+
+
+def test_persisted_events_expose_source_explicitly(monkeypatch):
+    executed = {}
+
+    class Cursor:
+        def execute(self, sql, params):
+            executed['sql'] = sql
+            executed['params'] = params
+
+        def fetchall(self):
+            return [{
+                'id': 1, 'tipo_evento_codigo': 'speeding',
+                'tipo_evento_nome': 'Excesso de Velocidade',
+                'categoria': 'behavioral', 'severidade': 'high',
+                'device_id': 'SIM-1000', 'source': 'tracker',
+                'timestamp': datetime(2026, 11, 17, 10, 0),
+                'latitude': -23.5, 'longitude': -46.6, 'velocidade': 90,
+                'dados_adicionais': '{}',
+            }]
+
+        def close(self):
+            pass
+
+    class Connection:
+        def cursor(self, dictionary=False):
+            assert dictionary is True
+            return Cursor()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(monitor_api.monitor_db, 'get_connection', Connection)
+
+    response = _client().get('/api/events?limit=1')
+
+    assert response.status_code == 200
+    assert response.get_json()[0]['source'] == 'tracker'
+    assert 'JSON_EXTRACT' in executed['sql']
+    assert executed['params'] == [1]

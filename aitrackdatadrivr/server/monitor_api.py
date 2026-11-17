@@ -338,6 +338,7 @@ def get_events():
         sql = """
         SELECT e.id, te.codigo as tipo_evento_codigo, te.nome as tipo_evento_nome,
                te.categoria, e.severidade, e.device_id, e.timestamp,
+               COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.dados_adicionais, '$.source')), 'tracker') AS source,
                e.latitude, e.longitude, e.velocidade, e.dados_adicionais
         FROM eventos e
         JOIN tipo_evento te ON e.tipo_evento_id = te.id

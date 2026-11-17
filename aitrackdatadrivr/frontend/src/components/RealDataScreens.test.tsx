@@ -25,7 +25,7 @@ beforeEach(() => {
   } } as any);
   mockedEvents.getAll.mockResolvedValue({ data: [{
     id: 99, tipo_evento_codigo: 'speeding', tipo_evento_nome: 'Excesso de Velocidade',
-    categoria: 'behavioral', severidade: 'high', device_id: 'SIM-1000',
+    categoria: 'behavioral', severidade: 'high', device_id: 'SIM-1000', source: 'tracker',
     timestamp: '2026-11-10T17:30:00', latitude: -23.5, longitude: -46.6,
     velocidade: 85, dados_adicionais: null,
   }] } as any);
@@ -44,7 +44,7 @@ test('detalhe do monitor filtra eventos persistidos pelos veículos atribuídos'
   render(<MonitorDetailView monitorId={1} selectedVehicle={null} />);
 
   expect(await screen.findByText('Excesso de Velocidade')).toBeInTheDocument();
-  expect(screen.getByText('SIM-1000')).toBeInTheDocument();
+  expect(screen.getByText('SIM-1000 · Tracker')).toBeInTheDocument();
   expect(mockedMonitors.getVehicles).toHaveBeenCalledWith(1);
   expect(mockedEvents.getAll).toHaveBeenCalledWith({ limit: 100, device_id: 'SIM-1000' });
   expect(screen.queryByText(/DEMONSTRAÇÃO/)).not.toBeInTheDocument();

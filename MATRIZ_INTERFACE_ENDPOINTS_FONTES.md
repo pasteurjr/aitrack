@@ -25,7 +25,7 @@
 | KPIs comportamentais | `BehavioralDashboard` | `GET /api/fleet/stats`, `/api/fleet/scores` | motor comportamental reidratado/persistência de eventos | modo global; score não carrega modo próprio | mantém último snapshot apenas com aviso `stale` | Operacional com limitação |
 | Mapa e rota | `MapComponent` | posições, scores, eventos, posição Tracker, rota/último ponto Dirija Bem | Tracker + Dirija Bem + motor | origem vem da seleção; snapshots não são atômicos | erros parciais registrados; nenhuma posição fabricada | Operacional com limitação |
 | Cercas no mapa | `GeofenceLiveLayer`, `GeofenceDesigner` | `/api/geofences*` | schema unificado `monitoramento` | comum às duas fontes; alvo identifica veículo/motorista/grupo | preserva snapshot antigo com aviso; vazio explícito no editor | Operacional |
-| Timeline | `EventsTimeline` | `GET /api/fleet/events` | eventos comportamentais reidratados de `tracker.eventos` | modo não viaja em cada evento | erro/retry, vazio e `stale` compartilhados | Operacional com limitação |
+| Timeline | `EventsTimeline` | `GET /api/fleet/events` | eventos comportamentais reidratados de `tracker.eventos` | origem explícita e filtrável; modo ainda não viaja em cada evento | erro/retry, vazio e `stale` compartilhados | Operacional com limitação |
 | Análises | `VehicleAnalytics` | `/api/fleet/scores`, `/api/fleet/events` | motor comportamental | predominantemente Tracker; Dirija Bem não compõe todos os gráficos | erro/vazio/stale compartilhados | Operacional com limitação |
 | Monitores | `MonitorDashboard` | `/api/monitors`, `/{id}`, `/{id}/vehicles` | `monitoramento.monitores`, alvos e motor | alvo conserva `tipo_veiculo`; lista não implica LLM | 503 comportamental aparece explicitamente; retry/voltar | Operacional por regras |
 | Detalhe do monitor | `MonitorDetailView` | `/api/monitors/{id}/vehicles`, `/api/events` | alvos operacionais + eventos persistidos | filtro por `device_id`; origem vem do evento/identidade quando disponível | erro explícito; zero eventos por categoria | Operacional |
@@ -68,7 +68,7 @@ O painel unificado não chama o `POST /start`; a seleção Dirija Bem legada ain
 |---|---|---|---|
 | marcadores Tracker | `GET /api/posicoes` | Tracker | polling; origem física versus simulador depende do modo global |
 | score do marcador | `GET /api/fleet/scores` | motor | requisição separada da posição; score ausente ainda usa fallback visual `85` no mapa, risco registrado |
-| eventos do mapa/timeline | `GET /api/fleet/events` | memória reidratada de `tracker.eventos` | episódios reais; modo por evento ainda ausente |
+| eventos do mapa/timeline | `GET /api/fleet/events` | memória reidratada de `tracker.eventos` | episódios reais com `source`; modo por evento ainda ausente |
 | posição incremental | `GET /api/positions/latest/{veicod}` | Tracker | polling de 5 s |
 | rota Dirija Bem | `GET /api/dirijabem/user/{id}/route` | Dirija Bem | viagem ativa, que pode ser sintética/replay |
 | último ponto Dirija Bem | `GET /api/dirijabem/user/{id}/last-point` | Dirija Bem | polling de 5 s |
@@ -163,4 +163,4 @@ rg -n "Service\." aitrackdatadrivr/frontend/src/components --glob '*.tsx'
 rg -n "Blueprint|@.*route" aitrackdatadrivr/server --glob '*.py'
 ```
 
-Principais riscos ainda explícitos: score visual `85` no mapa quando ausente; ação de replay escondida no seletor legado Dirija Bem; modo ainda não acompanha cada evento/posição; sensores, agente autônomo e comunicações permanecem pendentes.
+Principais riscos ainda explícitos: score visual `85` no mapa quando ausente; ação de replay escondida no seletor legado Dirija Bem; modo ainda não acompanha cada evento/posição; relatórios, sensores, agente autônomo e comunicações permanecem pendentes.
