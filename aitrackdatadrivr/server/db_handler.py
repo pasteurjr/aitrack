@@ -8,6 +8,7 @@ from datetime import datetime
 from .env_loader import load_dotenv
 from . import behavioral_engine
 from . import geofence_engine
+from . import sensor_db
 
 
 LOGGER = logging.getLogger(__name__)
@@ -67,6 +68,24 @@ def _save_location_file(data):
         with open(FILE_STORAGE_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+
+def _persist_sensor_readings(conn, cursor, fk_veicod, location_id, data):
+    """Confirma a trilha de sensores sem desfazer a posição já persistida."""
+    try:
+        inserted = sensor_db.persist_tracker_readings(
+            cursor,
+            tracker_vehicle_id=fk_veicod,
+            location_id=location_id,
+            data=data,
+            received_at=datetime.now(),
+        )
+        conn.commit()
+        return inserted
+    except Exception:
+        conn.rollback()
+        LOGGER.exception('Falha ao persistir sensores do veículo Tracker %s', fk_veicod)
+        return 0
+
 def save_location(data, addr):
     """Salva um ponto de localização, criando o veículo se necessário.
     Em modo arquivo, ignora MySQL e apenas persiste em JSONL.
@@ -105,6 +124,10 @@ def save_location(data, addr):
         location_id = cursor.lastrowid
         conn.commit()
         print(f"SUCESSO: Posição salva para o veículo FK_VEICOD={fk_veicod}.")
+
+        # Leituras normalizadas são derivadas apenas de capacidades confirmadas.
+        # Uma falha aqui não pode invalidar a posição Tracker já confirmada.
+        _persist_sensor_readings(conn, cursor, fk_veicod, location_id, data)
 
         # ============================================
         # BEHAVIORAL ENGINE: Detecta eventos
