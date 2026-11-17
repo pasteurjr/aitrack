@@ -1,0 +1,58 @@
+{
+  "base_url": "http://127.0.0.1:3000",
+  "viewport": "1920x1080",
+  "capturas": [
+    {
+      "arquivo": "01_abertura_dashboard.png",
+      "descricao": "Dashboard integrado com Tracker, Dirija Bem e duas cercas operacionais.",
+      "capturado_em": "2026-11-11T17:16:24.538721-03:00"
+    },
+    {
+      "arquivo": "02_dirijabem_rota_posicao_inicial.png",
+      "descricao": "Motorista sintético Dirija Bem selecionado, com rota persistida.",
+      "capturado_em": "2026-11-11T17:16:30.746882-03:00"
+    },
+    {
+      "arquivo": "03_dirijabem_rota_posicao_atualizada.png",
+      "descricao": "Mesma viagem Dirija Bem após novo ciclo de atualização.",
+      "capturado_em": "2026-11-11T17:16:43.932608-03:00"
+    },
+    {
+      "arquivo": "04_tracker_selecionado.png",
+      "descricao": "Veículo Tracker selecionado e identificado pela origem.",
+      "capturado_em": "2026-11-11T17:16:49.012097-03:00"
+    },
+    {
+      "arquivo": "05_timeline_eventos.png",
+      "descricao": "Timeline real com filtros e eventos produzidos pelo simulador.",
+      "capturado_em": "2026-11-11T17:16:51.540940-03:00"
+    },
+    {
+      "arquivo": "06_evento_destacado_mapa.png",
+      "descricao": "Evento selecionado, correlacionado ao veículo e ao mapa.",
+      "capturado_em": "2026-11-11T17:16:54.640809-03:00"
+    },
+    {
+      "arquivo": "07_cercas_operacionais.png",
+      "descricao": "Cerca circular e poligonal com alvos, estados e violações ao vivo.",
+      "capturado_em": "2026-11-11T17:16:59.597552-03:00"
+    },
+    {
+      "arquivo": "08_incidentes_cerca_filtrados.png",
+      "descricao": "Fila filtrada com incidentes persistidos de entrada e saída de cerca.",
+      "capturado_em": "2026-11-11T17:17:02.510425-03:00"
+    },
+    {
+      "arquivo": "09_incidente_cerca_detalhe.png",
+      "descricao": "Detalhe auditável do incidente de cerca e suas evidências.",
+      "capturado_em": "2026-11-11T17:17:03.925704-03:00"
+    },
+    {
+      "arquivo": "10_monitores_operacionais.png",
+      "descricao": "Lista de monitores persistidos, estados, veículos e intervalos.",
+      "capturado_em": "2026-11-11T17:17:06.382760-03:00"
+    }
+  ],
+  "page_errors": [],
+  "http_errors": []
+}
