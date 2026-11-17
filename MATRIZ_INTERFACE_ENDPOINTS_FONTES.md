@@ -1,396 +1,166 @@
-# Matriz da Interface, Endpoints, Fontes e Modos Operacionais
+# Matriz da interface, endpoints, fontes e modos operacionais
 
 **Sistema:** AITrack + DataDrivr  
-**Data de referência:** 06/11/2026  
+**Atualizada em:** 17/11/2026 11:20 (`America/Sao_Paulo`)
 **Frontend:** `aitrackdatadrivr/frontend`  
 **Backend:** `aitrackdatadrivr/server`  
-**Base configurável:** `REACT_APP_API_BASE_URL`  
-**Objetivo:** deixar explícito o que cada tela consulta, de onde o dado vem, se há efeito colateral e se a informação é operacional, simulada ou mock.
+**Base da API:** `REACT_APP_API_BASE_URL` → `src/config/api.ts`
+**Objetivo:** declarar, para cada bloco visual, endpoint, fonte, modo, efeito colateral e comportamento em erro.
 
----
+## 1. Regras de interpretação
 
-## 1. Como ler esta matriz
+- **Fonte** é o sistema ou armazenamento consultado pelo backend.
+- **Modo** é a proveniência operacional: `production`, `simulation`, `replay`, `mixed` ou `unconfirmed` no selo global; registros de identidade usam `live`, `simulation`, `replay`, `synthetic` ou `unknown`.
+- Banco persistente não implica produção: os simuladores também gravam nos bancos integrados.
+- Falha de API nunca pode virar valor plausível. A tela deve mostrar erro ou dado anterior marcado como desatualizado.
+- Não há conteúdo mockado nas telas de produção. Fixtures dos testes não são dados de runtime.
 
-### Fonte
+## 2. Matriz executiva das telas atuais
 
-Indica onde o backend obtém a informação:
+| Tela/bloco | Componente | Endpoint(s) principal(is) | Fonte | Modo/proveniência | Erro/vazio | Situação |
+|---|---|---|---|---|---|---|
+| Selo global | `OperationModeBadge` | `GET /api/runtime/environment` | configuração do processo ativo | Autoritativo por Tracker e Dirija Bem; produção exige ambas `live` | falha ou snapshot vencido → `NÃO CONFIRMADO` e ações reais bloqueadas | Operacional |
+| Frota/seleção | `BehavioralDashboard`, `UnifiedFleetPanel` | `GET /api/posicoes`, `/api/dirijabem/users`, `/api/v1/vehicles` | Tracker, Dirija Bem e identidade em `monitoramento` | origem preservada por identidade; seletores legados têm ressalvas | `AsyncDataState`; nenhum veículo inventado | Operacional com legado |
+| Contexto selecionado | `VehicleDetailHeader` | `GET /api/v1/vehicles` | identidade operacional unificada | `source`, `mode`, identificadores e última comunicação | ausência/falha explícita | Operacional |
+| KPIs comportamentais | `BehavioralDashboard` | `GET /api/fleet/stats`, `/api/fleet/scores` | motor comportamental reidratado/persistência de eventos | modo global; score não carrega modo próprio | mantém último snapshot apenas com aviso `stale` | Operacional com limitação |
+| Mapa e rota | `MapComponent` | posições, scores, eventos, posição Tracker, rota/último ponto Dirija Bem | Tracker + Dirija Bem + motor | origem vem da seleção; snapshots não são atômicos | erros parciais registrados; nenhuma posição fabricada | Operacional com limitação |
+| Cercas no mapa | `GeofenceLiveLayer`, `GeofenceDesigner` | `/api/geofences*` | schema unificado `monitoramento` | comum às duas fontes; alvo identifica veículo/motorista/grupo | preserva snapshot antigo com aviso; vazio explícito no editor | Operacional |
+| Timeline | `EventsTimeline` | `GET /api/fleet/events` | eventos comportamentais reidratados de `tracker.eventos` | modo não viaja em cada evento | erro/retry, vazio e `stale` compartilhados | Operacional com limitação |
+| Análises | `VehicleAnalytics` | `/api/fleet/scores`, `/api/fleet/events` | motor comportamental | predominantemente Tracker; Dirija Bem não compõe todos os gráficos | erro/vazio/stale compartilhados | Operacional com limitação |
+| Monitores | `MonitorDashboard` | `/api/monitors`, `/{id}`, `/{id}/vehicles` | `monitoramento.monitores`, alvos e motor | alvo conserva `tipo_veiculo`; lista não implica LLM | 503 comportamental aparece explicitamente; retry/voltar | Operacional por regras |
+| Detalhe do monitor | `MonitorDetailView` | `/api/monitors/{id}/vehicles`, `/api/events` | alvos operacionais + eventos persistidos | filtro por `device_id`; origem vem do evento/identidade quando disponível | erro explícito; zero eventos por categoria | Operacional |
+| Incidentes | `AlertsPanel` | `/api/incidents*`, `/api/v1/vehicles` | `monitoramento.incidents` e `incident_timeline` | Tracker/Dirija Bem preservados pela identidade operacional | erro/retry e vazio; conflito de versão explícito | Operacional |
+| Catálogo de eventos | `EventsCatalog` | `/api/events/catalog`, `/api/events/stats` | `tracker.tipo_evento` e eventos persistidos | capacidade indica detecção ativa/planejada, não modo | erro/retry e vazio | Operacional |
+| Sensores/comandos | inexistente | — | — | — | — | Pendente (etapas 12–23) |
+| Runtime autônomo de IA | inexistente | — | — | — | — | Pendente (etapas 24–38) |
+| Mensagens/voz | inexistente | — | — | — | — | Pendente (etapas 39–52) |
 
-- **Tracker DB:** banco `tracker` no MariaDB compartilhado;
-- **Dirija Bem DB:** banco `dirijabem`, consultado em modo leitura pela aplicação;
-- **Memória do motor:** estruturas do `behavioral_engine` dentro do processo atual do backend;
-- **Monitor DB:** tabelas de monitores no banco `tracker`;
-- **Mock frontend:** arquivo TypeScript local, sem consulta ao backend;
-- **Configuração:** variável de ambiente definida no build do frontend.
+## 3. Cabeçalho e modo operacional
 
-### Modo operacional
-
-Indica como o dado foi produzido:
-
-- **live:** originado de fluxo atual de telemetria;
-- **simulation:** gerado pelos simuladores do projeto;
-- **replay:** reprodução de dados históricos;
-- **mock:** exemplo fixo compilado junto com a interface;
-- **indeterminado:** a API não fornece metadados suficientes para distinguir os modos anteriores.
-
-### Situação
-
-| Símbolo | Significado |
+| Campo | Contrato atual |
 |---|---|
-| ✅ | Integração real, com ressalvas documentadas |
-| ⚠️ | Integração parcial, ambígua ou dependente de estado volátil |
-| 🧪 | Conteúdo demonstrativo/mock |
-| ⛔ | Capacidade ainda inexistente |
+| Serviço | `runtimeEnvironmentService.getCurrent()` |
+| Endpoint | `GET /api/runtime/environment` |
+| Autoridade | backend em execução, sem cache |
+| Fontes declaradas | Tracker e Dirija Bem |
+| Atualização | polling de 15 segundos |
+| Estados | produção, simulação, replay, misto e não confirmado |
+| Regra segura | erro, ausência, conflito, timestamp inválido ou idade acima de 30 s → não confirmado |
 
-> Regra operacional: consultar um banco real não prova que o dado seja de produção. Um simulador também pode gravar no banco real. A procedência precisa viajar junto com cada registro.
+O antigo `REACT_APP_OPERATION_MODE` não é mais autoridade da interface.
 
----
+## 4. Dashboard e identidade
 
-## 2. Matriz executiva por tela
+| Função | Serviço | Endpoint | Fonte | Efeito colateral |
+|---|---|---|---|---|
+| posições Tracker | `trackerService.getPositions` | `GET /api/posicoes` | `tracker.localizacao` + `tracker.veiculos` | nenhum |
+| usuários Dirija Bem legado | `dirijabemService.getUsers` | `GET /api/dirijabem/users` | lista exposta pelo backend | nenhum |
+| iniciar viagem/replay legado | `dirijabemService.startUserTrip` | `POST /api/dirijabem/user/{id}/start` | gerenciador de replay | **inicia/retoma processamento** |
+| identidade unificada | `unifiedVehicleService.getAll` | `GET /api/v1/vehicles` | `monitoramento.veiculos`, identidades e vínculos; fallback legado controlado | nenhum |
+| KPIs | `fleetService.getStats` | `GET /api/fleet/stats` | motor comportamental | nenhum |
+| scores | `fleetService.getScores` | `GET /api/fleet/scores` | motor comportamental | nenhum |
 
-| Tela/área | Componente principal | Dados apresentados | Fonte atual | Modo identificável? | Situação |
-|---|---|---|---|---|---:|
-| Cabeçalho | `OperationModeBadge` | Ambiente global | `REACT_APP_OPERATION_MODE` | Sim, mas apenas no nível do build | ✅ |
-| Dashboard | `BehavioralDashboard` | veículos, usuários, scores e KPIs | Tracker DB, lista fixa Dirija Bem e memória do motor | Não por registro | ⚠️ |
-| Contexto do veículo | `VehicleDetailHeader` | identidade, fonte, modo e última comunicação | cadastro unificado | Sim, conforme metadados disponíveis | ✅ |
-| Mapa | `MapComponent` | posições, scores, eventos, trilha e rota | Tracker DB, Dirija Bem DB e memória | Não por registro | ⚠️ |
-| Timeline | `EventsTimeline` | episódios comportamentais recentes | motor reidratado de `tracker.eventos` | Não | ✅ |
-| Análises | `VehicleAnalytics` | scores, distribuição e rankings | memória do motor | Não | ⚠️ |
-| Lista de monitores | `MonitorDashboard` | monitores e vínculos | Monitor DB | Não aplicável ao cadastro | ✅ |
-| Veículos do monitor | `MonitorDashboard` | veículo, score, eventos e estado | Monitor DB + memória do motor | Não | ⚠️ |
-| Detalhe visual do monitor | `MonitorDetailView` | analisadores e eventos | mock frontend | Sim: faixa DEMONSTRAÇÃO | 🧪 |
-| Alertas | `AlertsPanel` | alertas, IA, recomendações e ações | mock frontend | Sim: faixa DEMONSTRAÇÃO | 🧪 |
-| Catálogo de eventos | `EventsCatalog` | tipos, estatísticas e SLA | mock frontend | Sim: faixa DEMONSTRAÇÃO | 🧪 |
-| Cercas | inexistente | desenho, regras e violações | — | — | ⛔ |
-| Sensores/comandos | inexistente | capacidades, leituras e comandos | — | — | ⛔ |
-| Incidentes | UI ainda inexistente; API real disponível | incidente e timeline persistentes | `tracker.incidents`, `tracker.incident_timeline` | Não aplicável | ⚠️ |
-| Runtime dos agentes | inexistente | decisão, ferramentas e memória | — | — | ⛔ |
-| Comunicações | inexistente | mensagens, ligações e recibos | — | — | ⛔ |
+O painel unificado não chama o `POST /start`; a seleção Dirija Bem legada ainda possui esse efeito e deve ser tratada como replay, não como simples leitura.
 
----
+## 5. Mapa, eventos e análises
 
-## 3. Dashboard
-
-### 3.1 Seleção Tracker
-
-| Item | Valor atual |
-|---|---|
-| Componente | `BehavioralDashboard.tsx` |
-| Serviço | `trackerService.getPositions()` |
-| Endpoint | `GET /api/posicoes` |
-| Backend | `server/api.py::get_latest_positions` |
-| Fonte | tabelas `tracker.localizacao` e `tracker.veiculos` |
-| Filtro | última posição por veículo, comunicada nos últimos 10 minutos |
-| Atualização | a cada 5 segundos |
-| Efeito colateral | nenhum |
-| Limitação | resposta não informa se o pacote veio de rastreador físico ou simulador |
-| Situação | ⚠️ real, com procedência ambígua |
-
-O seletor apresenta placa e `device_id`. O endpoint lê o banco real, mas o simulador Tracker grava no mesmo fluxo. Portanto, o modo não pode ser inferido apenas pela tabela.
-
-### 3.2 Seleção Dirija Bem
-
-| Item | Valor atual |
-|---|---|
-| Serviço | `dirijabemService.getUsers()` |
-| Endpoint | `GET /api/dirijabem/users` |
-| Fonte real | constante `USERS` em `server/dirijabem_api.py` |
-| Banco consultado | nenhum neste endpoint |
-| Atualização | uma vez ao abrir o componente |
-| Situação | ⚠️ lista fixa apresentada por API |
-
-A lista parece dinâmica, mas contém dez usuários escritos no código do backend. Ela não representa automaticamente os usuários ativos ou autorizados do banco Dirija Bem.
-
-### 3.3 Selecionar usuário Dirija Bem
-
-| Item | Valor atual |
-|---|---|
-| Serviço | `dirijabemService.startUserTrip(userId)` |
-| Endpoint | `POST /api/dirijabem/user/{codusu}/start` |
-| Backend | gerenciador de replay em memória |
-| Efeito colateral | inicia ou retoma uma viagem/replay |
-| Situação | ⚠️ ação escondida atrás de uma seleção |
-
-Selecionar um usuário não é uma operação somente leitura. A interface inicia processamento no backend. O comportamento deve ser separado em um botão explícito, com confirmação do modo.
-
-### 3.4 KPIs e rankings
-
-| Dado | Serviço | Endpoint | Fonte | Atualização | Situação |
-|---|---|---|---|---:|---:|
-| score médio | `fleetService.getStats()` | `GET /api/fleet/stats` | memória do motor | 3 s | ⚠️ |
-| eventos do dia | `fleetService.getStats()` | `GET /api/fleet/stats` | memória do motor | 3 s | ⚠️ |
-| quantidade de veículos | `fleetService.getStats()` | `GET /api/fleet/stats` | memória do motor | 3 s | ⚠️ |
-| top/bottom 3 | `fleetService.getStats()` | `GET /api/fleet/stats` | memória do motor | 3 s | ⚠️ |
-| scores individuais | `fleetService.getScores()` | `GET /api/fleet/scores` | memória do motor | 3 s | ⚠️ |
-
-O estado é perdido quando o backend reinicia. Os KPIs também não informam origem, modo, janela ou versão da regra usada no cálculo.
-
-### 3.5 Frota unificada por fonte
-
-| Item | Comportamento atual |
-|---|---|
-| Componente | `UnifiedFleetPanel.tsx` |
-| Serviço | `unifiedVehicleService.getAll()` |
-| Endpoint | `GET /api/v1/vehicles` |
-| Visões | Todos, Tracker e Dirija Bem |
-| Identidade | tabela `tracker.veiculo_unificado`, contrato `vehicle.v1` |
-| Pesquisa | nome, placa, `device_id` e `codusu`, ignorando acentos e caixa |
-| Tracker | identidade versionada; score complementado pelo motor em memória quando disponível |
-| Dirija Bem | identidade versionada; score permanece indisponível |
-| Identificação | badge e cor específicos por fonte |
-| Score Tracker | exibido somente quando existe no motor |
-| Score Dirija Bem | `Score indisponível`; nenhum valor é inventado |
-| Seleção Tracker | limpa a seleção Dirija Bem e centraliza o veículo |
-| Seleção Dirija Bem | limpa a seleção Tracker e consulta viagem já ativa |
-| Efeito colateral | a visão unificada não chama `POST /start` |
-
-Os seletores específicos foram preservados. O seletor Dirija Bem antigo ainda inicia replay; a lista unificada é somente seleção/consulta e torna a origem visível em cada item.
-
----
-
-## 4. Mapa
-
-### 4.1 Cabeçalho de contexto do veículo
-
-Ao selecionar um item da frota unificada, `VehicleDetailHeader.tsx` resolve a
-identidade pelo `GET /api/v1/vehicles` e mantém acima do mapa o nome, placa,
-identificadores Tracker/Dirija Bem, procedência, modo, última comunicação e
-estado cadastral. Ausências e falhas são explícitas; o componente não cria
-score, horário ou vínculo. Fechar o cabeçalho limpa as seleções e o filtro de
-eventos do veículo.
-
-| Função | Serviço | Endpoint | Fonte | Frequência/gatilho | Situação |
-|---|---|---|---|---|---:|
-| veículos visíveis | `trackerService.getPositions()` | `GET /api/posicoes` | Tracker DB | 3 s | ⚠️ |
-| cor/score do marcador | `fleetService.getScores()` | `GET /api/fleet/scores` | memória | 3 s | ⚠️ |
-| eventos no mapa | `fleetService.getEvents(20)` | `GET /api/fleet/events?limit=20` | memória | 3 s | ⚠️ |
-| eventos da Timeline | `fleetService.getEvents(50)` | `GET /api/fleet/events?limit=50` | memória | ao destacar evento | ⚠️ |
-| trilha incremental Tracker | `positionService.getLatest()` | `GET /api/positions/latest/{VEICOD}` | Tracker DB | 5 s | ✅ |
-| rota Dirija Bem | `dirijabemService.getUserRoute()` | `GET /api/dirijabem/user/{codusu}/route` | Dirija Bem DB | troca de usuário | ⚠️ |
-| último ponto Dirija Bem | `dirijabemService.getUserLastPoint()` | `GET /api/dirijabem/user/{codusu}/last-point` | Dirija Bem DB | 5 s | ⚠️ |
-
-### Limitações relevantes
-
-- o marcador usa score padrão `85` quando não encontra score para um `device_id`; esse segundo fallback ainda precisa ser removido;
-- posição e score chegam em requisições separadas e sem identificador de snapshot;
-- rota Dirija Bem representa a viagem ativa, que pode ser replay, sintética ou contínua;
-- a resposta não inclui `mode`, `source`, `received_at`, `source_at` ou qualidade GPS;
-- o mapa não possui cercas, rotas autorizadas, sensores ou incidentes.
-
----
-
-## 5. Timeline
-
-| Item | Valor atual |
-|---|---|
-| Componente | `EventsTimeline.tsx` |
-| Serviço | `fleetService.getEvents(50)` |
-| Endpoint | `GET /api/fleet/events?limit=50` |
-| Fonte | motor em memória reidratado de `tracker.eventos` no startup |
-| Atualização | 5 segundos |
-| Persistência | eventos e score persistidos; janela ativa restaurada no startup |
-| Detectores reais | aceleração, frenagem, curva brusca e excesso de velocidade |
-| Filtros | veículo, tipo, severidade e período, combináveis |
-| Drill-down | episódio completo → coordenadas exatas no mapa + contexto do veículo |
-| Modo | indeterminado |
-| Estado de falha | explícito, com nova tentativa e aviso de dado desatualizado |
-| Situação | ⚠️ real e volátil |
-
-Os eventos comportamentais trabalham como episódios desde a UI-1.5 e a
-timeline deduplica por `episode_id`. A seleção entrega o episódio completo ao
-mapa, evitando que polling ou filtros apontem para outra posição. A tela ainda
-não trabalha com incidentes operacionais.
-
----
-
-## 6. Análises
-
-| Item | Valor atual |
-|---|---|
-| Componente | `VehicleAnalytics.tsx` |
-| Endpoints | `GET /api/fleet/scores` e `GET /api/fleet/events?limit=100` |
-| Fonte | memória do motor |
-| Atualização | 5 segundos, em conjunto |
-| Consistência | as duas respostas não compartilham versão/snapshot |
-| Estado de falha | mantém última resposta válida com aviso |
-| Situação | ⚠️ cálculo real sobre estado volátil |
-
-Não há consulta direta das métricas históricas do Dirija Bem nesta tela. O nome “AITrack + DataDrivr” não significa que todos os gráficos combinem as duas fontes.
-
----
-
-## 7. Monitores AI
-
-### 7.1 Lista e configuração
-
-| Função | Serviço | Endpoint | Fonte | Situação |
-|---|---|---|---|---:|
-| listar monitores | `monitorService.getAll()` | `GET /api/monitors` | tabelas do Monitor DB | ✅ |
-| detalhe cadastral | `monitorService.getById()` | `GET /api/monitors/{id}` | Monitor DB | ✅ |
-| veículos vinculados | `monitorService.getVehicles()` | `GET /api/monitors/{id}/vehicles` | Monitor DB + memória | ⚠️ |
-
-O endpoint de veículos enriquece os vínculos persistidos com score e eventos do processo atual. Se o motor estiver indisponível, retorna HTTP 503; não inventa mais `85/0/OK`.
-
-### 7.2 Detalhe visual
-
-| Item | Estado atual |
-|---|---|
-| veículos entregues pelo `App.tsx` | `mockVehiclesInMonitors` |
-| eventos | `mockEvents` |
-| catálogo usado para ícones | `eventTypesCatalog` mock |
-| resultado produzido por IA | nenhum |
-| aviso visível | `DEMONSTRAÇÃO — DADOS NÃO OPERACIONAIS` |
-| Situação | 🧪 mock explícito |
-
-A lista lateral consulta dados reais, mas a área principal do detalhe ainda é demonstrativa. Essa separação precisa ser preservada até o detalhe consumir uma API real.
-
----
-
-## 8. Alertas
-
-| Item | Estado atual |
-|---|---|
-| componente | `AlertsPanel.tsx` |
-| alertas | `mockAlerts` |
-| estatísticas | `mockAlertStats` |
-| análise de IA | texto fixo mock |
-| reconhecer/resolver | `window.alert`, sem persistência |
-| chamadas HTTP durante uso | nenhuma |
-| aviso visível | `DEMONSTRAÇÃO — DADOS NÃO OPERACIONAIS` |
-| Situação | 🧪 mock explícito |
-
-O backend possui endpoints de alertas, mas esta tela ainda não os utiliza:
-
-- `GET /api/alerts`;
-- `GET /api/alerts/{id}`;
-- `PUT /api/alerts/{id}/acknowledge`;
-- `PUT /api/alerts/{id}/resolve`;
-- `PUT /api/alerts/{id}/dismiss`;
-- `GET /api/alerts/stats`.
-
-A existência do endpoint não prova que o fluxo autônomo esteja implementado. Não há runtime de IA, fila de ações ou integração de comunicação.
-
----
-
-## 9. Catálogo de Eventos
-
-| Item | Estado atual |
-|---|---|
-| componente | `EventsCatalog.tsx` |
-| tipos | `eventTypesCatalog` mock |
-| estatísticas | `mockEventStats` |
-| chamadas HTTP durante uso | nenhuma |
-| aviso visível | `DEMONSTRAÇÃO — DADOS NÃO OPERACIONAIS` |
-| Situação | 🧪 mock explícito |
-
-O backend oferece `GET /api/events/catalog` e `GET /api/events/stats`, mas o frontend não os consome. O catálogo mock inclui capacidades sem detector ou sensor comprovado.
-
----
-
-## 10. Endpoints utilizados atualmente pelo frontend
-
-| Método | Endpoint | Serviço central | Consumidor | Leitura/escrita | Fonte |
-|---|---|---|---|---|---|
-| GET | `/api/posicoes` | `trackerService` | Dashboard, mapa, `VehicleList` | leitura | Tracker DB |
-| GET | `/api/positions/latest/{id}` | `positionService` | mapa | leitura | Tracker DB |
-| GET | `/api/fleet/scores` | `fleetService` | Dashboard, mapa, Análises | leitura | memória |
-| GET | `/api/fleet/events` | `fleetService` | Timeline, mapa, Análises | leitura | memória |
-| GET | `/api/fleet/stats` | `fleetService` | Dashboard | leitura | memória |
-| GET | `/api/dirijabem/users` | `dirijabemService` | Dashboard, `VehicleList` | leitura | lista fixa |
-| POST | `/api/dirijabem/user/{id}/start` | `dirijabemService` | Dashboard, `VehicleList` | **ação** | replay manager |
-| GET | `/api/dirijabem/user/{id}/route` | `dirijabemService` | mapa | leitura | Dirija Bem DB |
-| GET | `/api/dirijabem/user/{id}/last-point` | `dirijabemService` | mapa | leitura | Dirija Bem DB |
-| GET | `/api/monitors` | `monitorService` | Monitores | leitura | Monitor DB |
-| GET | `/api/monitors/{id}` | `monitorService` | Monitores | leitura | Monitor DB |
-| GET | `/api/monitors/{id}/vehicles` | `monitorService` | Monitores | leitura | Monitor DB + memória |
-| GET | `/api/v1/vehicles` | `unifiedVehicleService` | frota unificada e cabeçalho do veículo | leitura | `veiculo_unificado` |
-
-APIs operacionais disponíveis, ainda sem consumidor no frontend:
-
-| Método | Endpoint | Contrato | Fonte |
+| Função | Endpoint | Fonte | Atualização/limitação |
 |---|---|---|---|
-| GET | `/api/incidents` | `incident-list.v1` | `tracker.incidents` |
-| GET | `/api/incidents/{id}` | `incident-detail.v1` | incidentes, identidade, monitor e timeline |
+| marcadores Tracker | `GET /api/posicoes` | Tracker | polling; origem física versus simulador depende do modo global |
+| score do marcador | `GET /api/fleet/scores` | motor | requisição separada da posição; score ausente ainda usa fallback visual `85` no mapa, risco registrado |
+| eventos do mapa/timeline | `GET /api/fleet/events` | memória reidratada de `tracker.eventos` | episódios reais; modo por evento ainda ausente |
+| posição incremental | `GET /api/positions/latest/{veicod}` | Tracker | polling de 5 s |
+| rota Dirija Bem | `GET /api/dirijabem/user/{id}/route` | Dirija Bem | viagem ativa, que pode ser sintética/replay |
+| último ponto Dirija Bem | `GET /api/dirijabem/user/{id}/last-point` | Dirija Bem | polling de 5 s |
+| catálogo persistido | `GET /api/events/catalog` | `tracker.tipo_evento` | distingue detecção ativa de planejada |
+| estatísticas persistidas | `GET /api/events/stats` | `tracker.eventos` | agregação do período atual |
 
----
+## 6. Monitores e detalhe
 
-## 11. Serviços disponíveis, mas ainda não ligados às telas
+| Função | Endpoint | Fonte | Observação de verdade |
+|---|---|---|---|
+| listar/detalhar | `GET /api/monitors`, `GET /api/monitors/{id}` | `monitoramento.monitores` | cadastro operacional, não prova uso de LLM |
+| alvos e estado | `GET /api/monitors/{id}/vehicles` | `monitoramento.monitor_targets` + motor | falha comportamental retorna 503; não existe fallback 85/0/ok |
+| eventos do detalhe | `GET /api/events?device_id=...` | eventos persistidos | sem veículo selecionado, consulta todos os alvos do monitor |
+| análises disponíveis no cliente | `GET /api/monitors/{id}/analyses` | `monitoramento.monitor_analises` | serviço existe; a UI atual ainda não apresenta runtime autônomo completo |
+| criar/editar/toggle | `POST/PUT /api/monitors*` | monitoramento | serviços disponíveis; controles completos pertencem ao bloco de agentes |
 
-| Serviço frontend | Endpoints preparados | Observação |
+## 7. Incidentes operacionais
+
+| Ação | Endpoint | Escrita | Evidência persistida |
+|---|---|---:|---|
+| listar/detalhar | `GET /api/incidents`, `GET /api/incidents/{id}` | não | incidente, identidade e timeline |
+| reconhecer | `POST /api/incidents/{id}/acknowledge` | sim | ator, versão e chave idempotente |
+| assumir | `POST /api/incidents/{id}/assume` | sim | operador responsável e timeline |
+| comentar | `POST /api/incidents/{id}/comments` | sim | comentário auditável |
+| resolver | `POST /api/incidents/{id}/resolve` | sim | classificação e resolução |
+| falso positivo | `POST /api/incidents/{id}/false-positive` | sim | taxonomia e evidência |
+| falso negativo | `POST /api/incidents/false-negatives` | sim | novo registro correlacionado |
+
+O nome histórico `AlertsPanel` não significa que a tela use alertas mock: ela hoje representa a fila real de incidentes.
+
+## 8. Cercas eletrônicas
+
+| Função | Endpoint | Fonte | Situação |
+|---|---|---|---|
+| listar/criar | `GET/POST /api/geofences` | `monitoramento.geofences` + versões | operacional |
+| editar/arquivar | `PUT/DELETE /api/geofences/{ref}` | versões e auditoria | concorrência otimista/arquivamento seguro |
+| opções/vínculos | `/assignment-options`, `/{ref}/assignments` | identidades, grupos, agendas | operacional |
+| criar grupo | `POST /api/geofences/monitoring-groups` | grupos e membros | operacional |
+| estado ao vivo | `GET /api/geofences/live-state` | cerca, atribuição, último estado e episódio | polling de 5 s; limite 200 |
+
+Círculos e polígonos são comuns a Tracker e Dirija Bem. Violação de cerca gera incidente, mas não equivale, sozinha, a confirmação de roubo.
+
+## 9. Serviços presentes, mas sem fluxo completo na UI
+
+| Serviço | Contratos existentes | Limitação atual |
 |---|---|---|
-| `alertService` | alertas, detalhe, reconhecer, resolver, descartar e estatísticas | `AlertsPanel` continua mock |
-| `eventService` | catálogo, eventos persistidos e estatísticas | `EventsCatalog` continua mock |
-| `vehicleService` | adicionar/remover veículo de monitor | não há controles na interface |
-| `monitorService` | criar, editar, alternar e análises | a tela só consulta lista/detalhe/veículos |
-| `fleetService.getVehicleScore` | score individual | não utilizado diretamente |
+| `alertService` | `/api/alerts*` | legado; a tela principal usa incidentes |
+| `monitorService` | criação, edição, toggle e análises | configuração/runtime autônomo ainda incompletos |
+| `vehicleService` | adicionar/remover alvo do monitor | controles completos ainda não expostos |
+| `fleetService.getVehicleScore` | score individual | sem consumidor direto |
 
-Esses serviços representam contratos disponíveis, não funcionalidades concluídas.
+Disponibilidade no cliente não significa entrega de ponta a ponta.
 
-### API versionada de identidade
-
-`GET /api/v1/vehicles` expõe o contrato `vehicle.v1` com identidade, procedência, modo e última comunicação. A frota unificada do Dashboard consome esse endpoint desde a UI-1.3 e o cabeçalho contextual desde a UI-1.4; os seletores legados continuam temporariamente separados.
-
----
-
-## 12. Metadados que precisam entrar nos contratos
-
-Toda resposta operacional de telemetria, evento, score ou incidente deverá incluir, quando aplicável:
+## 10. Campos de proveniência exigidos na evolução
 
 | Campo | Finalidade |
 |---|---|
-| `source` | `tracker`, `dirijabem` ou integração futura |
-| `mode` | `live`, `simulation`, `replay` ou `synthetic` |
-| `source_at` | horário produzido pela fonte |
-| `received_at` | horário recebido pelo AITrack |
-| `processed_at` | horário processado pelo detector/agente |
-| `source_record_id` | rastreabilidade até o registro original |
-| `correlation_id` | correlação entre posição, evento, incidente e ação |
-| `quality` | validade, precisão e completude |
-| `is_stale` | indicação explícita de dado vencido |
-| `detector_version` | regra/modelo que produziu o evento |
+| `source` | Tracker, Dirija Bem ou integração futura |
+| `mode` | live, simulation, replay ou synthetic |
+| `source_at` / `received_at` / `processed_at` | separar relógios da origem, ingestão e processamento |
+| `source_record_id` | voltar ao registro de origem |
+| `correlation_id` | ligar posição, evento, incidente, decisão e ação |
+| `quality` / `is_stale` | validade, precisão, completude e frescor |
+| `detector_version` | regra/modelo responsável pelo evento |
 
-O indicador global de ambiente deve continuar existindo, mas não substitui esses campos por registro.
+## 11. Regras obrigatórias para novas telas
 
----
+1. Registrar nesta matriz endpoint, fonte, modo, efeito colateral e comportamento em falha.
+2. Usar serviços de `apiService.ts`; componentes não podem importar Axios, usar `fetch` nem conter URL/IP.
+3. Apresentar `POST`, `PUT` e `DELETE` como ações explícitas.
+4. Nunca substituir falha por valor plausível.
+5. Marcar snapshot preservado após falha como desatualizado.
+6. Conservar a origem Tracker/Dirija Bem em listas, detalhes, eventos, incidentes e relatórios.
+7. Não chamar monitor baseado em regras de “agente autônomo com IA”.
+8. Registrar decisão, política, ferramenta, tentativa e resultado de qualquer ação futura do agente.
 
-## 13. Regras para evolução da interface
+## 12. Validação desta versão
 
-1. Toda tela nova deve declarar seu endpoint, fonte e modo nesta matriz.
-2. Componentes não podem importar Axios nem possuir endereço de backend; o teste `apiBoundary.test.ts` fiscaliza essa regra.
-3. Qualquer `POST`, `PUT` ou `DELETE` precisa ser apresentado como ação explícita, nunca escondido em seleção ou navegação.
-4. Mock deve permanecer com faixa de demonstração até ser removido do código.
-5. Falha não pode ser substituída por valor plausível.
-6. Dado preservado após falha precisa mostrar que está desatualizado.
-7. Endpoint real não deve ser chamado de integração concluída sem fluxo de ponta a ponta e teste operacional.
-8. Dados Tracker e Dirija Bem devem conservar origem e identidade ao serem unificados.
-9. Ações de agente precisam registrar decisão, política, ferramenta, resultado e correlação.
-10. A matriz deve ser atualizada no mesmo commit que altera a origem de uma tela.
+Conferida contra:
 
----
+- as seis abas declaradas em `src/App.tsx`;
+- consumidores em `src/components/`;
+- todos os serviços em `src/services/apiService.ts`;
+- blueprints de runtime, veículos, monitores, eventos, incidentes e cercas;
+- consultas atuais aos schemas `tracker`, `dirijabem` e `monitoramento`.
 
-## 14. Próximas correções derivadas da matriz
+Comandos de apoio:
 
-| Prioridade | Correção | Motivo |
-|---:|---|---|
-| P0 | remover score padrão `85` do mapa | ainda mascara score ausente |
-| P0 | adicionar `source` e `mode` às respostas | banco real não distingue simulador/replay |
-| P0 | separar seleção Dirija Bem da ação de iniciar replay | leitura não deve provocar mutação escondida |
-| P0 | persistir eventos e scores | estado em memória desaparece no reinício |
-| P1 | ligar Alertas a incidentes reais | tela atual é mock |
-| P1 | ligar Catálogo à capacidade real dos protocolos | catálogo atual promete recursos inexistentes |
-| P1 | substituir detalhe do monitor por execuções reais | área principal ainda usa mocks |
-| P1 | incluir saúde/frescor por fonte | operador precisa distinguir offline de falha sistêmica |
+```bash
+rg -n "apiClient\.(get|post|put|delete)" aitrackdatadrivr/frontend/src/services/apiService.ts
+rg -n "Service\." aitrackdatadrivr/frontend/src/components --glob '*.tsx'
+rg -n "Blueprint|@.*route" aitrackdatadrivr/server --glob '*.py'
+```
 
----
-
-## 15. Critério de aceite desta matriz
-
-A matriz foi conferida contra:
-
-- `src/App.tsx`;
-- componentes das seis opções do menu;
-- `src/services/apiService.ts`;
-- rotas Flask em `server/api.py`, `server/dirijabem_api.py` e `server/monitor_api.py`;
-- camada `server/monitor_db.py`;
-- arquivos mock importados pelo frontend.
-
-Ela descreve o estado atual do código no commit imediatamente posterior a `fa885d4`. Mudanças futuras de fonte, endpoint, modo ou efeito colateral deverão atualizar este documento.
+Principais riscos ainda explícitos: score visual `85` no mapa quando ausente; ação de replay escondida no seletor legado Dirija Bem; modo ainda não acompanha cada evento/posição; sensores, agente autônomo e comunicações permanecem pendentes.
