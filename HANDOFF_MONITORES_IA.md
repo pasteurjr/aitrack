@@ -1109,6 +1109,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-4.1 | `70b66e9` | Catálogo operacional versionado criado no schema comum: Maxtrack, Suntech e Queclink somam 36 capacidades com suporte explícito, API de lista/resolução e ausência de fallback inventado. Migration 023 aplicada/idempotente; 249 backend aprovados e 12 opt-in pulados. |
 | 2026-11-17 | UI-4.2 | `2122216` | Modelo comum de sensores/leitura criado com valor tipado, qualidade, origem, dois horários e correlação idempotente. Pipeline Tracker persiste só capacidades confirmadas e isola falha da posição; migration 024 aplicada, prova real sem resíduos, 255 backend aprovados e 12 opt-in pulados. |
 | 2026-11-17 | UI-4.3 | `2669035` | Políticas de detector agora são versões imutáveis com escopo, parâmetros JSON, ativação exclusiva e auditoria de ator/motivo/snapshot. Migration 025 e API v1 validadas no MariaDB sem resíduos; 260 backend aprovados e 12 opt-in pulados; nenhuma regra foi ativada sem homologação. |
+| 2026-11-17 | UI-4.4 | `5fa87dd` | Aba Sensores ligada à API real mostra somente instâncias observadas e confirmadas, com estados acessíveis e sem converter eventos Dirija Bem em hardware. Simulador/socket produziram 55 sensores em 10 veículos; navegador 1440×900, 262 backend, 76 frontend, TypeScript e build aprovados. |
 
 ---
 
