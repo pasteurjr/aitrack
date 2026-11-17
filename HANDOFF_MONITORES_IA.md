@@ -1106,6 +1106,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-0.6 | `b55f1cf` | Fronteira estática passou a rejeitar URL absoluta, IP, localhost, Axios e fetch em componentes; tiles do mapa foram movidos para configuração por ambiente. Busca limpa, 14 testes específicos, 72 frontend, TypeScript e build aprovados. |
 | 2026-11-17 | UI-0.7 | `7a2ba1f` | Matriz operacional foi reconciliada com o código atual, removendo descrições obsoletas de mock/ausência para incidentes, catálogo, detalhe e cercas. Seis famílias de endpoints responderam 200; riscos e capacidades pendentes permaneceram explícitos. |
 | 2026-11-17 | UI-0.8 | `157a54a` | Frota unificada, detalhes e incidentes mantêm Tracker/Dirija Bem; eventos passaram a expor fonte explícita e a timeline ganhou filtro/badge. API real: 26 identidades (9 Tracker, 16 Dirija Bem, 1 both). Passaram 244 backend, 73 frontend, TypeScript e build; relatórios e ingestão comportamental Dirija Bem permanecem nas etapas próprias. |
+| 2026-11-17 | UI-4.1 | `70b66e9` | Catálogo operacional versionado criado no schema comum: Maxtrack, Suntech e Queclink somam 36 capacidades com suporte explícito, API de lista/resolução e ausência de fallback inventado. Migration 023 aplicada/idempotente; 249 backend aprovados e 12 opt-in pulados. |
 
 ---
 
