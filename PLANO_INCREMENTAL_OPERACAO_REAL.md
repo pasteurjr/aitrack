@@ -1,14 +1,14 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 11:11 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 11:15 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `1988622` — UI-0.5 revalidada
+**Checkpoint mais recente:** `b55f1cf` — UI-0.6 concluída
 
-**Tarefas pendentes:** 66
+**Tarefas pendentes:** 65
 
-**Próxima tarefa:** **9 de 74 — UI-0.6: impedir URL hardcoded em componentes novos**
+**Próxima tarefa:** **10 de 74 — UI-0.7: documentar matriz tela → endpoint → fonte → modo**
 
-**Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera a contagem atual de 68 tarefas pendentes porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
+**Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
 ## 1. Como este documento será usado
 
@@ -63,7 +63,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 6/74 | 0.3 | Remover fallback silencioso no detalhe do monitor. | Falha de API gera erro explícito; nenhum score ou veículo inventado aparece como real. | **Concluída e revalidada em 17/11/2026 11:05 -03.** **Resultado obtido:** a implementação histórica `0c2f596`, já incorporada à `main`, elimina o fallback `85/0/ok`; falha no enriquecimento retorna `503/BEHAVIORAL_DATA_UNAVAILABLE`, e a UI limpa dados anteriores, mostra erro acessível e oferece nova tentativa/voltar. **Evidências:** 242 testes backend, 65 frontend, TypeScript e build aprovados; endpoint real retornou SIM-1000/SIM-1001 com score `100.0` calculado e sem valores inventados. **Limitação:** `.venv` está ausente e o Conda `aitrack` não possui pytest; a suíte backend rodou no Python base sem instalação. **Artefato:** `docs/VALIDACAO_UI_0_3_2026-11-17.md`. **Checkpoint:** `79e38c2`. |
 | 7/74 | 0.4 | Criar estado comum de erro, vazio e carregamento. | Componentes reutilizam contrato visual/acessível e testes cobrem os três estados. | **Concluída e revalidada em 17/11/2026 11:08 -03.** **Resultado obtido:** `AsyncDataState` centraliza carregamento, vazio, erro e dado desatualizado com papéis acessíveis e ações de retorno/retry; dashboard, timeline, análises, monitores, catálogo, incidentes e detalhe reutilizam o contrato. **Evidências:** 12 testes específicos e TypeScript aprovados; regressão do ciclo confirmou 65 frontend e build. **Limitação:** estilos inline e avisos de base de navegadores permanecem fora do escopo. **Artefato:** `docs/VALIDACAO_UI_0_4_2026-11-17.md`. **Checkpoint:** `cb74b0c`. |
 | 8/74 | 0.5 | Centralizar base URL e cliente HTTP. | App 2 faz chamadas somente pelo cliente configurável; busca estática não encontra URLs locais espalhadas. | **Concluída e revalidada em 17/11/2026 11:11 -03.** **Resultado obtido:** base operacional é resolvida por `config/api.ts`; somente `apiService.ts` importa Axios e instancia o cliente; componentes consomem serviços de domínio. O tile externo do OpenStreetMap foi classificado corretamente fora da API operacional. **Evidências:** busca estática limpa, 4 testes de configuração/fronteira e TypeScript aprovados. **Limitação:** produção deve definir `REACT_APP_API_BASE_URL`; prevenção ampliada pertence à UI-0.6. **Artefato:** `docs/VALIDACAO_UI_0_5_2026-11-17.md`. **Checkpoint:** `1988622`. |
-| 9/74 | 0.6 | Impedir URL hardcoded em componentes novos. | Teste automatizado falha ao introduzir `localhost`, IP ou URL absoluta fora da configuração permitida. | **Pendente.** |
+| 9/74 | 0.6 | Impedir URL hardcoded em componentes novos. | Teste automatizado falha ao introduzir `localhost`, IP ou URL absoluta fora da configuração permitida. | **Concluída em 17/11/2026 11:15 -03.** **Resultado obtido:** fronteira estática rejeita URL HTTP absoluta, IP, localhost, Axios direto e `fetch` em componentes; casos sintéticos provam cada detecção. Tile do OpenStreetMap saiu do componente e passou a `config/map.ts`, configurável por ambiente. **Evidências:** busca limpa, 14 testes específicos, 72 frontend, TypeScript e build aprovados. **Limitação:** URLs permitidas permanecem nos módulos de configuração e a CSP de implantação fica fora do escopo. **Artefato:** `docs/VALIDACAO_UI_0_6_2026-11-17.md`. **Checkpoint:** `b55f1cf`. |
 | 10/74 | 0.7 | Documentar matriz tela → endpoint → fonte → modo. | Cada bloco visual aponta endpoint, banco/fonte, modo e comportamento em erro; matriz é conferida contra o código. | **Pendente.** |
 | 11/74 | 0.8 | Separar Tracker e Dirija Bem mantendo visão unificada. | Origem fica inequívoca em lista, detalhe, eventos e relatórios, com filtros e total unificado corretos. | **Pendente.** |
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 9 de 74 — UI-0.6: impedir URL hardcoded em componentes novos.**
+**Próxima etapa 10 de 74 — UI-0.7: documentar matriz tela → endpoint → fonte → modo.**
 
-Ao concluí-la, este documento deverá indicar `65 tarefas pendentes` e anunciar
-`Próxima etapa 10 de 74 — UI-0.7`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `64 tarefas pendentes` e anunciar
+`Próxima etapa 11 de 74 — UI-0.8`, preservando o denominador original para mostrar
 o avanço total da rodada.
