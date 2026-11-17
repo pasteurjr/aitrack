@@ -29,6 +29,9 @@ jest.mock('./components/VehicleDetailHeader', () => (props: any) => (
     ? <button type="button" onClick={props.onClear}>Fechar contexto de teste</button>
     : null
 ));
+jest.mock('./components/VehicleSensorsPanel', () => (props: any) => (
+  <div data-testid="sensors" data-selected-vehicle={props.selectedVehicleId ?? ''} />
+));
 jest.mock('./services/apiService', () => ({
   runtimeEnvironmentService: { getCurrent: jest.fn() },
 }));
@@ -62,6 +65,10 @@ test('drill-down entrega identidade e posição exatas do episódio ao mapa', as
 
   expect(screen.getByTestId('map')).toHaveAttribute('data-selected-vehicle', 'SIM-1001');
   expect(screen.getByTestId('map')).toHaveAttribute('data-highlighted-event', 'ep-test');
+  fireEvent.click(screen.getByRole('tab', { name: 'Sensores' }));
+  expect(screen.getByTestId('sensors')).toHaveAttribute('data-selected-vehicle', 'SIM-1001');
+  fireEvent.click(screen.getByRole('tab', { name: 'Mapa e rota' }));
+  expect(screen.getByTestId('map')).toHaveAttribute('data-selected-vehicle', 'SIM-1001');
   fireEvent.click(screen.getByRole('button', { name: 'Fechar contexto de teste' }));
   expect(screen.getByTestId('map')).toHaveAttribute('data-selected-vehicle', '');
   expect(screen.getByTestId('map')).toHaveAttribute('data-highlighted-event', '');

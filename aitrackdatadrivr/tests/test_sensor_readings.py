@@ -3,9 +3,11 @@ from pathlib import Path
 import re
 
 import pytest
+from flask import Flask
 
 from server import sensor_db
 from server import db_handler
+from server import sensor_api
 
 
 MIGRATION = Path(__file__).resolve().parents[1] / 'migrations' / '024_create_sensor_readings.sql'
@@ -168,3 +170,38 @@ def test_sensor_failure_is_rolled_back_without_escaping_ingestion(monkeypatch):
     assert result == 0
     assert connection.committed == 0
     assert connection.rolled_back == 1
+
+
+def _sensor_client():
+    app = Flask(__name__)
+    app.register_blueprint(sensor_api.sensor_bp)
+    return app.test_client()
+
+
+def test_vehicle_sensor_api_returns_real_contract(monkeypatch):
+    result = {
+        'schema_version': 'vehicle-sensors.v1', 'vehicle': {'id': 12},
+        'sources': ['tracker'], 'protocols': ['maxtrack'], 'count': 1,
+        'sensors': [{'id': 1, 'capability_code': 'ignition'}],
+    }
+    monkeypatch.setattr(sensor_api.sensor_db, 'get_vehicle_sensors', lambda vehicle_id: result)
+
+    response = _sensor_client().get('/api/vehicles/12/sensors')
+
+    assert response.status_code == 200
+    assert response.get_json() == result
+
+
+def test_vehicle_sensor_api_has_explicit_not_found_and_failure(monkeypatch):
+    monkeypatch.setattr(sensor_api.sensor_db, 'get_vehicle_sensors', lambda _vehicle_id: None)
+    missing = _sensor_client().get('/api/vehicles/999/sensors')
+    assert missing.status_code == 404
+    assert missing.get_json()['code'] == 'VEHICLE_NOT_FOUND'
+
+    monkeypatch.setattr(
+        sensor_api.sensor_db, 'get_vehicle_sensors',
+        lambda _vehicle_id: (_ for _ in ()).throw(RuntimeError('db down')),
+    )
+    failure = _sensor_client().get('/api/vehicles/12/sensors')
+    assert failure.status_code == 500
+    assert failure.get_json()['code'] == 'VEHICLE_SENSORS_UNAVAILABLE'

@@ -4,6 +4,8 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Optional
 
+from .monitor_db import get_connection
+
 
 TRACKER_FIELDS = {
     'position': ('geo', None),
@@ -146,3 +148,54 @@ def persist_tracker_readings(
         )
         inserted += max(cursor.rowcount, 0)
     return inserted
+
+
+def get_vehicle_sensors(vehicle_id: int) -> Optional[Dict]:
+    """Lista somente sensores comprovados/observados do veículo operacional."""
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT id, public_id, placa, ativo FROM monitoramento.veiculos "
+            "WHERE id = %s AND merged_into_id IS NULL",
+            (vehicle_id,),
+        )
+        vehicle = cursor.fetchone()
+        if not vehicle:
+            return None
+        cursor.execute(
+            "SELECT s.id, s.source_code, s.protocol_code, s.device_model, "
+            "s.external_device_id, s.capability_code, s.unit, s.lifecycle_status, "
+            "s.first_seen_at, s.last_seen_at, i.support_status, i.evidence "
+            "FROM monitoramento.sensors s "
+            "LEFT JOIN monitoramento.capability_profile_items i "
+            "ON i.id = s.capability_profile_item_id "
+            "WHERE s.vehicle_id = %s "
+            "ORDER BY s.source_code, s.protocol_code, s.capability_code",
+            (vehicle_id,),
+        )
+        sensors = cursor.fetchall()
+        for sensor in sensors:
+            for field in ('first_seen_at', 'last_seen_at'):
+                if isinstance(sensor.get(field), datetime):
+                    sensor[field] = sensor[field].isoformat()
+            sensor['configured'] = True
+            sensor['support_status'] = sensor['support_status'] or 'unknown'
+        protocols = sorted({sensor['protocol_code'] for sensor in sensors})
+        sources = sorted({sensor['source_code'] for sensor in sensors})
+        return {
+            'schema_version': 'vehicle-sensors.v1',
+            'vehicle': {
+                'id': int(vehicle['id']),
+                'public_id': vehicle['public_id'],
+                'plate': vehicle['placa'],
+                'active': bool(vehicle['ativo']),
+            },
+            'sources': sources,
+            'protocols': protocols,
+            'count': len(sensors),
+            'sensors': sensors,
+        }
+    finally:
+        cursor.close()
+        connection.close()

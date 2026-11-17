@@ -8,6 +8,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type { RuntimeEnvironment } from '../types/runtimeEnvironment';
+import type { VehicleSensorsResponse } from '../types/sensor';
 import type { EventStats, EventType, MonitorEvent } from '../types/monitorEvent';
 import type {
   IncidentDetailResponse,
@@ -253,6 +254,11 @@ export const unifiedVehicleService = {
   getAll: () => apiClient.get<UnifiedVehiclesResponse>('/v1/vehicles'),
 };
 
+export const sensorService = {
+  getByVehicle: (vehicleId: number) =>
+    apiClient.get<VehicleSensorsResponse>(`/vehicles/${vehicleId}/sensors`),
+};
+
 export const runtimeEnvironmentService = {
   getCurrent: () => apiClient.get<RuntimeEnvironment>('/runtime/environment'),
 };
@@ -327,6 +333,7 @@ const apiService = {
   position: positionService,
   dirijabem: dirijabemService,
   unifiedVehicle: unifiedVehicleService,
+  sensor: sensorService,
   runtimeEnvironment: runtimeEnvironmentService,
 };
 

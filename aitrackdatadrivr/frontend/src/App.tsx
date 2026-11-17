@@ -9,6 +9,7 @@ import AlertsPanel from './components/AlertsPanel';
 import EventsCatalog from './components/EventsCatalog';
 import OperationModeBadge from './components/OperationModeBadge';
 import VehicleDetailHeader from './components/VehicleDetailHeader';
+import VehicleSensorsPanel from './components/VehicleSensorsPanel';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
@@ -21,6 +22,7 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [highlightedEvent, setHighlightedEvent] = useState<BehavioralEvent | null>(null);
   const [filterEventsByVehicle, setFilterEventsByVehicle] = useState<string | null>(null);
+  const [detailMode, setDetailMode] = useState<'map' | 'sensors'>('map');
 
   // Monitor state
   const [selectedMonitorId, setSelectedMonitorId] = useState<number | null>(null);
@@ -154,21 +156,44 @@ function App() {
                   setHighlightedEvent(null);
                   setSelectedVehicleId(null);
                   setSelectedUserId(null);
+                  setDetailMode('map');
                 }}
               />
+              {(selectedVehicleId !== null || selectedUserId !== null) && (
+                <div role="tablist" aria-label="Detalhes do veículo" style={styles.detailTabs}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={detailMode === 'map'}
+                    style={{ ...styles.detailTab, ...(detailMode === 'map' ? styles.detailTabActive : {}) }}
+                    onClick={() => setDetailMode('map')}
+                  >Mapa e rota</button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={detailMode === 'sensors'}
+                    style={{ ...styles.detailTab, ...(detailMode === 'sensors' ? styles.detailTabActive : {}) }}
+                    onClick={() => setDetailMode('sensors')}
+                  >Sensores</button>
+                </div>
+              )}
               <div style={{ flex: 1, minHeight: 0 }}>
-                <MapComponent
-                  selectedVehicleId={selectedVehicleId}
-                  selectedUserId={selectedUserId}
-                  highlightedEvent={highlightedEvent}
-                  filterEventsByVehicle={filterEventsByVehicle}
-                  onClearEventHighlight={() => setHighlightedEvent(null)}
-                  onClearFilter={() => {
-                    setFilterEventsByVehicle(null);
-                    setSelectedVehicleId(null);
-                    setSelectedUserId(null);
-                  }}
-                />
+                {detailMode === 'sensors' ? (
+                  <VehicleSensorsPanel selectedVehicleId={selectedVehicleId} selectedUserId={selectedUserId} />
+                ) : (
+                  <MapComponent
+                    selectedVehicleId={selectedVehicleId}
+                    selectedUserId={selectedUserId}
+                    highlightedEvent={highlightedEvent}
+                    filterEventsByVehicle={filterEventsByVehicle}
+                    onClearEventHighlight={() => setHighlightedEvent(null)}
+                    onClearFilter={() => {
+                      setFilterEventsByVehicle(null);
+                      setSelectedVehicleId(null);
+                      setSelectedUserId(null);
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -227,6 +252,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '350px',
     backgroundColor: '#1f2937',
     overflowY: 'auto',
+  },
+  detailTabs: {
+    backgroundColor: '#111827',
+    borderBottom: '1px solid #334155',
+    display: 'flex',
+    gap: '6px',
+    padding: '6px 12px',
+  },
+  detailTab: {
+    backgroundColor: 'transparent',
+    borderColor: '#475569',
+    borderRadius: '5px',
+    borderStyle: 'solid',
+    borderWidth: '1px',
+    color: '#cbd5e1',
+    cursor: 'pointer',
+    fontSize: '11px',
+    padding: '5px 10px',
+  },
+  detailTabActive: {
+    backgroundColor: '#065f46',
+    borderColor: '#10b981',
+    color: '#ecfdf5',
   },
 };
 
