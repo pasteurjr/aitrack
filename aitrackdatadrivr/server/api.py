@@ -222,6 +222,9 @@ app.register_blueprint(device_command_bp)
 from .agent_config_api import agent_config_bp
 app.register_blueprint(agent_config_bp)
 
+from .agent_run_api import agent_run_bp
+app.register_blueprint(agent_run_bp)
+
 @app.route('/api/fleet/scores', methods=['GET'])
 def get_fleet_scores():
     """
