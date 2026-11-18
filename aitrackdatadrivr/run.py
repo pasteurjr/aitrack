@@ -8,6 +8,7 @@ from server.socket_server import start_server
 from server.dirijabem_geofence_ingestor import run_forever as run_dirijabem_geofence_ingestor
 from server.geofence_incident_worker import run_forever as run_geofence_incident_worker
 from server.offline_detector import run_forever as run_offline_detector
+from server.device_command_db import run_timeout_worker
 from dirijabem_simulator import get_replay_manager
 
 def run_socket_server():
@@ -50,6 +51,7 @@ if __name__ == "__main__":
         daemon=True,
     )
     offline_detector_thread = Thread(target=run_offline_detector, daemon=True)
+    command_timeout_thread = Thread(target=run_timeout_worker, daemon=True)
 
     print("Iniciando todos os serviços AITrack + Dirijabem...")
 
@@ -60,6 +62,7 @@ if __name__ == "__main__":
     dirijabem_ingestor_thread.start()
     geofence_incident_thread.start()
     offline_detector_thread.start()
+    command_timeout_thread.start()
 
     try:
         # Mantém o processo principal vivo, esperando que as threads filhas terminem
@@ -84,6 +87,9 @@ if __name__ == "__main__":
             if not offline_detector_thread.is_alive():
                 print("ERRO: A thread do detector offline foi encerrada inesperadamente.")
                 break
+            if not command_timeout_thread.is_alive():
+                print("ERRO: A thread de timeout de comandos foi encerrada inesperadamente.")
+                break
 
     except KeyboardInterrupt:
         print("\nRecebido sinal de interrupção. Encerrando os servidores...")
@@ -95,5 +101,6 @@ if __name__ == "__main__":
     dirijabem_ingestor_thread.join(timeout=2)
     geofence_incident_thread.join(timeout=2)
     offline_detector_thread.join(timeout=2)
+    command_timeout_thread.join(timeout=2)
 
     print("Todos os serviços foram encerrados.")
