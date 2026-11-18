@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 21:23 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 21:29 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `37f229e` — UI-4.9 concluída
+**Checkpoint mais recente:** `b1b4448` — UI-4.10 concluída
 
-**Tarefas pendentes:** 54
+**Tarefas pendentes:** 53
 
-**Próxima tarefa:** **21 de 74 — UI-4.10: definir contrato de comando e confirmação**
+**Próxima tarefa:** **22 de 74 — UI-4.11: reforçar autorização para comandos críticos**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -80,7 +80,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 18/74 | 4.7 | Criar estados armado/desarmado. | Estado possui transições autorizadas, responsável, horário, escopo e histórico auditável. | **Concluída em 17/11/2026 21:07 -03.** **Resultado obtido:** máquina patrimonial por veículo mantém armado/desarmado, versão otimista, ator coerente com fundamento, motivo, correlação idempotente e histórico imutável; UI permite transição com autoria e mostra escopo/versão/histórico. **Evidências:** migration 027 aplicada/idempotente e 26 veículos iniciados desarmados; prova real armou v2, repetiu sem duplicar, rejeitou v1 com 409 e desarmou v3; navegador real mostrou estado/histórico; 273 backend, 78 frontend, TypeScript e build aprovados. **Limitações:** estado lógico não envia comando; autenticação central e agendador permanecem posteriores. **Artefatos:** migration 027, DB/API/controle UI, testes e `docs/VALIDACAO_UI_4_7_2026-11-17.md`. **Checkpoint:** `f6e5be7`. |
 | 19/74 | 4.8 | Detectar alimentação removida e bateria baixa. | Apenas protocolos com sinal comprovado geram episódio, com histerese/cooldown e testes de falso positivo. | **Concluída em 17/11/2026 21:16 -03.** **Resultado obtido:** detector usa somente tensão externa confirmada, exige veículo armado/política ativa, amostras consecutivas, histerese e cooldown; persiste estado/episódio e isola falha por savepoint. Políticas conservadoras nascem draft e a UI/API mostram episódios/ativação. **Evidências:** migration 028 aplicada/idempotente; transação real abriu/resolveu perda 0,4→8,3 V e baixa tensão 11,0→12,5 V, pulso isolado não abriu e rollback deixou zero resíduo/drafts/desarmado; 282 backend, 79 frontend, TypeScript e build aprovados. **Limitações:** não mede bateria interna, políticas não estão ativas e episódios ainda não são incidentes/ações. **Artefatos:** migration 028, `power_detector.py`, ingestão/API/UI, testes e `docs/VALIDACAO_UI_4_8_2026-11-17.md`. **Checkpoint:** `1fd1cb9`. |
 | 20/74 | 4.9 | Detectar offline contextualizado. | Offline considera frequência esperada, viagem, ignição, manutenção e indisponibilidade da integração. | **Concluída em 17/11/2026 21:23 -03.** **Resultado obtido:** worker supervisionado avalia heartbeat da integração, estado armado, manutenção e contexto movimento/ignição/repouso, com suspeita/recovery em duas verificações e episódio em segundos. Política offline nasce draft e aparece na UI. **Evidências:** migration 029 aplicada/idempotente; transação real suprimiu desarmado/outage/manutenção, abriu aos 71 s em movimento e resolveu após duas leituras frescas, rollback sem resíduos; runtime Tracker healthy/worker ativo; 289 backend, 79 frontend, TypeScript e build aprovados. **Limitações:** manutenção sem formulário, viagem inferida e episódio ainda não correlacionado a incidente/ação. **Artefatos:** migration 029, `offline_detector.py`, heartbeat/worker/UI, testes e `docs/VALIDACAO_UI_4_9_2026-11-17.md`. **Checkpoint:** `37f229e`. |
-| 21/74 | 4.10 | Definir contrato de comando e confirmação. | Comando possui solicitação, envio, ACK/NACK/timeout, idempotência, estado final e correlação. | **Pendente.** |
+| 21/74 | 4.10 | Definir contrato de comando e confirmação. | Comando possui solicitação, envio, ACK/NACK/timeout, idempotência, estado final e correlação. | **Concluída em 17/11/2026 21:29 -03.** **Resultado obtido:** contrato comum persiste solicitação e timeline imutável; máquina versionada admite fila, envio, ACK, NACK, timeout, cancelamento e falha, com idempotência e correlação. Worker supervisionado finaliza pendências vencidas; API cria e lista o histórico. **Evidências:** migration 030 aplicada/idempotente; ciclo MariaDB sintético `requested → queued → sent → acknowledged` gerou quatro eventos e timeout separado chegou a `timed_out`, com zero resíduo; tentativa ao vivo de imobilização não comprovada retornou 409 e preservou zero comandos; 18 testes específicos e 307 regressões aprovados, 12 opt-in pulados; endpoint ao vivo respondeu contrato v1. **Limitação controlada:** não há transporte físico nem callback público até protocolo/ACK e autenticação serem homologados; comandos atuais seguem `unknown` e bloqueados. **Artefatos:** migration 030, DB/API de comandos, worker, testes e `docs/VALIDACAO_UI_4_10_2026-11-17.md`. **Checkpoint:** `b1b4448`. |
 | 22/74 | 4.11 | Reforçar autorização para comandos críticos. | Bloqueio/acionamento crítico exige papel, confirmação, motivo, política e trilha imutável. | **Pendente.** |
 | 23/74 | 4.12 | Criar simulador de sinais suportados. | Simulador gera somente sinais documentados e cenários determinísticos de sucesso/falha para Tracker. | **Pendente.** |
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 21 de 74 — UI-4.10: definir contrato de comando e confirmação.**
+**Próxima etapa 22 de 74 — UI-4.11: reforçar autorização para comandos críticos.**
 
-Ao concluí-la, este documento deverá indicar `53 tarefas pendentes` e anunciar
-`Próxima etapa 22 de 74 — UI-4.11`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `52 tarefas pendentes` e anunciar
+`Próxima etapa 23 de 74 — UI-4.12`, preservando o denominador original para mostrar
 o avanço total da rodada.

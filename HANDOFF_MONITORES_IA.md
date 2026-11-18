@@ -1115,6 +1115,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-4.7 | `f6e5be7` | Estado patrimonial armado/desarmado por veículo ganhou versão otimista, correlação idempotente, ator/fundamento coerentes e histórico. Prova real armou v2, rejeitou versão velha e desarmou v3; frota final 26/26 desarmada, navegador real, 273 backend e 78 frontend aprovados. |
 | 2026-11-17 | UI-4.8 | `1fd1cb9` | Detector de perda/baixa tensão externa exige política ativa, veículo armado, amostras, histerese e cooldown; savepoint preserva leitura em falha. Prova real abriu/resolveu ambos, pulso isolado não abriu e rollback deixou zero resíduo; políticas draft, 282 backend e 79 frontend aprovados. |
 | 2026-11-17 | UI-4.9 | `37f229e` | Worker offline considera heartbeat da integração, armado, manutenção e movimento/ignição/repouso com confirmação/recovery. Prova real suprimiu três contextos, abriu aos 71 s e resolveu com duas leituras, rollback limpo; Tracker healthy, política draft, 289 backend e 79 frontend aprovados. |
+| 2026-11-17 | UI-4.10 | `b1b4448` | Contrato comum de comando criou solicitação/timeline idempotentes, estados versionados, ACK/NACK/timeout e worker de expiração. Prova MariaDB completou ACK e timeout sem resíduos; imobilização não comprovada foi bloqueada com 409 e zero envio; 307 backend aprovados. |
 
 ---
 
