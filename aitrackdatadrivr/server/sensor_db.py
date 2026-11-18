@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from .monitor_db import get_connection
 from . import power_detector
+from . import offline_detector
 
 
 TRACKER_FIELDS = {
@@ -112,6 +113,7 @@ def persist_tracker_readings(
         raise ValueError(f'Protocolo Tracker não suportado: {protocol or "ausente"}')
     observed_at = _naive_utc(data.get('timestamp'))
     received_at = _naive_utc(received_at or datetime.utcnow())
+    offline_detector.record_source_success(cursor, 'tracker', received_at)
     device_id = data.get('device_id')
     external_device_id = str(device_id or f'vehicle:{tracker_vehicle_id}')
     vehicle_id = _resolve_vehicle_id(cursor, tracker_vehicle_id, device_id)

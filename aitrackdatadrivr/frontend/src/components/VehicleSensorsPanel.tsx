@@ -149,8 +149,8 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
             <span style={episode.status === 'open' ? styles.episodeOpen : styles.episodeResolved}>
               {episode.status === 'open' ? 'ABERTO' : 'RESOLVIDO'}
             </span>
-            <strong>{episode.episode_type === 'power_removed' ? 'Alimentação removida' : 'Baixa tensão externa'}</strong>
-            <span>{episode.minimum_value} V mín. · {episode.evidence_count} evidências · política {episode.policy_key} v{episode.version_number}</span>
+            <strong>{episodeLabel(episode.episode_type)}</strong>
+            <span>{episodeEvidence(episode)} · {episode.evidence_count} evidências · política {episode.policy_key} v{episode.version_number}</span>
           </article>
         ))}
       </section>
@@ -345,6 +345,19 @@ function formatValue(sensor: VehicleSensorDTO): string {
     return `${value.latitude?.toFixed(5) ?? '—'}, ${value.longitude?.toFixed(5) ?? '—'}`;
   }
   return `${String(reading.value)}${reading.unit ? ` ${reading.unit}` : ''}`;
+}
+
+function episodeLabel(type: DetectorEpisodeDTO['episode_type']): string {
+  if (type === 'power_removed') return 'Alimentação removida';
+  if (type === 'low_external_voltage') return 'Baixa tensão externa';
+  return 'Veículo offline';
+}
+
+function episodeEvidence(episode: DetectorEpisodeDTO): string {
+  if (episode.episode_type === 'offline') {
+    return `${episode.trigger_value} s sem posição`;
+  }
+  return `${episode.minimum_value} V mín.`;
 }
 
 function formatDate(value: string): string {

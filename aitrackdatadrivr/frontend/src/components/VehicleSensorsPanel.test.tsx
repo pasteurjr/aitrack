@@ -108,19 +108,28 @@ test('mostra somente sensores observados vindos da API real', async () => {
 
 test('mostra episódio real de baixa tensão sem chamar bateria interna', async () => {
   getEpisodes.mockResolvedValue({ data: {
-    schema_version: 'detector-episodes.v1', vehicle_id: 12, count: 1, episodes: [{
+    schema_version: 'detector-episodes.v1', vehicle_id: 12, count: 2, episodes: [{
       id: 9, public_id: 'episode-9', vehicle_id: 12,
       episode_type: 'low_external_voltage', status: 'open', severity: 'high',
       started_at: '2026-11-17T21:00:00', resolved_at: null,
       trigger_value: 11.2, recovery_value: null, minimum_value: 10.9,
       evidence_count: 4, policy_key: 'low-external-voltage', version_number: 1,
       source_code: 'tracker', protocol_code: 'maxtrack', capability_code: 'external_voltage',
+    }, {
+      id: 10, public_id: 'episode-10', vehicle_id: 12,
+      episode_type: 'offline', status: 'resolved', severity: 'high',
+      started_at: '2026-11-17T21:05:00', resolved_at: '2026-11-17T21:06:00',
+      trigger_value: 61, recovery_value: 2, minimum_value: 61,
+      evidence_count: 2, policy_key: 'vehicle-offline', version_number: 1,
+      source_code: 'tracker', protocol_code: 'maxtrack', capability_code: 'position',
     }],
   } });
   render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
 
   expect(await screen.findByText('Baixa tensão externa')).toBeInTheDocument();
   expect(screen.getByText(/10.9 V mín./)).toBeInTheDocument();
+  expect(screen.getByText('Veículo offline')).toBeInTheDocument();
+  expect(screen.getByText(/61 s sem posição/)).toBeInTheDocument();
   expect(screen.queryByText(/bateria interna/i)).not.toBeInTheDocument();
 });
 

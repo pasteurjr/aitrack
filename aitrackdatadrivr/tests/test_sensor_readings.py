@@ -112,6 +112,10 @@ def test_tracker_packet_persists_only_confirmed_typed_readings(monkeypatch):
     assert all(params[5] == datetime(2026, 11, 17, 15, 0, 1) for params in reading_params)
     assert all(params[6] == 'tracker:10:location:500' for params in reading_params)
     assert all('panic' not in params[2] for params in reading_params)
+    assert any(
+        'INSERT INTO monitoramento.integration_health' in sql
+        for sql, _params in cursor.statements
+    )
 
 
 def test_repeated_correlation_is_idempotent(monkeypatch):

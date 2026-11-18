@@ -99,7 +99,7 @@ export interface DetectorEpisodeDTO {
   id: number;
   public_id: string;
   vehicle_id: number;
-  episode_type: 'power_removed' | 'low_external_voltage';
+  episode_type: 'power_removed' | 'low_external_voltage' | 'offline';
   status: 'open' | 'resolved';
   severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
   started_at: string;
