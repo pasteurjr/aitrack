@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 21:07 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 21:16 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `f6e5be7` — UI-4.7 concluída
+**Checkpoint mais recente:** `1fd1cb9` — UI-4.8 concluída
 
-**Tarefas pendentes:** 56
+**Tarefas pendentes:** 55
 
-**Próxima tarefa:** **19 de 74 — UI-4.8: detectar alimentação removida e bateria baixa**
+**Próxima tarefa:** **20 de 74 — UI-4.9: detectar offline contextualizado**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -78,7 +78,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 16/74 | 4.5 | Exibir valor, saúde, origem e última leitura. | Operador distingue leitura atual, desatualizada, inválida ou indisponível e rastreia a fonte. | **Concluída em 17/11/2026 16:23 -03.** **Resultado obtido:** API/UI mostram valor tipado, unidade, qualidade, origem, idade e horários observado/recebido/gravado; saúde distingue atual, desatualizado, inválido e indisponível. Relógios são preservados e fuso desconhecido da fonte fica explícito. **Evidências:** migration 026 aplicada/idempotente; API real devolveu cinco sensores atuais com offset BRT e desvio preservado; navegador 1440×900, 264 backend, 76 frontend, TypeScript e build aprovados. **Limitações:** 120 s é frescor visual, não incidente; offline contextual fica na UI-4.9 e histórico anterior não é reescrito. **Artefatos:** migration 026, agregação da última leitura, DTO/UI, testes e `docs/VALIDACAO_UI_4_5_2026-11-17.md`. **Checkpoint:** `31df64a`. |
 | 17/74 | 4.6 | Ativar política, não hardware inexistente. | A interface deixa explícito que habilita detecção; comando físico só aparece quando suportado e confirmado. | **Concluída em 17/11/2026 16:30 -03.** **Resultado obtido:** cartões separam detecção operacional do sensor físico; draft exige operador/motivo e ativação auditada, enquanto ausência de política não altera hardware. API separa comandos catalogados/confirmados e a UI não oferece ação quando suporte é desconhecido. **Evidências:** prova API/MariaDB ativou e auditou política sintética, removida com zero resíduo; Suntech retornou 2 comandos `unknown`/0 confirmados; navegador real, 264 backend, 77 frontend, TypeScript e build aprovados. **Limitações:** nenhuma política real ativa; autenticação transversal e contrato seguro de comandos permanecem posteriores. **Artefatos:** comandos no contrato de sensores, serviço/controle de políticas, testes e `docs/VALIDACAO_UI_4_6_2026-11-17.md`. **Checkpoint:** `7c96ebd`. |
 | 18/74 | 4.7 | Criar estados armado/desarmado. | Estado possui transições autorizadas, responsável, horário, escopo e histórico auditável. | **Concluída em 17/11/2026 21:07 -03.** **Resultado obtido:** máquina patrimonial por veículo mantém armado/desarmado, versão otimista, ator coerente com fundamento, motivo, correlação idempotente e histórico imutável; UI permite transição com autoria e mostra escopo/versão/histórico. **Evidências:** migration 027 aplicada/idempotente e 26 veículos iniciados desarmados; prova real armou v2, repetiu sem duplicar, rejeitou v1 com 409 e desarmou v3; navegador real mostrou estado/histórico; 273 backend, 78 frontend, TypeScript e build aprovados. **Limitações:** estado lógico não envia comando; autenticação central e agendador permanecem posteriores. **Artefatos:** migration 027, DB/API/controle UI, testes e `docs/VALIDACAO_UI_4_7_2026-11-17.md`. **Checkpoint:** `f6e5be7`. |
-| 19/74 | 4.8 | Detectar alimentação removida e bateria baixa. | Apenas protocolos com sinal comprovado geram episódio, com histerese/cooldown e testes de falso positivo. | **Pendente.** |
+| 19/74 | 4.8 | Detectar alimentação removida e bateria baixa. | Apenas protocolos com sinal comprovado geram episódio, com histerese/cooldown e testes de falso positivo. | **Concluída em 17/11/2026 21:16 -03.** **Resultado obtido:** detector usa somente tensão externa confirmada, exige veículo armado/política ativa, amostras consecutivas, histerese e cooldown; persiste estado/episódio e isola falha por savepoint. Políticas conservadoras nascem draft e a UI/API mostram episódios/ativação. **Evidências:** migration 028 aplicada/idempotente; transação real abriu/resolveu perda 0,4→8,3 V e baixa tensão 11,0→12,5 V, pulso isolado não abriu e rollback deixou zero resíduo/drafts/desarmado; 282 backend, 79 frontend, TypeScript e build aprovados. **Limitações:** não mede bateria interna, políticas não estão ativas e episódios ainda não são incidentes/ações. **Artefatos:** migration 028, `power_detector.py`, ingestão/API/UI, testes e `docs/VALIDACAO_UI_4_8_2026-11-17.md`. **Checkpoint:** `1fd1cb9`. |
 | 20/74 | 4.9 | Detectar offline contextualizado. | Offline considera frequência esperada, viagem, ignição, manutenção e indisponibilidade da integração. | **Pendente.** |
 | 21/74 | 4.10 | Definir contrato de comando e confirmação. | Comando possui solicitação, envio, ACK/NACK/timeout, idempotência, estado final e correlação. | **Pendente.** |
 | 22/74 | 4.11 | Reforçar autorização para comandos críticos. | Bloqueio/acionamento crítico exige papel, confirmação, motivo, política e trilha imutável. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 19 de 74 — UI-4.8: detectar alimentação removida e bateria baixa.**
+**Próxima etapa 20 de 74 — UI-4.9: detectar offline contextualizado.**
 
-Ao concluí-la, este documento deverá indicar `55 tarefas pendentes` e anunciar
-`Próxima etapa 20 de 74 — UI-4.9`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `54 tarefas pendentes` e anunciar
+`Próxima etapa 21 de 74 — UI-4.10`, preservando o denominador original para mostrar
 o avanço total da rodada.
