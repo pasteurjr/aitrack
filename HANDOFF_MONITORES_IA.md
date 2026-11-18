@@ -1122,6 +1122,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-18 | UI-5.2 | `f3ded1c` | Ledger idempotente passou a guardar versão, entrada/contexto, saída/decisão, provedor/modelo, tokens, custo, latência, erro e correlação. Prova MariaDB cobriu sucesso/falha, bloqueou mutação final e zerou resíduos; endpoint real vazio e 352 backend aprovados. |
 | 2026-11-18 | UI-5.3 | `9c931c3` | Decisão `vehicle-monitoring-decision.v1` passou a exigir classificação, confiança, risco, evidências, ações propostas e revisão humana; ações sensíveis requerem aprovação. Prova persistiu hash válido, bloqueou comando inseguro e zerou resíduos; 364 backend aprovados. |
 | 2026-11-18 | UI-5.4 | `aa8c80d` | Interface neutra ganhou adaptadores Anthropic Messages e OpenAI Responses, ambos com modelo/limites configuráveis, segredo só no ambiente e saída v1 validada. Clientes falsos provaram contratos sem rede/custo; ausência de chave/unknown falha explícito e 373 backend passaram. |
+| 2026-11-18 | UI-5.5 | `daaa872` | Wrapper resiliente ganhou timeout lógico/SDK, circuit breaker e métricas. Falhas abriram circuito, sonda recuperou e fallback v1 exigiu humano sem ação externa; sem fallback o erro permaneceu explícito. 380 backend passaram. |
 
 ---
 
