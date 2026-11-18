@@ -3,7 +3,7 @@ import time
 import random
 from threading import Thread
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from server.routes_loader import load_routes
 
 N_VEHICLES = 10
@@ -16,7 +16,7 @@ STEPS_PER_SEGMENT = 1  # já densificado pelo loader
 
 def get_maxtrack_packet(lat, lon, speed, heading, ignition, battery_voltage,
                         device_id=None, observed_at=None, gps_valid=True):
-    observed_at = observed_at or datetime.utcnow()
+    observed_at = observed_at or datetime.now(timezone.utc)
     timestamp = observed_at.strftime("%d%m%y;%H%M%S")
     packet = (
         f">REV01;{timestamp};{'A' if gps_valid else 'V'};{lat:.5f};{lon:.5f};"
@@ -26,14 +26,14 @@ def get_maxtrack_packet(lat, lon, speed, heading, ignition, battery_voltage,
 
 def get_suntech_packet(device_id, lat, lon, speed, heading, ignition, battery_voltage,
                        observed_at=None):
-    observed_at = observed_at or datetime.utcnow()
+    observed_at = observed_at or datetime.now(timezone.utc)
     now_date = observed_at.strftime("%Y%m%d")
     now_time = observed_at.strftime("%H:%M:%S")
     return f"ST310U;{device_id};01;{now_date};{now_time};{lat:.5f};{lon:.5f};{speed:.1f};{heading:.1f};{ignition};1;{battery_voltage:.2f};3.7;0;1;BR;724;31;1234;5678".encode('ascii')
 
 def get_queclink_packet(device_id, lat, lon, speed, heading, ignition, battery_voltage,
                         altitude, observed_at=None):
-    observed_at = observed_at or datetime.utcnow()
+    observed_at = observed_at or datetime.now(timezone.utc)
     now_date = observed_at.strftime("%d%m%y")
     now_time = observed_at.strftime("%H%M%S")
     return f"+RESP:GTRIC,{device_id},1,1,0,7,{now_date},{now_time},{lat:.5f},{lon:.5f},{speed:.1f},{int(heading)},{ignition},100,{battery_voltage:.2f},98765,1234,5678,724,31,1,{altitude:.1f}\r\n".encode('ascii')
