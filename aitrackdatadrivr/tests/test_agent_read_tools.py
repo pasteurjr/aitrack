@@ -4,6 +4,7 @@ import re
 import pytest
 
 from server.agent_read_tools import AgentReadToolService, ToolDenied, ToolScope, TOOL_NAMES
+from server.agent_tool_policy import ToolPermission,ToolPolicySet
 
 
 MIGRATION=Path(__file__).resolve().parents[1]/'migrations'/'035_create_agent_tool_audit.sql'
@@ -18,7 +19,13 @@ class Repository:
 
 def service():
     repository=Repository();audits=[]
-    return AgentReadToolService(repository,lambda *args:audits.append(args),clock=lambda:1.0),repository,audits
+    permissions={name:ToolPermission(index,name,('vehicle_id','limit'),('tracker','dirijabem'),100) for index,name in enumerate(sorted(TOOL_NAMES),1)}
+    loader=lambda config_id:ToolPolicySet(config_id,permissions)
+    return AgentReadToolService(repository,lambda *args:audits.append(args),clock=lambda:1.0,policy_loader=loader),repository,audits
+
+
+def args(**values):
+    return values
 
 
 def test_registry_contains_only_four_read_tools():
@@ -29,29 +36,29 @@ def test_registry_contains_only_four_read_tools():
 @pytest.mark.parametrize('tool',sorted(TOOL_NAMES))
 def test_allowed_tools_return_versioned_result_and_audit(tool):
     instance,repository,audits=service();scope=ToolScope((1,),('tracker',),20)
-    result=instance.invoke(tool,{'vehicle_id':1,'limit':5},scope,agent_id=2,correlation_id='c1')
+    result=instance.invoke(tool,args(vehicle_id=1,limit=5),scope,agent_id=2,config_version_id=7,correlation_id='c1')
     assert result['schema_version']=='agent-tool-result.v1' and result['tool']==tool
     assert len(repository.calls)==1 and audits[0][5]=='succeeded'
 
 
 @pytest.mark.parametrize(
     ('tool','arguments','scope','match'),[
-        ('sql.query',{'vehicle_id':1},ToolScope((1,)),'não permitida'),
-        ('vehicle.get',{'vehicle_id':2},ToolScope((1,)),'fora do escopo'),
-        ('position.history',{'vehicle_id':1,'limit':21},ToolScope((1,),max_history_points=20),'excede'),
-        ('position.latest',{'vehicle_id':1,'url':'http://x'},ToolScope((1,)),'Argumentos'),
+        ('sql.query',args(vehicle_id=1),ToolScope((1,)),'não permitida'),
+        ('vehicle.get',args(vehicle_id=2),ToolScope((1,)),'fora do escopo'),
+        ('position.history',args(vehicle_id=1,limit=21),ToolScope((1,),max_history_points=20),'excede'),
+        ('position.latest',args(vehicle_id=1,url='http://x'),ToolScope((1,)),'Parâmetros'),
     ],
 )
 def test_denies_unknown_out_of_scope_excessive_or_extra_arguments(tool,arguments,scope,match):
     instance,repository,audits=service()
-    with pytest.raises(ToolDenied,match=match):instance.invoke(tool,arguments,scope,agent_id=2,correlation_id='c')
+    with pytest.raises(ToolDenied,match=match):instance.invoke(tool,arguments,scope,agent_id=2,config_version_id=7,correlation_id='c')
     assert repository.calls==[] and audits[0][5]=='denied'
 
 
 def test_repository_failure_is_audited_and_propagated():
     instance,repository,audits=service()
     repository.get_vehicle=lambda _id:(_ for _ in ()).throw(RuntimeError('db'))
-    with pytest.raises(RuntimeError):instance.invoke('vehicle.get',{'vehicle_id':1},ToolScope((1,)),agent_id=2,correlation_id='c')
+    with pytest.raises(RuntimeError):instance.invoke('vehicle.get',args(vehicle_id=1),ToolScope((1,)),agent_id=2,config_version_id=7,correlation_id='c')
     assert audits[0][5]=='failed' and audits[0][9]=='RuntimeError'
 
 

@@ -142,18 +142,28 @@ class VehicleReadRepository:
 
 class AgentReadToolService:
     def __init__(self, repository=None, audit_writer=None,
-                 clock=time.monotonic):
+                 clock=time.monotonic, policy_loader=None):
         self.repository=repository or VehicleReadRepository()
         self.audit_writer=audit_writer or self._write_audit
         self.clock=clock
+        if policy_loader is None:
+            from .agent_tool_policy import load_tool_policy
+            policy_loader=load_tool_policy
+        self.policy_loader=policy_loader
 
     def invoke(self, tool_name: str, arguments: Dict, scope: ToolScope, *,
-               agent_id: int, correlation_id: str, run_id: Optional[int] = None):
+               agent_id: int, config_version_id: int, correlation_id: str,
+               run_id: Optional[int] = None):
         started=self.clock()
+        policy_id=None
         try:
+            if not isinstance(config_version_id,int) or isinstance(config_version_id,bool):
+                raise ToolDenied('config_version_id é obrigatório')
             scope.validate()
             if tool_name not in TOOL_NAMES: raise ToolDenied(f'Ferramenta não permitida: {tool_name}')
             if not isinstance(arguments, dict): raise ToolDenied('arguments deve ser objeto')
+            permission=self.policy_loader(config_version_id).authorize(tool_name,arguments,scope)
+            policy_id=permission.policy_id
             vehicle_id=arguments.get('vehicle_id')
             if set(arguments)-{'vehicle_id','limit'}: raise ToolDenied('Argumentos não permitidos')
             if vehicle_id not in scope.vehicle_ids: raise ToolDenied('Veículo fora do escopo')
@@ -168,18 +178,21 @@ class AgentReadToolService:
             else: result=self.repository.geofences(vehicle_id,limit)
             latency=max(0,int((self.clock()-started)*1000))
             envelope={'schema_version':'agent-tool-result.v1','tool':tool_name,'data':result}
-            self.audit_writer(agent_id,run_id,tool_name,arguments,asdict(scope),'succeeded',
+            audit_scope={**asdict(scope),'config_version_id':config_version_id,'tool_policy_id':policy_id}
+            self.audit_writer(agent_id,run_id,tool_name,arguments,audit_scope,'succeeded',
                               {'has_data':result is not None,'items':len(result) if isinstance(result,list) else (1 if result else 0)},
                               correlation_id,latency,None,_hash(envelope))
             return envelope
         except ToolDenied as exc:
             latency=max(0,int((self.clock()-started)*1000))
-            self.audit_writer(agent_id,run_id,tool_name,arguments,asdict(scope),'denied',None,
+            audit_scope={**asdict(scope),'config_version_id':config_version_id,'tool_policy_id':policy_id}
+            self.audit_writer(agent_id,run_id,tool_name,arguments,audit_scope,'denied',None,
                               correlation_id,latency,exc.code,None)
             raise
         except Exception as exc:
             latency=max(0,int((self.clock()-started)*1000))
-            self.audit_writer(agent_id,run_id,tool_name,arguments,asdict(scope),'failed',None,
+            audit_scope={**asdict(scope),'config_version_id':config_version_id,'tool_policy_id':policy_id}
+            self.audit_writer(agent_id,run_id,tool_name,arguments,audit_scope,'failed',None,
                               correlation_id,latency,type(exc).__name__,None)
             raise
 
