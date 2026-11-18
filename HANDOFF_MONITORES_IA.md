@@ -1125,6 +1125,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-18 | UI-5.5 | `daaa872` | Wrapper resiliente ganhou timeout lógico/SDK, circuit breaker e métricas. Falhas abriram circuito, sonda recuperou e fallback v1 exigiu humano sem ação externa; sem fallback o erro permaneceu explícito. 380 backend passaram. |
 | 2026-11-18 | UI-5.6 | `b55d328` | Registry fechada de leitura consulta veículo, posição/histórico e cerca com escopo/limite; recibos auditam sucesso, negação e falha. Prova real retornou contexto do veículo 9, negou SQL e zerou resíduos; consulta foi otimizada e 392 backend passaram. |
 | 2026-11-18 | UI-5.7 | `dad1d43` | Allowlist imutável por versão limita ferramenta, argumento, fonte e volume com negação por padrão. Prova MariaDB bloqueou update/delete, negou três violações e zerou resíduos; 396 backend passaram. |
+| 2026-11-18 | UI-5.8 | `bc5523e` | Quatro níveis de autonomia e teto de risco passaram a autorizar cada proposta de forma fail-closed; sensíveis e risco alto/crítico exigem humano. Prova persistiu autorização, bloqueou mutações e zerou resíduos; 407 backend passaram. |
 
 ---
 
