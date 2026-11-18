@@ -25,8 +25,8 @@ def command_payload(**overrides):
         'capability_code': 'remote_immobilization',
         'idempotency_key': 'operator-7:incident-9:immobilize',
         'correlation_id': 'incident-9',
-        'actor': {'type': 'human', 'id': 'operator-7', 'name': 'Operador 7'},
         'reason': 'Veículo confirmado como roubado',
+        'confirmation_text': 'CONFIRMAR BLOQUEIO',
         'payload': {'enabled': True},
         'timeout_seconds': 30,
     }
@@ -86,6 +86,7 @@ def test_state_machine_rejects_skips_reversals_and_final_state_changes(current, 
 
 
 def test_post_maps_unconfirmed_capability_to_safe_conflict(monkeypatch):
+    monkeypatch.setattr(device_command_api.device_command_auth, 'authenticate', lambda *_: {})
     monkeypatch.setattr(
         device_command_api.device_command_db,
         'create_command',
@@ -101,6 +102,7 @@ def test_post_maps_unconfirmed_capability_to_safe_conflict(monkeypatch):
 
 
 def test_post_distinguishes_created_from_idempotent_replay(monkeypatch):
+    monkeypatch.setattr(device_command_api.device_command_auth, 'authenticate', lambda *_: {})
     result = {'public_id': 'command-1', 'idempotent': False}
     monkeypatch.setattr(device_command_api.device_command_db, 'create_command', lambda *_: result)
     assert client().post('/api/vehicles/1/commands', json=command_payload()).status_code == 201
@@ -112,6 +114,7 @@ def test_post_distinguishes_created_from_idempotent_replay(monkeypatch):
 
 
 def test_get_exposes_versioned_trace_and_validates_limit(monkeypatch):
+    monkeypatch.setattr(device_command_api.device_command_auth, 'authenticate', lambda *_: {})
     monkeypatch.setattr(
         device_command_api.device_command_db,
         'list_commands',
