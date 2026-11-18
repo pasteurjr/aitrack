@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
 import { detectorPolicyService, securityStateService, sensorService, unifiedVehicleService } from '../services/apiService';
-import type { DetectorPolicyDTO, VehicleSecurityStateDTO, VehicleSensorDTO, VehicleSensorsResponse } from '../types/sensor';
+import type { DetectorEpisodeDTO, DetectorPolicyDTO, VehicleSecurityStateDTO, VehicleSensorDTO, VehicleSensorsResponse } from '../types/sensor';
 
 interface VehicleSensorsPanelProps {
   selectedVehicleId: string | null;
@@ -21,6 +21,7 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
   const [data, setData] = useState<VehicleSensorsResponse | null>(null);
   const [policies, setPolicies] = useState<DetectorPolicyDTO[]>([]);
   const [securityState, setSecurityState] = useState<VehicleSecurityStateDTO | null>(null);
+  const [episodes, setEpisodes] = useState<DetectorEpisodeDTO[]>([]);
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
       setData(null);
       setPolicies([]);
       setSecurityState(null);
+      setEpisodes([]);
       setState('idle');
       return;
     }
@@ -45,14 +47,16 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
         setState('error');
         return;
       }
-      const [sensorResponse, policyResponse, securityResponse] = await Promise.all([
+      const [sensorResponse, policyResponse, securityResponse, episodeResponse] = await Promise.all([
         sensorService.getByVehicle(vehicle.vehicle_id),
         detectorPolicyService.getAll(),
         securityStateService.getByVehicle(vehicle.vehicle_id),
+        sensorService.getEpisodes(vehicle.vehicle_id),
       ]);
       setData(sensorResponse.data);
       setPolicies(policyResponse.data.policies);
       setSecurityState(securityResponse.data);
+      setEpisodes(episodeResponse.data.episodes);
       setActionError(null);
       setState('idle');
     } catch (error) {
@@ -136,6 +140,20 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
       {securityState && (
         <SecurityArmingControl state={securityState} onTransition={transitionSecurity} />
       )}
+      <section aria-labelledby="detector-episodes-title" style={styles.episodeBox}>
+        <strong id="detector-episodes-title">Episódios de tensão</strong>
+        {episodes.length === 0 ? (
+          <span>Nenhum episódio detectado. Políticas em rascunho não executam.</span>
+        ) : episodes.slice(0, 10).map(episode => (
+          <article key={episode.id} style={styles.episodeRow}>
+            <span style={episode.status === 'open' ? styles.episodeOpen : styles.episodeResolved}>
+              {episode.status === 'open' ? 'ABERTO' : 'RESOLVIDO'}
+            </span>
+            <strong>{episode.episode_type === 'power_removed' ? 'Alimentação removida' : 'Baixa tensão externa'}</strong>
+            <span>{episode.minimum_value} V mín. · {episode.evidence_count} evidências · política {episode.policy_key} v{episode.version_number}</span>
+          </article>
+        ))}
+      </section>
       <div style={styles.commandNotice}>
         <strong>Comandos físicos</strong>
         {data.confirmed_commands.length === 0
@@ -151,6 +169,7 @@ const VehicleSensorsPanel: React.FC<VehicleSensorsPanelProps> = ({
             policies={policies.filter(policy => (
               policy.capability_code === sensor.capability_code
               && (policy.scope_type === 'global'
+                || (policy.scope_type === 'source' && policy.scope_ref === sensor.source_code)
                 || (policy.scope_type === 'vehicle' && policy.scope_ref === String(data.vehicle.id)))
             ))}
             onActivate={activatePolicy}
@@ -265,18 +284,10 @@ const PolicyControl: React.FC<{
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const ordered = [...policies].sort((a, b) => b.version_number - a.version_number);
-  const active = ordered.find(policy => policy.status === 'active');
-  const draft = ordered.find(policy => policy.status === 'draft');
+  const active = ordered.filter(policy => policy.status === 'active');
+  const drafts = ordered.filter(policy => policy.status === 'draft');
 
-  if (active) {
-    return (
-      <div style={styles.policyBox}>
-        <strong>Detecção operacional ativa</strong>
-        <span>Política {active.policy_key} v{active.version_number}. Isso não liga/desliga hardware.</span>
-      </div>
-    );
-  }
-  if (!draft) {
+  if (active.length === 0 && drafts.length === 0) {
     return (
       <div style={styles.policyBox}>
         <strong>Detecção não configurada</strong>
@@ -287,20 +298,33 @@ const PolicyControl: React.FC<{
   const canActivate = actor.trim().length > 0 && reason.trim().length >= 5 && !busy;
   return (
     <div style={styles.policyBox}>
-      <strong>Ativar detecção — política v{draft.version_number}</strong>
-      <span>Ativa a regra operacional; não envia comando ao equipamento.</span>
-      <input aria-label="Operador da ativação" value={actor} onChange={event => setActor(event.target.value)} placeholder="Operador" style={styles.input} />
-      <input aria-label="Motivo da ativação" value={reason} onChange={event => setReason(event.target.value)} placeholder="Motivo (mín. 5 caracteres)" style={styles.input} />
-      <button
-        type="button"
-        disabled={!canActivate}
-        style={{ ...styles.activateButton, opacity: canActivate ? 1 : 0.5 }}
-        onClick={async () => {
-          setBusy(true);
-          await onActivate(draft, actor.trim(), reason.trim());
-          setBusy(false);
-        }}
-      >{busy ? 'Ativando...' : 'Ativar política de detecção'}</button>
+      {active.map(policy => (
+        <React.Fragment key={policy.id}>
+          <strong>Detecção operacional ativa</strong>
+          <span>Política {policy.policy_key} v{policy.version_number} · escopo {policy.scope_type}:{policy.scope_ref}. Isso não liga/desliga hardware.</span>
+        </React.Fragment>
+      ))}
+      {drafts.length > 0 && (
+        <>
+          <strong>Políticas de detecção disponíveis</strong>
+          <span>Ativam regras operacionais; não enviam comando ao equipamento.</span>
+          <input aria-label="Operador da ativação" value={actor} onChange={event => setActor(event.target.value)} placeholder="Operador" style={styles.input} />
+          <input aria-label="Motivo da ativação" value={reason} onChange={event => setReason(event.target.value)} placeholder="Motivo (mín. 5 caracteres)" style={styles.input} />
+          {drafts.map(policy => (
+            <button
+              key={policy.id}
+              type="button"
+              disabled={!canActivate}
+              style={{ ...styles.activateButton, opacity: canActivate ? 1 : 0.5 }}
+              onClick={async () => {
+                setBusy(true);
+                await onActivate(policy, actor.trim(), reason.trim());
+                setBusy(false);
+              }}
+            >{busy ? 'Ativando...' : `Ativar ${policy.policy_key} v${policy.version_number} (${policy.scope_type}:${policy.scope_ref})`}</button>
+          ))}
+        </>
+      )}
     </div>
   );
 };
@@ -336,6 +360,10 @@ const styles: Record<string, React.CSSProperties> = {
   count: { backgroundColor: '#064e3b', borderRadius: '999px', color: '#a7f3d0', fontSize: '11px', fontWeight: 800, padding: '6px 10px' },
   summary: { backgroundColor: '#172033', border: '1px solid #334155', borderRadius: '8px', display: 'flex', flexWrap: 'wrap', gap: '18px', margin: '16px 0', padding: '10px 12px', fontSize: '12px' },
   commandNotice: { backgroundColor: '#2a2112', border: '1px solid #854d0e', borderRadius: '8px', display: 'flex', flexDirection: 'column', fontSize: '11px', gap: '4px', marginBottom: '12px', padding: '10px 12px' },
+  episodeBox: { backgroundColor: '#172033', border: '1px solid #475569', borderRadius: '8px', display: 'flex', flexDirection: 'column', fontSize: '11px', gap: '7px', marginBottom: '12px', padding: '10px 12px' },
+  episodeRow: { alignItems: 'center', borderTop: '1px solid #334155', display: 'grid', gap: '8px', gridTemplateColumns: '80px 160px 1fr', paddingTop: '7px' },
+  episodeOpen: { backgroundColor: '#7f1d1d', borderRadius: '4px', color: '#fecaca', fontSize: '9px', fontWeight: 800, padding: '3px 5px', textAlign: 'center' },
+  episodeResolved: { backgroundColor: '#065f46', borderRadius: '4px', color: '#a7f3d0', fontSize: '9px', fontWeight: 800, padding: '3px 5px', textAlign: 'center' },
   securityBox: { backgroundColor: '#10243b', border: '1px solid #2563eb', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', padding: '12px' },
   securityHeader: { alignItems: 'center', display: 'flex', justifyContent: 'space-between' },
   securityMeta: { color: '#bfdbfe', display: 'block', fontSize: '10px', marginTop: '3px' },

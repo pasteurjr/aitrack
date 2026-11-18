@@ -94,3 +94,30 @@ export interface VehicleSecurityStateDTO {
   }>;
   idempotent: boolean;
 }
+
+export interface DetectorEpisodeDTO {
+  id: number;
+  public_id: string;
+  vehicle_id: number;
+  episode_type: 'power_removed' | 'low_external_voltage';
+  status: 'open' | 'resolved';
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  started_at: string;
+  resolved_at: string | null;
+  trigger_value: number;
+  recovery_value: number | null;
+  minimum_value: number;
+  evidence_count: number;
+  policy_key: string;
+  version_number: number;
+  source_code: string;
+  protocol_code: string;
+  capability_code: string;
+}
+
+export interface DetectorEpisodesResponse {
+  schema_version: 'detector-episodes.v1';
+  vehicle_id: number;
+  count: number;
+  episodes: DetectorEpisodeDTO[];
+}

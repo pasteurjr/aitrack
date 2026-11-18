@@ -1,12 +1,14 @@
 """Persistência tipada e idempotente de sensores e leituras operacionais."""
 
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
 
 from .monitor_db import get_connection
+from . import power_detector
 
 
 TRACKER_FIELDS = {
@@ -20,6 +22,7 @@ TRACKER_FIELDS = {
 }
 SENSOR_STALE_AFTER_SECONDS = 120
 SERVER_TIMEZONE = ZoneInfo(os.getenv('AITRACK_TIMEZONE', 'America/Sao_Paulo'))
+logger = logging.getLogger(__name__)
 
 
 def _naive_utc(value) -> datetime:
@@ -156,7 +159,28 @@ def persist_tracker_readings(
                 json.dumps({'protocol': protocol}, separators=(',', ':')),
             ),
         )
-        inserted += max(cursor.rowcount, 0)
+        was_inserted = max(cursor.rowcount, 0)
+        reading_id = cursor.lastrowid if was_inserted else None
+        inserted += was_inserted
+        if capability_code == 'external_voltage' and reading_id:
+            cursor.execute('SAVEPOINT power_detector_evaluation')
+            try:
+                power_detector.evaluate_external_voltage(
+                    cursor,
+                    sensor_id=sensor_id,
+                    vehicle_id=vehicle_id,
+                    reading_id=int(reading_id),
+                    value=float(value),
+                    received_at=received_at,
+                )
+            except Exception:
+                cursor.execute('ROLLBACK TO SAVEPOINT power_detector_evaluation')
+                logger.exception(
+                    'Falha no detector de tensão do sensor %s; leitura preservada',
+                    sensor_id,
+                )
+            finally:
+                cursor.execute('RELEASE SAVEPOINT power_detector_evaluation')
     return inserted
 
 

@@ -20,6 +20,7 @@ class FakeCursor:
         self.rowcount = 0
         self._reading_keys = set()
         self._selected_sensor_id = 99
+        self.lastrowid = 1000
 
     def execute(self, sql, params=None):
         params = tuple(params or ())
@@ -31,11 +32,21 @@ class FakeCursor:
             key = (params[0], params[6])
             self.rowcount = 0 if key in self._reading_keys else 1
             self._reading_keys.add(key)
+            if self.rowcount:
+                self.lastrowid += 1
         else:
             self.rowcount = 1
 
     def fetchone(self):
         return {'id': self._selected_sensor_id}
+
+
+@pytest.fixture(autouse=True)
+def isolate_power_detector(monkeypatch):
+    monkeypatch.setattr(
+        sensor_db.power_detector, 'evaluate_external_voltage',
+        lambda *_args, **_kwargs: [],
+    )
 
 
 def packet(protocol='maxtrack'):
@@ -116,6 +127,43 @@ def test_repeated_correlation_is_idempotent(monkeypatch):
 
     assert sensor_db.persist_tracker_readings(cursor, **kwargs) == 6
     assert sensor_db.persist_tracker_readings(cursor, **kwargs) == 0
+
+
+def test_new_external_voltage_reading_calls_detector_once(monkeypatch):
+    cursor = FakeCursor()
+    calls = []
+    monkeypatch.setattr(sensor_db, '_resolve_vehicle_id', lambda *_args: 123)
+    monkeypatch.setattr(sensor_db, '_confirmed_capabilities', lambda *_args: confirmed())
+    monkeypatch.setattr(
+        sensor_db.power_detector, 'evaluate_external_voltage',
+        lambda _cursor, **kwargs: calls.append(kwargs),
+    )
+
+    sensor_db.persist_tracker_readings(
+        cursor, tracker_vehicle_id=10, location_id=503, data=packet(),
+        received_at=datetime(2026, 11, 17, 15, 0, 1),
+    )
+
+    assert len(calls) == 1
+    assert calls[0]['vehicle_id'] == 123
+    assert calls[0]['value'] == 12.7
+
+
+def test_detector_failure_does_not_discard_sensor_readings(monkeypatch):
+    cursor = FakeCursor()
+    monkeypatch.setattr(sensor_db, '_resolve_vehicle_id', lambda *_args: 123)
+    monkeypatch.setattr(sensor_db, '_confirmed_capabilities', lambda *_args: confirmed())
+    monkeypatch.setattr(
+        sensor_db.power_detector, 'evaluate_external_voltage',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError('detector down')),
+    )
+
+    inserted = sensor_db.persist_tracker_readings(
+        cursor, tracker_vehicle_id=10, location_id=504, data=packet(),
+        received_at=datetime(2026, 11, 17, 15, 0, 1),
+    )
+
+    assert inserted == 6
 
 
 def test_source_and_receive_times_are_preserved_when_device_clock_is_ahead(monkeypatch):

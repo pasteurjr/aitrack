@@ -8,7 +8,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type { RuntimeEnvironment } from '../types/runtimeEnvironment';
-import type { DetectorPoliciesResponse, DetectorPolicyDTO, VehicleSecurityStateDTO, VehicleSensorsResponse } from '../types/sensor';
+import type { DetectorEpisodesResponse, DetectorPoliciesResponse, DetectorPolicyDTO, VehicleSecurityStateDTO, VehicleSensorsResponse } from '../types/sensor';
 import type { EventStats, EventType, MonitorEvent } from '../types/monitorEvent';
 import type {
   IncidentDetailResponse,
@@ -257,6 +257,10 @@ export const unifiedVehicleService = {
 export const sensorService = {
   getByVehicle: (vehicleId: number) =>
     apiClient.get<VehicleSensorsResponse>(`/vehicles/${vehicleId}/sensors`),
+  getEpisodes: (vehicleId: number, status?: 'open' | 'resolved') =>
+    apiClient.get<DetectorEpisodesResponse>(`/vehicles/${vehicleId}/detector-episodes`, {
+      params: { status },
+    }),
 };
 
 export const detectorPolicyService = {

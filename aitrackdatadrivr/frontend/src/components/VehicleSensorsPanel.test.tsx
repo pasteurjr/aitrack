@@ -4,7 +4,7 @@ import VehicleSensorsPanel from './VehicleSensorsPanel';
 import { detectorPolicyService, securityStateService, sensorService, unifiedVehicleService } from '../services/apiService';
 
 jest.mock('../services/apiService', () => ({
-  sensorService: { getByVehicle: jest.fn() },
+  sensorService: { getByVehicle: jest.fn(), getEpisodes: jest.fn() },
   detectorPolicyService: { getAll: jest.fn(), activate: jest.fn() },
   securityStateService: { getByVehicle: jest.fn(), transition: jest.fn() },
   unifiedVehicleService: { getAll: jest.fn() },
@@ -12,6 +12,7 @@ jest.mock('../services/apiService', () => ({
 
 const getFleet = unifiedVehicleService.getAll as jest.Mock;
 const getSensors = sensorService.getByVehicle as jest.Mock;
+const getEpisodes = sensorService.getEpisodes as jest.Mock;
 const getPolicies = detectorPolicyService.getAll as jest.Mock;
 const activatePolicy = detectorPolicyService.activate as jest.Mock;
 const getSecurityState = securityStateService.getByVehicle as jest.Mock;
@@ -82,6 +83,9 @@ beforeEach(() => {
   activatePolicy.mockResolvedValue({ data: {} });
   getSecurityState.mockResolvedValue({ data: disarmedState });
   transitionSecurity.mockResolvedValue({ data: { ...disarmedState, state: 'armed', version: 2 } });
+  getEpisodes.mockResolvedValue({ data: {
+    schema_version: 'detector-episodes.v1', vehicle_id: 12, count: 0, episodes: [],
+  } });
 });
 
 test('mostra somente sensores observados vindos da API real', async () => {
@@ -99,6 +103,25 @@ test('mostra somente sensores observados vindos da API real', async () => {
   expect(screen.getAllByText('Detecção não configurada')).toHaveLength(2);
   expect(getSensors).toHaveBeenCalledWith(12);
   expect(screen.getByText('DESARMADO')).toBeInTheDocument();
+  expect(screen.getByText(/Políticas em rascunho não executam/)).toBeInTheDocument();
+});
+
+test('mostra episódio real de baixa tensão sem chamar bateria interna', async () => {
+  getEpisodes.mockResolvedValue({ data: {
+    schema_version: 'detector-episodes.v1', vehicle_id: 12, count: 1, episodes: [{
+      id: 9, public_id: 'episode-9', vehicle_id: 12,
+      episode_type: 'low_external_voltage', status: 'open', severity: 'high',
+      started_at: '2026-11-17T21:00:00', resolved_at: null,
+      trigger_value: 11.2, recovery_value: null, minimum_value: 10.9,
+      evidence_count: 4, policy_key: 'low-external-voltage', version_number: 1,
+      source_code: 'tracker', protocol_code: 'maxtrack', capability_code: 'external_voltage',
+    }],
+  } });
+  render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
+
+  expect(await screen.findByText('Baixa tensão externa')).toBeInTheDocument();
+  expect(screen.getByText(/10.9 V mín./)).toBeInTheDocument();
+  expect(screen.queryByText(/bateria interna/i)).not.toBeInTheDocument();
 });
 
 test('arma veículo com versão, operador, fundamento e motivo', async () => {
@@ -130,10 +153,10 @@ test('ativa política operacional com autoria sem oferecer comando físico', asy
     .mockResolvedValueOnce({ data: { schema_version: 'detector-policies.v1', count: 1, policies: [active] } });
   render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
 
-  expect(await screen.findByText('Ativar detecção — política v2')).toBeInTheDocument();
+  expect(await screen.findByText('Políticas de detecção disponíveis')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Operador da ativação'), { target: { value: 'operador-1' } });
   fireEvent.change(screen.getByLabelText('Motivo da ativação'), { target: { value: 'Homologação operacional' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Ativar política de detecção' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Ativar ignition-watch v2 (vehicle:12)' }));
 
   await waitFor(() => expect(activatePolicy).toHaveBeenCalledWith(7, {
     actor: 'operador-1', reason: 'Homologação operacional',

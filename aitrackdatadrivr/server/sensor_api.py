@@ -2,9 +2,10 @@
 
 import logging
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from . import sensor_db
+from . import power_detector
 
 
 sensor_bp = Blueprint('sensors', __name__, url_prefix='/api/vehicles')
@@ -27,3 +28,16 @@ def get_vehicle_sensors(vehicle_id):
             'code': 'VEHICLE_SENSORS_UNAVAILABLE',
             'error': 'Sensores temporariamente indisponíveis',
         }), 500
+
+
+@sensor_bp.route('/<int:vehicle_id>/detector-episodes', methods=['GET'])
+def get_detector_episodes(vehicle_id):
+    try:
+        return jsonify(power_detector.list_episodes(
+            vehicle_id, request.args.get('status'), request.args.get('limit', 50),
+        ))
+    except ValueError as exc:
+        return jsonify({'code': 'INVALID_DETECTOR_EPISODE_FILTER', 'error': str(exc)}), 400
+    except Exception:
+        logger.exception('Falha ao consultar episódios do veículo %s', vehicle_id)
+        return jsonify({'code': 'DETECTOR_EPISODES_UNAVAILABLE'}), 500
