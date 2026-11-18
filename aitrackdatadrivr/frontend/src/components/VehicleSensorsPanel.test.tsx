@@ -1,11 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import VehicleSensorsPanel from './VehicleSensorsPanel';
-import { detectorPolicyService, sensorService, unifiedVehicleService } from '../services/apiService';
+import { detectorPolicyService, securityStateService, sensorService, unifiedVehicleService } from '../services/apiService';
 
 jest.mock('../services/apiService', () => ({
   sensorService: { getByVehicle: jest.fn() },
   detectorPolicyService: { getAll: jest.fn(), activate: jest.fn() },
+  securityStateService: { getByVehicle: jest.fn(), transition: jest.fn() },
   unifiedVehicleService: { getAll: jest.fn() },
 }));
 
@@ -13,6 +14,8 @@ const getFleet = unifiedVehicleService.getAll as jest.Mock;
 const getSensors = sensorService.getByVehicle as jest.Mock;
 const getPolicies = detectorPolicyService.getAll as jest.Mock;
 const activatePolicy = detectorPolicyService.activate as jest.Mock;
+const getSecurityState = securityStateService.getByVehicle as jest.Mock;
+const transitionSecurity = securityStateService.transition as jest.Mock;
 
 const fleet = {
   data: {
@@ -64,12 +67,21 @@ const sensors = {
   },
 };
 
+const disarmedState = {
+  schema_version: 'vehicle-security-state.v1', vehicle_id: 12, state: 'disarmed', version: 1,
+  changed_by: { type: 'system', id: 'migration-027', name: 'Migration UI-4.7' },
+  authorization_basis: 'migration', reason: 'Estado inicial seguro',
+  changed_at: '2026-11-17T16:30:00', history: [], idempotent: false,
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   getFleet.mockResolvedValue(fleet);
   getSensors.mockResolvedValue(sensors);
   getPolicies.mockResolvedValue({ data: { schema_version: 'detector-policies.v1', count: 0, policies: [] } });
   activatePolicy.mockResolvedValue({ data: {} });
+  getSecurityState.mockResolvedValue({ data: disarmedState });
+  transitionSecurity.mockResolvedValue({ data: { ...disarmedState, state: 'armed', version: 2 } });
 });
 
 test('mostra somente sensores observados vindos da API real', async () => {
@@ -86,6 +98,24 @@ test('mostra somente sensores observados vindos da API real', async () => {
   expect(screen.getByText(/Nenhum comando físico confirmado/)).toBeInTheDocument();
   expect(screen.getAllByText('Detecção não configurada')).toHaveLength(2);
   expect(getSensors).toHaveBeenCalledWith(12);
+  expect(screen.getByText('DESARMADO')).toBeInTheDocument();
+});
+
+test('arma veículo com versão, operador, fundamento e motivo', async () => {
+  render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
+  expect(await screen.findByText('DESARMADO')).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('ID do operador patrimonial'), { target: { value: 'op-7' } });
+  fireEvent.change(screen.getByLabelText('Nome do operador patrimonial'), { target: { value: 'Operador Sete' } });
+  fireEvent.change(screen.getByLabelText('Motivo da transição patrimonial'), { target: { value: 'Pedido confirmado do proprietário' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Armar monitoramento patrimonial' }));
+
+  await waitFor(() => expect(transitionSecurity).toHaveBeenCalledWith(12, expect.objectContaining({
+    target_state: 'armed', expected_version: 1,
+    actor: { type: 'human', id: 'op-7', name: 'Operador Sete' },
+    authorization_basis: 'owner_request', reason: 'Pedido confirmado do proprietário',
+    correlation_id: expect.stringContaining('ui:security:12:'),
+  })));
+  expect(await screen.findByText('ARMADO')).toBeInTheDocument();
 });
 
 test('ativa política operacional com autoria sem oferecer comando físico', async () => {

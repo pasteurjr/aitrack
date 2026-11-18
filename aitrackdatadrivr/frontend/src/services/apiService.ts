@@ -8,7 +8,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import type { UnifiedVehiclesResponse } from '../types/unifiedVehicle';
 import type { RuntimeEnvironment } from '../types/runtimeEnvironment';
-import type { DetectorPoliciesResponse, DetectorPolicyDTO, VehicleSensorsResponse } from '../types/sensor';
+import type { DetectorPoliciesResponse, DetectorPolicyDTO, VehicleSecurityStateDTO, VehicleSensorsResponse } from '../types/sensor';
 import type { EventStats, EventType, MonitorEvent } from '../types/monitorEvent';
 import type {
   IncidentDetailResponse,
@@ -265,6 +265,21 @@ export const detectorPolicyService = {
     apiClient.post<DetectorPolicyDTO>(`/detector-policies/${policyId}/activate`, body),
 };
 
+export const securityStateService = {
+  getByVehicle: (vehicleId: number) =>
+    apiClient.get<VehicleSecurityStateDTO>(`/vehicles/${vehicleId}/security-state`),
+  transition: (vehicleId: number, body: {
+    target_state: 'armed' | 'disarmed';
+    expected_version: number;
+    actor: { type: 'human'; id: string; name: string };
+    authorization_basis: 'owner_request' | 'operator_protocol';
+    reason: string;
+    correlation_id: string;
+  }) => apiClient.post<VehicleSecurityStateDTO>(
+    `/vehicles/${vehicleId}/security-state/transitions`, body,
+  ),
+};
+
 export const runtimeEnvironmentService = {
   getCurrent: () => apiClient.get<RuntimeEnvironment>('/runtime/environment'),
 };
@@ -341,6 +356,7 @@ const apiService = {
   unifiedVehicle: unifiedVehicleService,
   sensor: sensorService,
   detectorPolicy: detectorPolicyService,
+  securityState: securityStateService,
   runtimeEnvironment: runtimeEnvironmentService,
 };
 

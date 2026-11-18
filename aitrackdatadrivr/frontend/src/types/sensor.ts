@@ -72,3 +72,25 @@ export interface DetectorPoliciesResponse {
   count: number;
   policies: DetectorPolicyDTO[];
 }
+
+export interface VehicleSecurityStateDTO {
+  schema_version: 'vehicle-security-state.v1';
+  vehicle_id: number;
+  state: 'disarmed' | 'armed';
+  version: number;
+  changed_by: { type: 'human' | 'system'; id: string; name: string };
+  authorization_basis: 'owner_request' | 'operator_protocol' | 'scheduled_policy' | 'migration';
+  reason: string;
+  changed_at: string;
+  history: Array<{
+    id: number;
+    from_state: 'disarmed' | 'armed';
+    to_state: 'disarmed' | 'armed';
+    actor_name: string;
+    authorization_basis: string;
+    reason: string;
+    correlation_id: string;
+    occurred_at: string;
+  }>;
+  idempotent: boolean;
+}
