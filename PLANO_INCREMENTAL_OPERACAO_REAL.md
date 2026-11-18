@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 21:42 (`America/Sao_Paulo`)
+**Atualizado em:** 18/11/2026 03:16 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `068ff16` — UI-4.12 concluída
+**Checkpoint mais recente:** `f652e5d` — UI-5.1 concluída
 
-**Tarefas pendentes:** 51
+**Tarefas pendentes:** 50
 
-**Próxima tarefa:** **24 de 74 — UI-5.1: versionar configuração do agente**
+**Próxima tarefa:** **25 de 74 — UI-5.2: persistir execuções e decisões**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -88,7 +88,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
-| 24/74 | 5.1 | Versionar configuração do agente. | Migration guarda objetivo, instruções, modelo, política, limites, status e versão imutável. | **Pendente.** |
+| 24/74 | 5.1 | Versionar configuração do agente. | Migration guarda objetivo, instruções, modelo, política, limites, status e versão imutável. | **Concluída em 18/11/2026 03:16 -03.** **Resultado obtido:** cinco monitores reais viraram identidades estáveis de agente, sem configuração inventada; versões guardam objetivo, instruções, provedor/modelo configuráveis, política, limites, hash, autoria e ciclo draft/active/superseded/retired. Triggers tornam conteúdo e exclusão imutáveis; API cria/lista/ativa e audita snapshots. **Evidências:** migration 032 aplicada/idempotente; transação MariaDB bloqueou alteração/exclusão com SQLSTATE 45000, permitiu somente ativação e rollback deixou zero resíduo; endpoint real respondeu contrato v1 vazio, com 5 identidades, 0 versões e 0 ativas; 11 testes específicos e 344 regressões aprovados, 12 opt-in pulados. **Limitações:** nenhum modelo é chamado e nenhuma configuração foi ativada; autenticação da gestão e UI ficam em etapas posteriores. **Artefatos:** migration 032, DB/API, testes e `docs/VALIDACAO_UI_5_1_2026-11-18.md`. **Checkpoint:** `f652e5d`. |
 | 25/74 | 5.2 | Persistir execuções e decisões. | Cada execução registra entrada, contexto, versão, saída, latência, custo, erro e correlação. | **Pendente.** |
 | 26/74 | 5.3 | Definir decisão estruturada da IA. | Schema validável contém classificação, confiança, evidências, risco, ações propostas e necessidade humana. | **Pendente.** |
 | 27/74 | 5.4 | Implementar provedor de IA por interface. | Runtime troca provedor/modelo por configuração, sem acoplar regra operacional ao SDK externo. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 24 de 74 — UI-5.1: versionar configuração do agente.**
+**Próxima etapa 25 de 74 — UI-5.2: persistir execuções e decisões.**
 
-Ao concluí-la, este documento deverá indicar `50 tarefas pendentes` e anunciar
-`Próxima etapa 25 de 74 — UI-5.2`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `49 tarefas pendentes` e anunciar
+`Próxima etapa 26 de 74 — UI-5.3`, preservando o denominador original para mostrar
 o avanço total da rodada.
