@@ -1112,6 +1112,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-4.4 | `5fa87dd` | Aba Sensores ligada à API real mostra somente instâncias observadas e confirmadas, com estados acessíveis e sem converter eventos Dirija Bem em hardware. Simulador/socket produziram 55 sensores em 10 veículos; navegador 1440×900, 262 backend, 76 frontend, TypeScript e build aprovados. |
 | 2026-11-17 | UI-4.5 | `31df64a` | Última leitura agora expõe valor, unidade, qualidade, saúde, origem e dois relógios; atual/desatualizado/inválido/indisponível são explícitos. Migration 026 preserva clock skew em vez de alterar a fonte; API/navegador reais, 264 backend, 76 frontend, TypeScript e build aprovados. |
 | 2026-11-17 | UI-4.6 | `7c96ebd` | UI separa ativação de política do hardware e exige operador/motivo; API distingue comandos catalogados dos confirmados. Prova real ativou/auditou política e limpou resíduos; Suntech ficou com 2 comandos unknown/0 confirmados, navegador sem ação física, 264 backend e 77 frontend aprovados. |
+| 2026-11-17 | UI-4.7 | `f6e5be7` | Estado patrimonial armado/desarmado por veículo ganhou versão otimista, correlação idempotente, ator/fundamento coerentes e histórico. Prova real armou v2, rejeitou versão velha e desarmou v3; frota final 26/26 desarmada, navegador real, 273 backend e 78 frontend aprovados. |
 
 ---
 
