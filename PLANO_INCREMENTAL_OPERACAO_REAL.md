@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 18/11/2026 03:34 (`America/Sao_Paulo`)
+**Atualizado em:** 18/11/2026 03:40 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `daaa872` — UI-5.5 concluída
+**Checkpoint mais recente:** `b55d328` — UI-5.6 concluída
 
-**Tarefas pendentes:** 46
+**Tarefas pendentes:** 45
 
-**Próxima tarefa:** **29 de 74 — UI-5.6: criar ferramentas somente leitura**
+**Próxima tarefa:** **30 de 74 — UI-5.7: criar política de ferramentas por agente**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -93,7 +93,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 26/74 | 5.3 | Definir decisão estruturada da IA. | Schema validável contém classificação, confiança, evidências, risco, ações propostas e necessidade humana. | **Concluída em 18/11/2026 03:26 -03.** **Resultado obtido:** contrato estrito `vehicle-monitoring-decision.v1` exige classificação, confiança, resumo, risco, 1–20 evidências referenciadas, ações somente propostas e revisão humana. Campos extras são proibidos; risco alto/crítico e evidência insuficiente exigem humano; autoridade/comando veicular exigem aprovação. Persistência usa JSON canônico, hash e timestamp de validação. **Evidências:** migration 034 aplicada/idempotente; prova MariaDB salvou decisão válida/hash e recusou comando sem aprovação antes do banco, com zero resíduo; 20 testes combinados e 364 regressões aprovados, 12 opt-in pulados. **Limitações:** o contrato não chama modelo nem executa proposta; qualidade semântica será avaliada depois com casos dourados. **Artefatos:** JSON Schema, validador, integração no ledger, migration 034, testes e `docs/VALIDACAO_UI_5_3_2026-11-18.md`. **Checkpoint:** `9c931c3`. |
 | 27/74 | 5.4 | Implementar provedor de IA por interface. | Runtime troca provedor/modelo por configuração, sem acoplar regra operacional ao SDK externo. | **Concluída em 18/11/2026 03:30 -03.** **Resultado obtido:** interface `DecisionProvider` recebe requisição neutra e devolve decisão v1 validada, hash, uso e ID externo; adaptadores lazy Anthropic Messages e OpenAI Responses recebem modelo/limites da configuração, chave apenas do ambiente e não conhecem regras operacionais. Factory recusa provedor desconhecido/segredo ausente sem fallback; adaptador determinístico fica isolado para testes. **Evidências:** Anthropic 0.57.1 e OpenAI 1.95.1 locais exercitados com clientes falsos, sem rede/custo; 21 testes combinados e 373 regressões aprovados, 12 opt-in pulados; ambiente confirmou ambas as chaves ausentes. **Limitações:** nenhum modelo externo foi chamado; custo fica nulo sem preços homologados; declaração formal de dependências ainda precisa ser consolidada. **Artefatos:** interface/adaptadores/factory, prompt com schema e `docs/VALIDACAO_UI_5_4_2026-11-18.md`. **Checkpoint:** `aa8c80d`. |
 | 28/74 | 5.5 | Implementar timeout, fallback e circuit breaker. | Falha/latência da IA não para monitoramento; fallback é explícito, medido e testado. | **Concluída em 18/11/2026 03:34 -03.** **Resultado obtido:** wrapper resiliente mede chamadas/sucessos/falhas/timeouts/rejeições/fallbacks; circuit breaker fechado/aberto/meio-aberto bloqueia provedor instável e testa recuperação. SDK recebe timeout e resposta que ultrapassa o prazo é descartada. Fallback seguro gera `insufficient_evidence`, confiança zero, notificação ao operador e revisão humana, sem ação externa; ausência de fallback preserva erro. **Evidências:** 16 testes focados cobriram abertura após duas falhas, rejeição sem chamada, sonda de recuperação, timeout nativo/tardio, fallback e falha explícita; 380 regressões aprovadas, 12 opt-in puladas. **Limitações:** timeout duro depende do SDK cancelar I/O; métricas estão em memória até a etapa de observabilidade e o worker ainda não usa o wrapper. **Artefatos:** circuit breaker, fallback seguro, métricas e `docs/VALIDACAO_UI_5_5_2026-11-18.md`. **Checkpoint:** `daaa872`. |
-| 29/74 | 5.6 | Criar ferramentas somente leitura. | Agente consulta veículo, posição, histórico e cerca com escopo, limite e retorno estruturado auditável. | **Pendente.** |
+| 29/74 | 5.6 | Criar ferramentas somente leitura. | Agente consulta veículo, posição, histórico e cerca com escopo, limite e retorno estruturado auditável. | **Concluída em 18/11/2026 03:40 -03.** **Resultado obtido:** registry fechada possui somente `vehicle.get`, `position.latest`, `position.history` e `geofence.list_for_vehicle`; escopo canônico limita veículos, fontes e pontos, e argumentos extras/nome desconhecido são negados antes da consulta. Resultado v1 e recibo guardam hashes, resumo, status, latência e correlação; negação/falha também são auditadas. **Evidências:** migration 035 aplicada/idempotente; prova real no veículo 9 retornou identidade, última posição, 5 pontos e 1 cerca, com 4 sucessos/1 negação auditados e zero resíduo; otimização reduziu posição de >30 s para ~0,2 s; 12 testes específicos e 392 regressões aprovados, 12 opt-in pulados. **Limitações:** cercas incluem atribuição direta de veículo; políticas por agente e ferramentas de eventos/incidentes vêm depois. **Artefatos:** audit ledger, repository/service, testes e `docs/VALIDACAO_UI_5_6_2026-11-18.md`. **Checkpoint:** `b55d328`. |
 | 30/74 | 5.7 | Criar política de ferramentas por agente. | Allowlist por versão bloqueia ferramenta/parâmetro fora da função do agente; testes provam negação. | **Pendente.** |
 | 31/74 | 5.8 | Criar níveis de autonomia. | Níveis separam observar, recomendar, solicitar aprovação e executar; risco máximo limita autonomia. | **Pendente.** |
 | 32/74 | 5.9 | Criar worker de análise de incidente. | Worker idempotente coleta contexto, chama decisão, persiste resultado e respeita fila/prioridade. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 29 de 74 — UI-5.6: criar ferramentas somente leitura.**
+**Próxima etapa 30 de 74 — UI-5.7: criar política de ferramentas por agente.**
 
-Ao concluí-la, este documento deverá indicar `45 tarefas pendentes` e anunciar
-`Próxima etapa 30 de 74 — UI-5.7`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `44 tarefas pendentes` e anunciar
+`Próxima etapa 31 de 74 — UI-5.8`, preservando o denominador original para mostrar
 o avanço total da rodada.
