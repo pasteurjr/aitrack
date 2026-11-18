@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from .monitor_db import get_connection
+from .agent_decision_schema import SCHEMA_VERSION, canonical_decision
 
 
 FINAL_STATUSES = {'succeeded', 'failed', 'timed_out', 'cancelled'}
@@ -51,7 +52,7 @@ def _serialize(row: Dict, decision=None) -> Dict:
 
 def _decision(cursor, run_id: int):
     cursor.execute(
-        "SELECT format_version,decision_json,recorded_at FROM "
+        "SELECT format_version,decision_json,decision_sha256,validated_at,recorded_at FROM "
         "monitoramento.agent_run_decisions WHERE run_id=%s",
         (run_id,),
     )
@@ -61,6 +62,8 @@ def _decision(cursor, run_id: int):
     return {
         'format_version': row['format_version'],
         'value': json.loads(row['decision_json']),
+        'sha256': row.get('decision_sha256'),
+        'validated_at': _iso(row.get('validated_at')),
         'recorded_at': _iso(row['recorded_at']),
     }
 
@@ -197,11 +200,12 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
              run['id'], expected_version),
         )
         if target == 'succeeded':
+            decision_json, decision_sha256 = canonical_decision(decision)
             cursor.execute(
                 "INSERT INTO monitoramento.agent_run_decisions "
-                "(run_id,format_version,decision_json) VALUES(%s,%s,%s)",
-                (run['id'], payload.get('format_version') or 'unstructured.v1',
-                 json.dumps(decision)),
+                "(run_id,format_version,decision_json,decision_sha256,validated_at) "
+                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP(6))",
+                (run['id'], SCHEMA_VERSION, decision_json, decision_sha256),
             )
         cursor.execute('SELECT * FROM monitoramento.agent_runs WHERE id=%s', (run['id'],))
         row = cursor.fetchone(); conn.commit()
