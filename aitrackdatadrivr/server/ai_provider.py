@@ -51,6 +51,9 @@ class DecisionResult:
     input_tokens: Optional[int]
     output_tokens: Optional[int]
     cost_usd: Optional[float] = None
+    fallback_used: bool = False
+    fallback_reason: Optional[str] = None
+    primary_provider: Optional[str] = None
 
 
 class DecisionProvider(Protocol):
