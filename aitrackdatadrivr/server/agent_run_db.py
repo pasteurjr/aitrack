@@ -6,6 +6,7 @@ from typing import Dict, Optional
 
 from .monitor_db import get_connection
 from .agent_decision_schema import SCHEMA_VERSION, canonical_decision
+from .agent_autonomy import authorize_decision
 
 
 FINAL_STATUSES = {'succeeded', 'failed', 'timed_out', 'cancelled'}
@@ -52,7 +53,8 @@ def _serialize(row: Dict, decision=None) -> Dict:
 
 def _decision(cursor, run_id: int):
     cursor.execute(
-        "SELECT format_version,decision_json,decision_sha256,validated_at,recorded_at FROM "
+        "SELECT format_version,decision_json,decision_sha256,validated_at,"
+        "autonomy_policy_id,autonomy_level,authorization_json,recorded_at FROM "
         "monitoramento.agent_run_decisions WHERE run_id=%s",
         (run_id,),
     )
@@ -64,6 +66,9 @@ def _decision(cursor, run_id: int):
         'value': json.loads(row['decision_json']),
         'sha256': row.get('decision_sha256'),
         'validated_at': _iso(row.get('validated_at')),
+        'autonomy_policy_id': row.get('autonomy_policy_id'),
+        'autonomy_level': row.get('autonomy_level'),
+        'authorization': json.loads(row['authorization_json']) if row.get('authorization_json') else None,
         'recorded_at': _iso(row['recorded_at']),
     }
 
@@ -190,6 +195,9 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
         if int(run['version']) != expected_version:
             raise AgentRunConflict('Versão da execução foi alterada')
         plan_completion(run['status'], target, decision, error_code)
+        authorization = None
+        if target == 'succeeded':
+            authorization = authorize_decision(run['config_version_id'], decision)
         cursor.execute(
             "UPDATE monitoramento.agent_runs SET status=%s,version=%s,output_json=%s,"
             "input_tokens=%s,output_tokens=%s,cost_usd=%s,latency_ms=%s,error_code=%s,"
@@ -203,9 +211,12 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
             decision_json, decision_sha256 = canonical_decision(decision)
             cursor.execute(
                 "INSERT INTO monitoramento.agent_run_decisions "
-                "(run_id,format_version,decision_json,decision_sha256,validated_at) "
-                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP(6))",
-                (run['id'], SCHEMA_VERSION, decision_json, decision_sha256),
+                "(run_id,format_version,decision_json,decision_sha256,validated_at,"
+                "autonomy_policy_id,autonomy_level,authorization_json) "
+                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP(6),%s,%s,%s)",
+                (run['id'], SCHEMA_VERSION, decision_json, decision_sha256,
+                 authorization['autonomy_policy_id'], authorization['autonomy_level'],
+                 json.dumps(authorization, ensure_ascii=False, separators=(',', ':'), sort_keys=True)),
             )
         cursor.execute('SELECT * FROM monitoramento.agent_runs WHERE id=%s', (run['id'],))
         row = cursor.fetchone(); conn.commit()

@@ -174,6 +174,13 @@ def activate_configuration(config_id: int, actor: str, reason: str,
             raise LookupError('Configuração não encontrada')
         if target['status'] not in {'draft', 'active'}:
             raise ValueError('Somente configuração draft ou active pode ser ativada')
+        cursor.execute(
+            "SELECT id FROM monitoramento.agent_autonomy_policies "
+            "WHERE config_version_id=%s",
+            (config_id,),
+        )
+        if not cursor.fetchone():
+            raise ValueError('Configuração exige política de autonomia antes da ativação')
         active_key = str(target['agent_id'])
         cursor.execute(
             "SELECT * FROM monitoramento.agent_config_versions "
