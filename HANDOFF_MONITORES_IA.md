@@ -1116,6 +1116,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-17 | UI-4.8 | `1fd1cb9` | Detector de perda/baixa tensão externa exige política ativa, veículo armado, amostras, histerese e cooldown; savepoint preserva leitura em falha. Prova real abriu/resolveu ambos, pulso isolado não abriu e rollback deixou zero resíduo; políticas draft, 282 backend e 79 frontend aprovados. |
 | 2026-11-17 | UI-4.9 | `37f229e` | Worker offline considera heartbeat da integração, armado, manutenção e movimento/ignição/repouso com confirmação/recovery. Prova real suprimiu três contextos, abriu aos 71 s e resolveu com duas leituras, rollback limpo; Tracker healthy, política draft, 289 backend e 79 frontend aprovados. |
 | 2026-11-17 | UI-4.10 | `b1b4448` | Contrato comum de comando criou solicitação/timeline idempotentes, estados versionados, ACK/NACK/timeout e worker de expiração. Prova MariaDB completou ACK e timeout sem resíduos; imobilização não comprovada foi bloqueada com 409 e zero envio; 307 backend aprovados. |
+| 2026-11-17 | UI-4.11 | `e6b2bfc` | Canal crítico passou a autenticar token por hash, aplicar política/papel/frase/timeout e exigir aprovação de supervisor distinto. Prova real negou bypass, autoaprovação e versão antiga, aprovou segregação correta sem resíduos; runtime sem token retornou 401 e 317 backend passaram. |
 
 ---
 
