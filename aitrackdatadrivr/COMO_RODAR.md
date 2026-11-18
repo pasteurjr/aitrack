@@ -45,6 +45,23 @@ python simulator.py
 
 Isso cria 10 veículos simulados (SIM-1000 a SIM-1009) que enviam posições para o socket server.
 
+Para uma prova determinística, use o executor de cenários. Ele valida cada pacote
+no parser antes do envio e nunca fabrica pânico, tamper ou comando físico:
+
+```bash
+# Validar sem gravar
+python tracker_scenario_simulator.py external-power-loss \
+  --protocol suntech --device-id SIM-1000 --time-scale 0 --dry-run
+
+# Enviar pelo socket real (porta 9000)
+python tracker_scenario_simulator.py normal \
+  --protocol suntech --device-id SIM-1000 --time-scale 0
+```
+
+Cenários: `normal`, `ignition-cycle`, `external-power-loss`, `gps-invalid`
+(somente Maxtrack) e `offline-silence`. O `--time-scale 0` remove esperas para
+testes; use `1` para respeitar os intervalos descritos pelo cenário.
+
 ### 3. Frontend (Terminal 3)
 
 ```bash
