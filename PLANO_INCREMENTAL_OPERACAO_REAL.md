@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 17/11/2026 21:36 (`America/Sao_Paulo`)
+**Atualizado em:** 17/11/2026 21:42 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `e6b2bfc` — UI-4.11 concluída
+**Checkpoint mais recente:** `068ff16` — UI-4.12 concluída
 
-**Tarefas pendentes:** 52
+**Tarefas pendentes:** 51
 
-**Próxima tarefa:** **23 de 74 — UI-4.12: criar simulador de sinais suportados**
+**Próxima tarefa:** **24 de 74 — UI-5.1: versionar configuração do agente**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -82,7 +82,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 20/74 | 4.9 | Detectar offline contextualizado. | Offline considera frequência esperada, viagem, ignição, manutenção e indisponibilidade da integração. | **Concluída em 17/11/2026 21:23 -03.** **Resultado obtido:** worker supervisionado avalia heartbeat da integração, estado armado, manutenção e contexto movimento/ignição/repouso, com suspeita/recovery em duas verificações e episódio em segundos. Política offline nasce draft e aparece na UI. **Evidências:** migration 029 aplicada/idempotente; transação real suprimiu desarmado/outage/manutenção, abriu aos 71 s em movimento e resolveu após duas leituras frescas, rollback sem resíduos; runtime Tracker healthy/worker ativo; 289 backend, 79 frontend, TypeScript e build aprovados. **Limitações:** manutenção sem formulário, viagem inferida e episódio ainda não correlacionado a incidente/ação. **Artefatos:** migration 029, `offline_detector.py`, heartbeat/worker/UI, testes e `docs/VALIDACAO_UI_4_9_2026-11-17.md`. **Checkpoint:** `37f229e`. |
 | 21/74 | 4.10 | Definir contrato de comando e confirmação. | Comando possui solicitação, envio, ACK/NACK/timeout, idempotência, estado final e correlação. | **Concluída em 17/11/2026 21:29 -03.** **Resultado obtido:** contrato comum persiste solicitação e timeline imutável; máquina versionada admite fila, envio, ACK, NACK, timeout, cancelamento e falha, com idempotência e correlação. Worker supervisionado finaliza pendências vencidas; API cria e lista o histórico. **Evidências:** migration 030 aplicada/idempotente; ciclo MariaDB sintético `requested → queued → sent → acknowledged` gerou quatro eventos e timeout separado chegou a `timed_out`, com zero resíduo; tentativa ao vivo de imobilização não comprovada retornou 409 e preservou zero comandos; 18 testes específicos e 307 regressões aprovados, 12 opt-in pulados; endpoint ao vivo respondeu contrato v1. **Limitação controlada:** não há transporte físico nem callback público até protocolo/ACK e autenticação serem homologados; comandos atuais seguem `unknown` e bloqueados. **Artefatos:** migration 030, DB/API de comandos, worker, testes e `docs/VALIDACAO_UI_4_10_2026-11-17.md`. **Checkpoint:** `b1b4448`. |
 | 22/74 | 4.11 | Reforçar autorização para comandos críticos. | Bloqueio/acionamento crítico exige papel, confirmação, motivo, política e trilha imutável. | **Concluída em 17/11/2026 21:36 -03.** **Resultado obtido:** identidade do canal crítico vem de Bearer token com hash no servidor; políticas versionadas exigem papel, frase, motivo, timeout e aprovação de supervisor distinto. Solicitação fica pendente e somente a aprovação auditada a move para fila; ambiente não produtivo e fila sem aprovação falham fechados. **Evidências:** migration 031 aplicada/idempotente; prova MariaDB autenticou operador/supervisor, negou bypass, autoaprovação e versão antiga, aprovou com supervisor e deixou zero resíduo; runtime sem token respondeu 401 e ambiente informou `safe_for_real_actions=false`; 28 testes específicos e 317 regressões aprovados, 12 opt-in pulados. **Limitações:** nenhum principal/segredo padrão foi criado; capacidade física segue desconhecida e não há transporte; provisionamento de identidade corporativa e callback autenticado são posteriores. **Artefatos:** migration 031, autenticação, políticas/aprovações, API/DB e testes em `docs/VALIDACAO_UI_4_11_2026-11-17.md`. **Checkpoint:** `e6b2bfc`. |
-| 23/74 | 4.12 | Criar simulador de sinais suportados. | Simulador gera somente sinais documentados e cenários determinísticos de sucesso/falha para Tracker. | **Pendente.** |
+| 23/74 | 4.12 | Criar simulador de sinais suportados. | Simulador gera somente sinais documentados e cenários determinísticos de sucesso/falha para Tracker. | **Concluída em 17/11/2026 21:42 -03.** **Resultado obtido:** executor determinístico valida no parser e envia via socket cenários normal, ignição, perda/recuperação de alimentação, GPS inválido Maxtrack e silêncio/offline para Maxtrack/Suntech/Queclink conforme suporte comprovado. O simulador contínuo foi preservado e os construtores aceitam relógio fixo/identidade Maxtrack. **Evidências:** 20 testes específicos provaram bytes repetíveis, campos permitidos, ausência de pânico fabricado, restrição GPS e socket TCP real; replay ao backend gravou três posições e três leituras de cada uma das cinco capacidades Suntech, IDs 6031704–6031706; 333 regressões aprovadas, 12 opt-in puladas. **Limitações:** não simula pânico/tamper/comandos sem protocolo; offline usa silêncio intencional; cenários não ativam políticas nem armam veículo. **Artefatos:** `tracker_scenario_simulator.py`, builders, testes, guia e `docs/VALIDACAO_UI_4_12_2026-11-17.md`. **Checkpoint:** `068ff16`. |
 
 ### D. Runtime dos agentes de IA
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 23 de 74 — UI-4.12: criar simulador de sinais suportados.**
+**Próxima etapa 24 de 74 — UI-5.1: versionar configuração do agente.**
 
-Ao concluí-la, este documento deverá indicar `51 tarefas pendentes` e anunciar
-`Próxima etapa 24 de 74 — UI-5.1`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `50 tarefas pendentes` e anunciar
+`Próxima etapa 25 de 74 — UI-5.2`, preservando o denominador original para mostrar
 o avanço total da rodada.
