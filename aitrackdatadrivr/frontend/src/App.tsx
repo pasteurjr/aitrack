@@ -10,11 +10,12 @@ import EventsCatalog from './components/EventsCatalog';
 import OperationModeBadge from './components/OperationModeBadge';
 import VehicleDetailHeader from './components/VehicleDetailHeader';
 import VehicleSensorsPanel from './components/VehicleSensorsPanel';
+import AgentConfigurationPanel from './components/AgentConfigurationPanel';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
 
-type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'alerts' | 'events';
+type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'alerts' | 'events';
 
 function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -68,6 +69,12 @@ function App() {
         </div>
         <div style={styles.navTabs}>
           <button
+            style={{...styles.navTab, ...(viewMode === 'agents' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('agents')}
+          >
+            🧠 Agentes
+          </button>
+          <button
             style={{...styles.navTab, ...(viewMode === 'dashboard' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('dashboard')}
           >
@@ -107,7 +114,8 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {viewMode === 'agents' ? <AgentConfigurationPanel /> : <>
         {/* Left Sidebar - Conditional Content */}
         <div style={styles.sidebar}>
           {viewMode === 'dashboard' && (
@@ -198,6 +206,7 @@ function App() {
             </div>
           )}
         </div>
+        </>}
       </div>
     </div>
   );

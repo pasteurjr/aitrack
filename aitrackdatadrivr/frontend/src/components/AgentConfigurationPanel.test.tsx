@@ -1,0 +1,12 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import AgentConfigurationPanel from './AgentConfigurationPanel';
+import { agentConfigurationService } from '../services/apiService';
+
+jest.mock('../services/apiService',()=>({agentConfigurationService:{getAgents:jest.fn(),getConfigurations:jest.fn(),getTools:jest.fn(),create:jest.fn(),addTool:jest.fn(),addAutonomy:jest.fn(),activate:jest.fn()}}));
+const api=agentConfigurationService as jest.Mocked<typeof agentConfigurationService>;
+
+beforeEach(()=>{jest.clearAllMocks();api.getAgents.mockResolvedValue({data:{schema_version:'x',count:1,agents:[{id:1,agent_key:'monitor-1',display_name:'Segurança',monitor_id:1,lifecycle_status:'active',version_count:0,active_config_id:null}]}} as any);api.getConfigurations.mockResolvedValue({data:{schema_version:'x',count:0,configurations:[]}} as any);api.getTools.mockResolvedValue({data:{schema_version:'x',tools:['vehicle.get']}} as any)});
+
+test('shows persisted empty state and versioned form without model defaults',async()=>{render(<AgentConfigurationPanel/>);expect(await screen.findByText('Nenhuma configuração foi criada.')).toBeInTheDocument();expect(screen.getByPlaceholderText('anthropic ou openai')).toHaveValue('');expect(screen.getByText(/Nenhum modelo é chamado/)).toBeInTheDocument()});
+
+test('creates draft, policies and does not activate implicitly',async()=>{api.create.mockResolvedValue({data:{id:7,version_number:1}} as any);api.addTool.mockResolvedValue({data:{id:1}} as any);api.addAutonomy.mockResolvedValue({data:{id:2}} as any);render(<AgentConfigurationPanel/>);await screen.findByText('Configurar agente de IA');fireEvent.change(screen.getByLabelText('Objetivo'),{target:{value:'Proteger veículos monitorados'}});fireEvent.change(screen.getByLabelText('Instruções'),{target:{value:'Analise somente evidências persistidas e verificáveis.'}});fireEvent.change(screen.getByLabelText('Provedor'),{target:{value:'openai'}});fireEvent.change(screen.getByLabelText('Modelo'),{target:{value:'modelo-configurado'}});fireEvent.change(screen.getByLabelText('Operador'),{target:{value:'tester'}});fireEvent.change(screen.getByLabelText('Motivo da mudança'),{target:{value:'Nova versão segura'}});fireEvent.click(screen.getByLabelText('vehicle.get'));fireEvent.click(screen.getByText('Criar versão draft'));await waitFor(()=>expect(api.addAutonomy).toHaveBeenCalled());expect(api.addTool).toHaveBeenCalled();expect(api.activate).not.toHaveBeenCalled()});

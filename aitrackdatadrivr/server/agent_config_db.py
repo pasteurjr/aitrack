@@ -14,6 +14,18 @@ REQUIRED_LIMITS = {
     'max_context_events': (1, 500),
     'max_actions_per_run': (0, 20),
 }
+SUPPORTED_PROVIDERS = {'anthropic','openai'}
+
+
+def validate_activation_readiness(config: Dict, autonomy: Optional[Dict]):
+    if config.get('provider_code') not in SUPPORTED_PROVIDERS:
+        raise ValueError('Provedor não suportado para ativação')
+    if not autonomy:
+        raise ValueError('Configuração exige política de autonomia antes da ativação')
+    limits=json.loads(config['limits_json']) if isinstance(config.get('limits_json'),str) else config.get('limits',{})
+    if autonomy['autonomy_level']=='execute' and limits.get('max_actions_per_run',0)<1:
+        raise ValueError('Autonomia execute exige max_actions_per_run maior que zero')
+    return True
 
 
 def _canonical(value: Dict) -> str:
@@ -95,10 +107,49 @@ def list_configurations(agent_key: Optional[str] = None, status: Optional[str] =
             " ORDER BY a.agent_key,v.version_number DESC",
             tuple(params),
         )
-        return [_serialize(row) for row in cursor.fetchall()]
+        configurations=[_serialize(row) for row in cursor.fetchall()]
+        ids=[item['id'] for item in configurations]
+        if not ids:return configurations
+        placeholders=','.join(['%s']*len(ids));by_id={item['id']:item for item in configurations}
+        for item in configurations:
+            item['tool_policies']=[];item['autonomy_policy']=None
+        cursor.execute(
+            "SELECT id,config_version_id,tool_name,constraints_json FROM "
+            f"monitoramento.agent_tool_policies WHERE config_version_id IN ({placeholders}) "
+            "ORDER BY config_version_id,tool_name",tuple(ids))
+        for row in cursor.fetchall():
+            by_id[row['config_version_id']]['tool_policies'].append({
+                'id':row['id'],'tool_name':row['tool_name'],
+                'constraints':json.loads(row['constraints_json']),
+            })
+        cursor.execute(
+            "SELECT id,config_version_id,autonomy_level,max_autonomous_risk,"
+            "allowed_autonomous_actions_json FROM monitoramento.agent_autonomy_policies "
+            f"WHERE config_version_id IN ({placeholders})",tuple(ids))
+        for row in cursor.fetchall():
+            by_id[row['config_version_id']]['autonomy_policy']={
+                'id':row['id'],'autonomy_level':row['autonomy_level'],
+                'max_autonomous_risk':row['max_autonomous_risk'],
+                'allowed_autonomous_actions':json.loads(row['allowed_autonomous_actions_json']),
+            }
+        return configurations
     finally:
         cursor.close()
         conn.close()
+
+
+def list_agents():
+    conn=get_connection();cursor=conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT a.id,a.agent_key,a.display_name,a.monitor_id,a.lifecycle_status,"
+            "COUNT(v.id) version_count,MAX(CASE WHEN v.status='active' THEN v.id END) active_config_id "
+            "FROM monitoramento.agent_definitions a LEFT JOIN "
+            "monitoramento.agent_config_versions v ON v.agent_id=a.id "
+            "GROUP BY a.id,a.agent_key,a.display_name,a.monitor_id,a.lifecycle_status "
+            "ORDER BY a.display_name,a.id")
+        return cursor.fetchall()
+    finally:cursor.close();conn.close()
 
 
 def create_configuration(payload: Dict) -> Dict:
@@ -175,12 +226,11 @@ def activate_configuration(config_id: int, actor: str, reason: str,
         if target['status'] not in {'draft', 'active'}:
             raise ValueError('Somente configuração draft ou active pode ser ativada')
         cursor.execute(
-            "SELECT id FROM monitoramento.agent_autonomy_policies "
+            "SELECT id,autonomy_level FROM monitoramento.agent_autonomy_policies "
             "WHERE config_version_id=%s",
             (config_id,),
         )
-        if not cursor.fetchone():
-            raise ValueError('Configuração exige política de autonomia antes da ativação')
+        validate_activation_readiness(target,cursor.fetchone())
         active_key = str(target['agent_id'])
         cursor.execute(
             "SELECT * FROM monitoramento.agent_config_versions "

@@ -30,6 +30,7 @@ import type {
   UpdateGeofenceAssignmentBody,
   UpdateGeofenceBody,
 } from '../types/geofence';
+import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLevel, AutonomousRisk } from '../types/agent';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -267,6 +268,19 @@ export const detectorPolicyService = {
   getAll: () => apiClient.get<DetectorPoliciesResponse>('/detector-policies'),
   activate: (policyId: number, body: { actor: string; reason: string; correlation_id: string }) =>
     apiClient.post<DetectorPolicyDTO>(`/detector-policies/${policyId}/activate`, body),
+};
+
+export const agentConfigurationService = {
+  getAgents: () => apiClient.get<AgentDefinitionsResponse>('/agent-configurations/agents'),
+  getConfigurations: () => apiClient.get<AgentConfigurationsResponse>('/agent-configurations'),
+  getTools: () => apiClient.get<{ schema_version: string; tools: string[] }>('/agent-configurations/tools'),
+  create: (body: Record<string, unknown>) => apiClient.post('/agent-configurations', body),
+  addTool: (configId: number, body: Record<string, unknown>) =>
+    apiClient.post(`/agent-configurations/${configId}/tools`, body),
+  addAutonomy: (configId: number, body: { policy: { autonomy_level: AutonomyLevel; max_autonomous_risk: AutonomousRisk; allowed_autonomous_actions: string[] }; actor: string; reason: string }) =>
+    apiClient.post(`/agent-configurations/${configId}/autonomy`, body),
+  activate: (configId: number, body: { actor: string; reason: string }) =>
+    apiClient.post(`/agent-configurations/${configId}/activate`, body),
 };
 
 export const securityStateService = {

@@ -60,6 +60,20 @@ def test_validation_canonicalizes_content_and_hash_is_repeatable():
     assert first['decision_policy_json'] == second['decision_policy_json']
 
 
+def test_activation_readiness_requires_supported_provider_policy_and_action_capacity():
+    config={'provider_code':'openai','limits_json':'{"max_actions_per_run":1}'}
+    assert agent_config_db.validate_activation_readiness(config,{'autonomy_level':'execute'})
+    with pytest.raises(ValueError,match='Provedor'):
+        agent_config_db.validate_activation_readiness({**config,'provider_code':'unknown'},{'autonomy_level':'observe'})
+    with pytest.raises(ValueError,match='política'):
+        agent_config_db.validate_activation_readiness(config,None)
+    with pytest.raises(ValueError,match='maior que zero'):
+        agent_config_db.validate_activation_readiness(
+            {'provider_code':'anthropic','limits_json':'{"max_actions_per_run":0}'},
+            {'autonomy_level':'execute'},
+        )
+
+
 @pytest.mark.parametrize(
     ('change', 'match'),
     [
@@ -130,3 +144,17 @@ def test_activate_api_maps_not_found_invalid_and_success(monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()['status'] == 'active'
+
+
+def test_catalog_and_policy_endpoints_are_typed(monkeypatch):
+    monkeypatch.setattr(agent_config_db,'list_agents',lambda:[{'id':1,'agent_key':'monitor-1'}])
+    response=client().get('/api/agent-configurations/agents')
+    assert response.status_code==200 and response.get_json()['count']==1
+    tools=client().get('/api/agent-configurations/tools').get_json()['tools']
+    assert tools==sorted(tools) and 'vehicle.get' in tools
+    monkeypatch.setattr(agent_config_api,'add_tool_policy',lambda config_id,*_args:config_id+10)
+    created=client().post('/api/agent-configurations/7/tools',json={'tool_name':'vehicle.get','constraints':{},'actor':'x','reason':'reason'})
+    assert created.status_code==201 and created.get_json()['id']==17
+    monkeypatch.setattr(agent_config_api,'add_autonomy_policy',lambda config_id,*_args:config_id+20)
+    created=client().post('/api/agent-configurations/7/autonomy',json={'policy':{},'actor':'x','reason':'reason'})
+    assert created.status_code==201 and created.get_json()['id']==27
