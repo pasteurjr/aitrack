@@ -1135,6 +1135,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-5.15 | `c76d523` | Dataset dourado de 12 casos e avaliador medem FP/FN, acurácia, precisão, recall, segurança e consistência. Baseline determinístico passou 12×3; não homologa LLM externo; 425 backend passaram. |
 | 2026-11-19 | UI-6.1 | `39000f6` | Fila comum guarda tipo/alvo/payload/política/prioridade/estado/tentativas/idempotência e timeline append-only. Prova bloqueou duplicata/mutação, rollback limpo; 427 backend passaram. |
 | 2026-11-19 | UI-6.2 | `40bc9b5` | Máquina versionada cobre aprovação/claim/envio/entrega/resposta/falha/retry/dead-letter; replay não duplica e terminal é imutável. Prova real em 8 eventos, rollback limpo; 430 backend passaram. |
+| 2026-11-19 | UI-6.3 | `ecf6ea7` | Notificação interna percorre a fila até `delivered`, aparece em caixa persistente e abre incidente; leitura é idempotente. Prova/replay/rollback, API e Chrome reais passaram; 431 backend e 85 frontend. |
 
 ---
 
