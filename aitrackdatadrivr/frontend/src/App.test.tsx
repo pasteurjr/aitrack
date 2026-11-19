@@ -24,6 +24,7 @@ jest.mock('./components/MonitorDashboard', () => () => <div />);
 jest.mock('./components/MonitorDetailView', () => () => <div />);
 jest.mock('./components/AgentConfigurationPanel', () => () => <div>Configuração de agentes</div>);
 jest.mock('./components/AgentRunsPanel', () => () => <div>Execuções de agentes</div>);
+jest.mock('./components/InternalNotificationsPanel', () => () => <div>Notificações internas</div>);
 jest.mock('./components/AlertsPanel', () => () => <div />);
 jest.mock('./components/EventsCatalog', () => () => <div />);
 jest.mock('./components/VehicleDetailHeader', () => (props: any) => (

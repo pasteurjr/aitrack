@@ -12,11 +12,12 @@ import VehicleDetailHeader from './components/VehicleDetailHeader';
 import VehicleSensorsPanel from './components/VehicleSensorsPanel';
 import AgentConfigurationPanel from './components/AgentConfigurationPanel';
 import AgentRunsPanel from './components/AgentRunsPanel';
+import InternalNotificationsPanel from './components/InternalNotificationsPanel';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
 
-type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'alerts' | 'events';
+type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'alerts' | 'events';
 
 function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -25,6 +26,7 @@ function App() {
   const [highlightedEvent, setHighlightedEvent] = useState<BehavioralEvent | null>(null);
   const [filterEventsByVehicle, setFilterEventsByVehicle] = useState<string | null>(null);
   const [detailMode, setDetailMode] = useState<'map' | 'sensors'>('map');
+  const [notificationIncidentId,setNotificationIncidentId]=useState<number|null>(null);
 
   // Monitor state
   const [selectedMonitorId, setSelectedMonitorId] = useState<number | null>(null);
@@ -69,6 +71,12 @@ function App() {
           <OperationModeBadge />
         </div>
         <div style={styles.navTabs}>
+          <button
+            style={{...styles.navTab, ...(viewMode === 'notifications' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('notifications')}
+          >
+            🔔 Notificações
+          </button>
           <button
             style={{...styles.navTab, ...(viewMode === 'agentRuns' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('agentRuns')}
@@ -122,7 +130,7 @@ function App() {
 
       {/* Main Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : <>
+        {viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
         {/* Left Sidebar - Conditional Content */}
         <div style={styles.sidebar}>
           {viewMode === 'dashboard' && (
@@ -147,7 +155,7 @@ function App() {
             />
           )}
           {viewMode === 'alerts' && (
-            <AlertsPanel onVehicleSelect={setSelectedVehicleId} />
+            <AlertsPanel onVehicleSelect={setSelectedVehicleId} initialIncidentId={notificationIncidentId} />
           )}
           {viewMode === 'events' && (
             <EventsCatalog />

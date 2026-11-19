@@ -12,6 +12,7 @@ import AsyncDataState from './AsyncDataState';
 
 interface AlertsPanelProps {
   onVehicleSelect?: (deviceId: string) => void;
+  initialIncidentId?: number | null;
 }
 
 type StatusFilter = 'open' | 'all' | IncidentStatus;
@@ -136,7 +137,7 @@ const localOperatorId = () => {
   return created;
 };
 
-const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
+const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect, initialIncidentId }) => {
   const [incidents, setIncidents] = useState<IncidentSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
@@ -192,6 +193,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ onVehicleSelect }) => {
   }, [incidentTypeFilter, severityFilter, statusFilter]);
 
   useEffect(() => loadIncidents(), [loadIncidents, refreshToken]);
+  useEffect(()=>{if(initialIncidentId)setSelectedId(initialIncidentId)},[initialIncidentId]);
 
   useEffect(() => {
     incidentService.getClassificationCatalog()

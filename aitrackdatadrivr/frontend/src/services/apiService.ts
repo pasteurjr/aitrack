@@ -289,6 +289,12 @@ export const agentRunService = {
     apiClient.get<AgentRunsResponse>('/agent-runs', { params: filters }),
 };
 
+export interface InternalNotification { id:number;public_id:string;incident_id:number;recipient_ref:string;title:string;body:string;priority:'low'|'normal'|'high'|'urgent';version:number;unread:boolean;created_at:string;read_at:string|null;action_public_id:string;action_version:number }
+export const internalNotificationService = {
+  getAll: (recipient_ref='operations',unread_only=false) => apiClient.get<{schema_version:string;count:number;notifications:InternalNotification[]}>('/internal-notifications',{params:{recipient_ref,unread_only}}),
+  markRead: (publicId:string,body:{expected_version:number;actor_id:string;idempotency_key:string}) => apiClient.post(`/internal-notifications/${publicId}/read`,body),
+};
+
 export const securityStateService = {
   getByVehicle: (vehicleId: number) =>
     apiClient.get<VehicleSecurityStateDTO>(`/vehicles/${vehicleId}/security-state`),
