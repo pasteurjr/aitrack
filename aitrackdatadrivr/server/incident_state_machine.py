@@ -35,6 +35,7 @@ COMMAND_LABELS = {
     'resolve': 'Incidente resolvido',
     'close': 'Incidente encerrado',
     'reopen': 'Incidente reaberto para triagem',
+    'takeover': 'Atendimento assumido por operador humano',
 }
 
 TRUE_POSITIVE_REASONS = {
@@ -84,7 +85,7 @@ def plan_transition(
     command = command.strip()
     now = now or datetime.now()
     current_status = incident['status']
-    target_status = TRANSITIONS.get((current_status, command))
+    target_status = current_status if command=='takeover' and current_status not in {'resolved','closed'} else TRANSITIONS.get((current_status, command))
     if target_status is None:
         raise InvalidTransition(
             f'Comando {command!r} não permitido para incidente em {current_status!r}'
@@ -93,7 +94,7 @@ def plan_transition(
     updates = {'status': target_status}
     if command == 'triage':
         updates['triaged_at'] = now
-    elif command == 'start_service':
+    elif command in {'start_service','takeover'}:
         assigned_type = payload.get('assigned_type')
         assigned_to = str(payload.get('assigned_to') or '').strip()
         if assigned_type not in {'human', 'agent'} or not assigned_to:

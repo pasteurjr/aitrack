@@ -14,6 +14,7 @@ class Repo:
     def load_work(self,_id):return self.work
     def complete(self,*args):self.completed.append(args)
     def fail(self,*args):self.failed.append(args)
+    def defer(self,*args):self.failed.append(args)
 
 
 class Tools:

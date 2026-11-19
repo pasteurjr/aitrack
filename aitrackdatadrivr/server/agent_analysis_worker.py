@@ -23,6 +23,9 @@ SEVERITY_PRIORITY = {'critical': 100, 'high': 80, 'medium': 50, 'low': 20}
 class AnalysisJobConflict(RuntimeError):
     pass
 
+class AgentPausedError(RuntimeError):
+    code='AGENT_INCIDENT_NOT_ACTIVE'
+
 
 def _iso(value):
     return value.isoformat() if isinstance(value, datetime) else value
@@ -117,13 +120,16 @@ class AnalysisJobRepository:
             cursor.execute(
                 "SELECT j.*,a.agent_key,v.id config_version_id,v.instructions,v.provider_code,"
                 "v.model_code,v.decision_policy_json,v.limits_json,i.vehicle_id,i.incident_type,"
-                "i.severity,i.status incident_status,i.context_snapshot FROM "
+                "i.severity,i.status incident_status,i.context_snapshot,"
+                "COALESCE(c.control_state,'active') control_state FROM "
                 "monitoramento.agent_analysis_jobs j JOIN monitoramento.agent_definitions a "
                 "ON a.id=j.agent_id JOIN monitoramento.agent_config_versions v "
                 "ON v.agent_id=a.id AND v.status='active' JOIN monitoramento.incidents i "
-                "ON i.id=j.incident_id WHERE j.id=%s AND j.status='claimed'",(job_id,))
+                "ON i.id=j.incident_id LEFT JOIN monitoramento.agent_incident_controls c "
+                "ON c.incident_id=i.id WHERE j.id=%s AND j.status='claimed'",(job_id,))
             row=cursor.fetchone()
             if not row: raise LookupError('Job reclamado/configuração ativa não encontrado')
+            if row['control_state']!='active':raise AgentPausedError(f'Controle do incidente está {row["control_state"]}')
             row['decision_policy']=json.loads(row.pop('decision_policy_json'))
             row['limits']=json.loads(row.pop('limits_json'))
             if isinstance(row.get('context_snapshot'),str):
@@ -133,6 +139,15 @@ class AnalysisJobRepository:
 
     def complete(self, job_id: int, worker_id: str, run_id: int):
         return self._finish(job_id,worker_id,"status='completed',run_id=%s,completed_at=CURRENT_TIMESTAMP(6)",(run_id,))
+
+    def defer(self,job_id,worker_id,error_code,message,retry_seconds=60):
+        conn=get_connection();cursor=conn.cursor()
+        try:
+            cursor.execute("UPDATE monitoramento.agent_analysis_jobs SET status='pending',attempt_count=GREATEST(attempt_count-1,0),available_at=TIMESTAMPADD(SECOND,%s,CURRENT_TIMESTAMP(6)),claimed_by=NULL,claimed_at=NULL,lease_expires_at=NULL,last_error_code=%s,last_error_message=%s WHERE id=%s AND status='claimed' AND claimed_by=%s",(retry_seconds,error_code,str(message)[:1000],job_id,worker_id))
+            if cursor.rowcount!=1:raise AnalysisJobConflict('Lease do job não pertence ao worker')
+            conn.commit()
+        except Exception:conn.rollback();raise
+        finally:cursor.close();conn.close()
 
     def fail(self, job_id: int, worker_id: str, error_code: str, message: str, retry_seconds=30):
         conn=get_connection();cursor=conn.cursor(dictionary=True)
@@ -232,6 +247,8 @@ class AgentAnalysisWorker:
             return {'job_id':job['id'],'run_id':finished['id'],'status':'completed'}
         except Exception as exc:
             code=getattr(exc,'code',type(exc).__name__)
+            if isinstance(exc,AgentPausedError):
+                self.repository.defer(job['id'],self.worker_id,code,str(exc));return {'job_id':job['id'],'run_id':None,'status':'deferred','error_code':code}
             if run:
                 try:
                     self.run_finisher(run['public_id'],{
