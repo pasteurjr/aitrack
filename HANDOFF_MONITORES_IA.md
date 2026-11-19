@@ -1133,6 +1133,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-5.13 | `fd126a0` | Controle versionado pausa/retoma e transfere incidente ao humano na mesma transação; worker adia sem gastar tentativa. Prova percorreu estados, replay idempotente e rollback limpo; 419 backend passaram. |
 | 2026-11-19 | UI-5.14 | `8c5dcc8` | Modo simulação transforma elegibilidade em recibo imutável do que seria feito, sem canal externo. Prova persistiu contato simulado, bloqueou mutação e zerou resíduos; 422 backend e 83 frontend passaram. |
 | 2026-11-19 | UI-5.15 | `c76d523` | Dataset dourado de 12 casos e avaliador medem FP/FN, acurácia, precisão, recall, segurança e consistência. Baseline determinístico passou 12×3; não homologa LLM externo; 425 backend passaram. |
+| 2026-11-19 | UI-6.1 | `39000f6` | Fila comum guarda tipo/alvo/payload/política/prioridade/estado/tentativas/idempotência e timeline append-only. Prova bloqueou duplicata/mutação, rollback limpo; 427 backend passaram. |
 
 ---
 

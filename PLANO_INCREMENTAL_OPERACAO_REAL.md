@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 19/11/2026 15:58 (`America/Sao_Paulo`)
+**Atualizado em:** 19/11/2026 16:01 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `c76d523` — UI-5.15 concluída
+**Checkpoint mais recente:** `39000f6` — UI-6.1 concluída
 
-**Tarefas pendentes:** 36
+**Tarefas pendentes:** 35
 
-**Próxima tarefa:** **39 de 74 — UI-6.1: criar migration da fila de ações**
+**Próxima tarefa:** **40 de 74 — UI-6.2: implementar máquina de estados e idempotência**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -108,7 +108,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
-| 39/74 | 6.1 | Criar migration da fila de ações. | Ação guarda tipo, alvo, payload, política, prioridade, estado, tentativas e idempotency key. | **Pendente.** |
+| 39/74 | 6.1 | Criar migration da fila de ações. | Ação guarda tipo, alvo, payload, política, prioridade, estado, tentativas e idempotency key. | **Concluída em 19/11/2026 16:01 -03.** **Resultado obtido:** contrato comum cobre notificação/mensagem/voz/autoridade/comando com alvo tipado, payload/política JSON, prioridade, estado/versão, tentativas/lease, erros, correlação e vínculo ao ledger; timeline é append-only. **Evidências:** migration 042 aplicada/idempotente; prova persistiu `high/pending`, bloqueou duplicata e mutação/exclusão do evento, rollback zero; 2 focados e 427 regressões aprovados. **Limitações:** transições/retry na UI-6.2; nenhum canal externo. **Artefatos:** migration, testes e `docs/VALIDACAO_UI_6_1_2026-11-19.md`. **Checkpoint:** `39000f6`. |
 | 40/74 | 6.2 | Implementar máquina de estados e idempotência. | Transições válidas são atômicas; retry não duplica mensagem, ligação ou comando. | **Pendente.** |
 | 41/74 | 6.3 | Criar notificação interna. | Primeira ferramenta gera notificação persistente, recebida na UI e ligada ao incidente. | **Pendente.** |
 | 42/74 | 6.4 | Integrar mensagem em sandbox. | Canal envia apenas para destino de teste, com credencial externa ao código e recibo real. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 39 de 74 — UI-6.1: criar migration da fila de ações.**
+**Próxima etapa 40 de 74 — UI-6.2: implementar máquina de estados e idempotência.**
 
-Ao concluí-la, este documento deverá indicar `35 tarefas pendentes` e anunciar
-`Próxima etapa 40 de 74 — UI-6.2`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `34 tarefas pendentes` e anunciar
+`Próxima etapa 41 de 74 — UI-6.3`, preservando o denominador original para mostrar
 o avanço total da rodada.
