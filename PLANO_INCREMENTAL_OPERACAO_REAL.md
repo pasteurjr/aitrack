@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 18/11/2026 03:49 (`America/Sao_Paulo`)
+**Atualizado em:** 19/11/2026 15:34 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `bc5523e` — UI-5.8 concluída
+**Checkpoint mais recente:** `95cf492` — UI-5.9 concluída
 
-**Tarefas pendentes:** 43
+**Tarefas pendentes:** 42
 
-**Próxima tarefa:** **32 de 74 — UI-5.9: criar worker de análise de incidente**
+**Próxima tarefa:** **33 de 74 — UI-5.10: persistir evidências, decisão e confiança**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -96,7 +96,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 29/74 | 5.6 | Criar ferramentas somente leitura. | Agente consulta veículo, posição, histórico e cerca com escopo, limite e retorno estruturado auditável. | **Concluída em 18/11/2026 03:40 -03.** **Resultado obtido:** registry fechada possui somente `vehicle.get`, `position.latest`, `position.history` e `geofence.list_for_vehicle`; escopo canônico limita veículos, fontes e pontos, e argumentos extras/nome desconhecido são negados antes da consulta. Resultado v1 e recibo guardam hashes, resumo, status, latência e correlação; negação/falha também são auditadas. **Evidências:** migration 035 aplicada/idempotente; prova real no veículo 9 retornou identidade, última posição, 5 pontos e 1 cerca, com 4 sucessos/1 negação auditados e zero resíduo; otimização reduziu posição de >30 s para ~0,2 s; 12 testes específicos e 392 regressões aprovados, 12 opt-in pulados. **Limitações:** cercas incluem atribuição direta de veículo; políticas por agente e ferramentas de eventos/incidentes vêm depois. **Artefatos:** audit ledger, repository/service, testes e `docs/VALIDACAO_UI_5_6_2026-11-18.md`. **Checkpoint:** `b55d328`. |
 | 30/74 | 5.7 | Criar política de ferramentas por agente. | Allowlist por versão bloqueia ferramenta/parâmetro fora da função do agente; testes provam negação. | **Concluída em 18/11/2026 03:43 -03.** **Resultado obtido:** allowlist imutável por versão restringe ferramenta, argumentos, fontes e volume; ausência nega por padrão, e o executor exige versão antes de consultar e a registra no recibo. O limite omitido é validado pelo volume efetivo, fechando bypass. **Evidências:** migration 036 aplicada/idempotente; prova MariaDB autorizou histórico Tracker de 5 pontos, negou ferramenta ausente, fonte Dirija Bem e 6 pontos; update/delete retornaram SQLSTATE 45000; rollback deixou zero resíduo; 16 testes focados e 396 regressões aprovados, 12 opt-in pulados. **Limitações:** nenhuma configuração ativa/modelo externo; ações dependem da autonomia da etapa seguinte. **Artefatos:** migration, policy loader/validator, integração no executor, testes e `docs/VALIDACAO_UI_5_7_2026-11-18.md`. **Checkpoint:** `dad1d43`. |
 | 31/74 | 5.8 | Criar níveis de autonomia. | Níveis separam observar, recomendar, solicitar aprovação e executar; risco máximo limita autonomia. | **Concluída em 18/11/2026 03:49 -03.** **Resultado obtido:** política imutável por versão separa `observe`, `recommend`, `approval` e `execute`; somente ação explicitamente permitida de risco baixo/médio pode ficar `execution_eligible`. Revisão humana, risco alto/crítico, item fora da allowlist e ações sensíveis falham para aprovação. Configuração sem política não ativa, e cada decisão persiste sua autorização. **Evidências:** migration 037 aplicada/idempotente; prova MariaDB bloqueou mutação/exclusão/inclusão tardia, marcou contato de baixo risco elegível e caso crítico para aprovação, persistiu/recuperou a autorização e deixou zero resíduo; 11 testes focados e 407 regressões aprovados, 12 opt-in pulados. **Limitações:** elegibilidade não executa canal; fila, consentimento, horário, custo e recibo vêm nas etapas 6.x. **Artefatos:** migration, motor de autonomia, integração no ledger/ativação, testes e `docs/VALIDACAO_UI_5_8_2026-11-18.md`. **Checkpoint:** `bc5523e`. |
-| 32/74 | 5.9 | Criar worker de análise de incidente. | Worker idempotente coleta contexto, chama decisão, persiste resultado e respeita fila/prioridade. | **Pendente.** |
+| 32/74 | 5.9 | Criar worker de análise de incidente. | Worker idempotente coleta contexto, chama decisão, persiste resultado e respeita fila/prioridade. | **Concluída em 19/11/2026 15:34 -03.** **Resultado obtido:** fila durável guarda prioridade, idempotência, lease, tentativas e dead-letter; worker usa configuração ativa e somente tools/fontes/limites permitidos, cria run por tentativa, chama provedor resiliente e conclui ledger/job. Falha finaliza o run e reagenda sem fabricar decisão. **Evidências:** migration 038 aplicada/idempotente; prova real priorizou crítico, repetiu chave no mesmo ID, fez `pending` na tentativa 1 e `dead` na 2; incompatibilidade de `SKIP LOCKED` no MariaDB 10.3 foi encontrada e substituída por lock consultivo curto; zero resíduo; 4 testes focados e 411 regressões aprovados, 12 opt-in pulados. **Limitações:** sem configuração ativa/chave externa, provedor foi determinístico e sem custo; supervisão contínua vem depois. **Artefatos:** migration, fila/repository/worker, testes e `docs/VALIDACAO_UI_5_9_2026-11-19.md`. **Checkpoint:** `95cf492`. |
 | 33/74 | 5.10 | Persistir evidências, decisão e confiança. | Operador consegue reconstruir por que o agente decidiu, com dados e versões usadas. | **Pendente.** |
 | 34/74 | 5.11 | Criar tela de configuração do agente. | UI edita objetivo, modelo, limites, ferramentas e autonomia com validação/versionamento. | **Pendente.** |
 | 35/74 | 5.12 | Criar tela de execuções e decisões. | Timeline mostra entrada, evidência, raciocínio estruturado permitido, decisão, custo, duração e falha. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 32 de 74 — UI-5.9: criar worker de análise de incidente.**
+**Próxima etapa 33 de 74 — UI-5.10: persistir evidências, decisão e confiança.**
 
-Ao concluí-la, este documento deverá indicar `42 tarefas pendentes` e anunciar
-`Próxima etapa 33 de 74 — UI-5.10`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `41 tarefas pendentes` e anunciar
+`Próxima etapa 34 de 74 — UI-5.11`, preservando o denominador original para mostrar
 o avanço total da rodada.
