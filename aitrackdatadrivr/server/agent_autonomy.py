@@ -20,17 +20,22 @@ class AutonomyPolicy:
     autonomy_level: str
     max_autonomous_risk: str
     allowed_autonomous_actions: tuple[str, ...]
+    execution_mode: str = 'simulation'
 
 
 def validate_policy(value: Dict) -> Dict:
-    if not isinstance(value, dict) or set(value) != {
+    if not isinstance(value, dict) or not set(value) <= {
         'autonomy_level', 'max_autonomous_risk', 'allowed_autonomous_actions',
-    }:
+        'execution_mode',
+    } or not {'autonomy_level','max_autonomous_risk','allowed_autonomous_actions'} <= set(value):
         raise ValueError('Política de autonomia possui campos inválidos')
     level, risk, actions = (
         value['autonomy_level'], value['max_autonomous_risk'],
         value['allowed_autonomous_actions'],
     )
+    execution_mode=value.get('execution_mode','simulation')
+    if execution_mode not in {'simulation','live'}:
+        raise ValueError('execution_mode inválido')
     if not isinstance(level, str) or not isinstance(risk, str) or (
         level not in AUTONOMY_LEVELS or risk not in AUTONOMOUS_RISKS
     ):
@@ -50,6 +55,7 @@ def validate_policy(value: Dict) -> Dict:
         'autonomy_level': level,
         'max_autonomous_risk': risk,
         'allowed_autonomous_actions': actions,
+        'execution_mode':execution_mode,
     }
 
 
@@ -79,7 +85,9 @@ def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict) -> Dict:
                 reasons.append('risk_above_autonomous_limit')
             if action['type'] not in policy.allowed_autonomous_actions:
                 reasons.append('action_not_in_autonomous_allowlist')
-            disposition = 'approval_required' if reasons else 'execution_eligible'
+            disposition = 'approval_required' if reasons else (
+                'simulated' if policy.execution_mode=='simulation' else 'execution_eligible'
+            )
         authorizations.append({
             'action_index': index,
             'action_type': action['type'],
@@ -91,6 +99,7 @@ def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict) -> Dict:
         'autonomy_policy_id': policy.policy_id,
         'config_version_id': policy.config_version_id,
         'autonomy_level': level,
+        'execution_mode':policy.execution_mode,
         'decision_risk': decision_risk,
         'human_review_required': decision['human_review']['required'] or any(
             item['disposition'] == 'approval_required' for item in authorizations
@@ -103,7 +112,7 @@ def load_autonomy_policy(config_version_id: int) -> AutonomyPolicy:
     conn = get_connection(); cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT id,config_version_id,autonomy_level,max_autonomous_risk,"
+            "SELECT id,config_version_id,autonomy_level,execution_mode,max_autonomous_risk,"
             "allowed_autonomous_actions_json FROM monitoramento.agent_autonomy_policies "
             "WHERE config_version_id=%s",
             (config_version_id,),
@@ -115,10 +124,11 @@ def load_autonomy_policy(config_version_id: int) -> AutonomyPolicy:
             'autonomy_level': row['autonomy_level'],
             'max_autonomous_risk': row['max_autonomous_risk'],
             'allowed_autonomous_actions': json.loads(row['allowed_autonomous_actions_json']),
+            'execution_mode':row['execution_mode'],
         })
         return AutonomyPolicy(
             row['id'], row['config_version_id'], value['autonomy_level'],
-            value['max_autonomous_risk'], tuple(value['allowed_autonomous_actions']),
+            value['max_autonomous_risk'], tuple(value['allowed_autonomous_actions']),value['execution_mode'],
         )
     finally:
         cursor.close(); conn.close()
@@ -152,10 +162,10 @@ def add_autonomy_policy(config_version_id: int, value: Dict,
             raise ValueError('Política de autonomia exige configuração draft')
         cursor.execute(
             "INSERT INTO monitoramento.agent_autonomy_policies "
-            "(config_version_id,autonomy_level,max_autonomous_risk,"
+            "(config_version_id,autonomy_level,execution_mode,max_autonomous_risk,"
             "allowed_autonomous_actions_json,created_by,change_reason) "
-            "VALUES(%s,%s,%s,%s,%s,%s)",
-            (config_version_id, value['autonomy_level'], value['max_autonomous_risk'],
+            "VALUES(%s,%s,%s,%s,%s,%s,%s)",
+            (config_version_id, value['autonomy_level'],value['execution_mode'], value['max_autonomous_risk'],
              json.dumps(value['allowed_autonomous_actions'], separators=(',', ':')),
              actor, reason),
         )

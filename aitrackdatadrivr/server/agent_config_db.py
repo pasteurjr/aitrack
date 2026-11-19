@@ -123,12 +123,13 @@ def list_configurations(agent_key: Optional[str] = None, status: Optional[str] =
                 'constraints':json.loads(row['constraints_json']),
             })
         cursor.execute(
-            "SELECT id,config_version_id,autonomy_level,max_autonomous_risk,"
+            "SELECT id,config_version_id,autonomy_level,execution_mode,max_autonomous_risk,"
             "allowed_autonomous_actions_json FROM monitoramento.agent_autonomy_policies "
             f"WHERE config_version_id IN ({placeholders})",tuple(ids))
         for row in cursor.fetchall():
             by_id[row['config_version_id']]['autonomy_policy']={
                 'id':row['id'],'autonomy_level':row['autonomy_level'],
+                'execution_mode':row['execution_mode'],
                 'max_autonomous_risk':row['max_autonomous_risk'],
                 'allowed_autonomous_actions':json.loads(row['allowed_autonomous_actions_json']),
             }

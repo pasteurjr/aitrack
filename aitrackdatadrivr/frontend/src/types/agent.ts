@@ -13,7 +13,7 @@ export interface AgentConfiguration {
   change_reason: string; created_at: string;
   limits: { timeout_seconds: number; max_context_events: number; max_actions_per_run: number };
   tool_policies: Array<{ id: number; tool_name: string; constraints: Record<string, unknown> }>;
-  autonomy_policy: null | { id: number; autonomy_level: AutonomyLevel; max_autonomous_risk: AutonomousRisk; allowed_autonomous_actions: string[] };
+  autonomy_policy: null | { id: number; autonomy_level: AutonomyLevel; execution_mode: 'simulation'|'live'; max_autonomous_risk: AutonomousRisk; allowed_autonomous_actions: string[] };
 }
 
 export interface AgentDefinitionsResponse { schema_version: string; count: number; agents: AgentDefinition[] }

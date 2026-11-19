@@ -278,7 +278,7 @@ export const agentConfigurationService = {
   create: (body: Record<string, unknown>) => apiClient.post('/agent-configurations', body),
   addTool: (configId: number, body: Record<string, unknown>) =>
     apiClient.post(`/agent-configurations/${configId}/tools`, body),
-  addAutonomy: (configId: number, body: { policy: { autonomy_level: AutonomyLevel; max_autonomous_risk: AutonomousRisk; allowed_autonomous_actions: string[] }; actor: string; reason: string }) =>
+  addAutonomy: (configId: number, body: { policy: { autonomy_level: AutonomyLevel; execution_mode: 'simulation'|'live'; max_autonomous_risk: AutonomousRisk; allowed_autonomous_actions: string[] }; actor: string; reason: string }) =>
     apiClient.post(`/agent-configurations/${configId}/autonomy`, body),
   activate: (configId: number, body: { actor: string; reason: string }) =>
     apiClient.post(`/agent-configurations/${configId}/activate`, body),

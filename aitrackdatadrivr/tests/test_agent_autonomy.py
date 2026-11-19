@@ -43,7 +43,8 @@ def test_execute_only_marks_explicit_low_risk_action_eligible():
     decision = valid_decision(); decision['risk'].update(level='low', score=20)
     decision['human_review'].update(required=False, reason='Revisão não exigida para risco baixo.')
     result = evaluate_autonomy(policy(), decision)
-    assert result['actions'][0]['disposition'] == 'execution_eligible'
+    assert result['actions'][0]['disposition'] == 'simulated'
+    assert result['execution_mode']=='simulation'
     assert result['human_review_required'] is False
 
 
@@ -74,6 +75,12 @@ def test_policy_validation_forbids_misleading_or_sensitive_autonomy():
 def test_authorization_rejects_policy_from_another_version():
     with pytest.raises(ValueError, match='outra versão'):
         authorize_decision(8, valid_decision(), loader=lambda _id: policy())
+
+
+def test_live_mode_marks_action_eligible_but_does_not_execute_it_here():
+    current=policy();current=AutonomyPolicy(current.policy_id,current.config_version_id,current.autonomy_level,current.max_autonomous_risk,current.allowed_autonomous_actions,'live')
+    value=valid_decision();value['risk'].update(level='low',score=10);value['human_review'].update(required=False,reason='Risco baixo sem revisão exigida.')
+    assert evaluate_autonomy(current,value)['actions'][0]['disposition']=='execution_eligible'
 
 
 def test_migration_persists_immutable_policy_and_authorization():

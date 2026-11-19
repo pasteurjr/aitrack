@@ -72,6 +72,14 @@ def _decision(cursor, run_id: int):
     for item in cursor.fetchall():
         item=dict(item);item['observed_at']=_iso(item.get('observed_at'))
         item['recorded_at']=_iso(item.get('recorded_at'));evidence.append(item)
+    cursor.execute(
+        "SELECT action_index,action_type,priority,rationale,authorization_json,recorded_at "
+        "FROM monitoramento.agent_simulated_actions WHERE decision_id=%s ORDER BY action_index",
+        (row['id'],))
+    simulated=[]
+    for item in cursor.fetchall():
+        item=dict(item);item['authorization']=json.loads(item.pop('authorization_json'))
+        item['recorded_at']=_iso(item['recorded_at']);simulated.append(item)
     return {
         'format_version': row['format_version'],
         'value': json.loads(row['decision_json']),
@@ -88,6 +96,7 @@ def _decision(cursor, run_id: int):
         'evidence_manifest_sha256': row.get('evidence_manifest_sha256'),
         'evidence_count': row.get('evidence_count'),
         'evidence': evidence,
+        'simulated_actions':simulated,
         'recorded_at': _iso(row['recorded_at']),
     }
 
@@ -251,6 +260,17 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
                 [(decision_id,item['ordinal'],item['source_code'],item['evidence_type'],
                   item['evidence_ref'],item['summary'],item['observed_at'],item['content_sha256'])
                  for item in provenance['evidence']])
+            simulated=[]
+            for action,authorized in zip(decision['proposed_actions'],authorization['actions']):
+                if authorized['disposition']=='simulated':
+                    simulated.append((decision_id,authorized['action_index'],action['type'],
+                                      action['priority'],action['rationale'],
+                                      json.dumps(authorized,ensure_ascii=False,separators=(',',':'),sort_keys=True)))
+            if simulated:
+                cursor.executemany(
+                    "INSERT INTO monitoramento.agent_simulated_actions "
+                    "(decision_id,action_index,action_type,priority,rationale,authorization_json) "
+                    "VALUES(%s,%s,%s,%s,%s,%s)",simulated)
         cursor.execute('SELECT * FROM monitoramento.agent_runs WHERE id=%s', (run['id'],))
         row = cursor.fetchone(); conn.commit()
         return _serialize(row, _decision(cursor, run['id']))
