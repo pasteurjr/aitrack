@@ -1127,6 +1127,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-18 | UI-5.7 | `dad1d43` | Allowlist imutável por versão limita ferramenta, argumento, fonte e volume com negação por padrão. Prova MariaDB bloqueou update/delete, negou três violações e zerou resíduos; 396 backend passaram. |
 | 2026-11-18 | UI-5.8 | `bc5523e` | Quatro níveis de autonomia e teto de risco passaram a autorizar cada proposta de forma fail-closed; sensíveis e risco alto/crítico exigem humano. Prova persistiu autorização, bloqueou mutações e zerou resíduos; 407 backend passaram. |
 | 2026-11-19 | UI-5.9 | `95cf492` | Fila durável prioriza incidentes, controla lease/retry/dead-letter e worker usa contexto permitido, provedor resiliente e ledger por tentativa. Prova real encontrou/corrigiu incompatibilidade MariaDB, comprovou idempotência e zerou resíduos; 411 backend passaram. |
+| 2026-11-19 | UI-5.10 | `986106f` | Decisão passou a guardar classificação/confiança/risco e hashes do contexto/manifesto; evidências normalizadas e imutáveis permitem reconstrução sem raciocínio livre. Prova bloqueou mutações, zerou resíduos e 414 backend passaram. |
 
 ---
 
