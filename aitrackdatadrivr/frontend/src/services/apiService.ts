@@ -31,6 +31,7 @@ import type {
   UpdateGeofenceBody,
 } from '../types/geofence';
 import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLevel, AutonomousRisk } from '../types/agent';
+import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -281,6 +282,11 @@ export const agentConfigurationService = {
     apiClient.post(`/agent-configurations/${configId}/autonomy`, body),
   activate: (configId: number, body: { actor: string; reason: string }) =>
     apiClient.post(`/agent-configurations/${configId}/activate`, body),
+};
+
+export const agentRunService = {
+  getAll: (filters?: { agent_key?: string; status?: AgentRunStatus | ''; correlation_id?: string; limit?: number }) =>
+    apiClient.get<AgentRunsResponse>('/agent-runs', { params: filters }),
 };
 
 export const securityStateService = {
