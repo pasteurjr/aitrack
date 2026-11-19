@@ -1131,6 +1131,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-5.11 | `b481f7d` | Aba Agentes passou a criar versões draft com objetivo/modelo/limites/tools/autonomia e ativação separada; backend valida prontidão. APIs e Chrome reais, 416 backend, 81 frontend, TypeScript/build e zero erro visual passaram. |
 | 2026-11-19 | UI-5.12 | `e1adaa2` | Aba Execuções IA passou a mostrar ledger, contexto, evidências, confiança/risco, autorização, custo/duração e falha sem cadeia de pensamento. 416 backend, 83 frontend, build e Chrome real passaram. |
 | 2026-11-19 | UI-5.13 | `fd126a0` | Controle versionado pausa/retoma e transfere incidente ao humano na mesma transação; worker adia sem gastar tentativa. Prova percorreu estados, replay idempotente e rollback limpo; 419 backend passaram. |
+| 2026-11-19 | UI-5.14 | `8c5dcc8` | Modo simulação transforma elegibilidade em recibo imutável do que seria feito, sem canal externo. Prova persistiu contato simulado, bloqueou mutação e zerou resíduos; 422 backend e 83 frontend passaram. |
 
 ---
 
