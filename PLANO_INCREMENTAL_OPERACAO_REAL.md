@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 19/11/2026 15:56 (`America/Sao_Paulo`)
+**Atualizado em:** 19/11/2026 15:58 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `8c5dcc8` — UI-5.14 concluída
+**Checkpoint mais recente:** `c76d523` — UI-5.15 concluída
 
-**Tarefas pendentes:** 37
+**Tarefas pendentes:** 36
 
-**Próxima tarefa:** **38 de 74 — UI-5.15: avaliar com casos esperados**
+**Próxima tarefa:** **39 de 74 — UI-6.1: criar migration da fila de ações**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -102,7 +102,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 35/74 | 5.12 | Criar tela de execuções e decisões. | Timeline mostra entrada, evidência, raciocínio estruturado permitido, decisão, custo, duração e falha. | **Concluída em 19/11/2026 15:49 -03.** **Resultado obtido:** aba Execuções IA filtra ledger real e mostra versão/tentativa/status, entrada/contexto, provedor/modelo, tokens/custo/duração/erro, classificação/confiança/risco, justificativas estruturadas, evidências/hashes e autorização; cadeia de pensamento livre é explicitamente excluída. **Evidências:** endpoint real `agent-runs.v1` vazio; teste expandiu caso estruturado; 416 backend, 83 frontend, TypeScript/build e Chrome 1440×900 sem overflow/erro aprovados. **Limitações:** ledger real vazio sem configuração ativa; paginação/retencão futuras. **Artefatos:** tipos/serviço, painel, navegação, testes e `docs/VALIDACAO_UI_5_12_2026-11-19.md`. **Checkpoint:** `e1adaa2`. |
 | 36/74 | 5.13 | Implementar pausar e assumir manualmente. | Humano pausa agente e assume incidente sem corrida; estado e autoria ficam auditados. | **Concluída em 19/11/2026 15:52 -03.** **Resultado obtido:** controle versionado por incidente separa `active`, `paused` e `human_owned`; takeover transacional preserva estado aberto e atribui humano, com auditoria/idempotência. Worker adia job pausado sem consumir tentativa. **Evidências:** migration 040 aplicada/idempotente; prova real percorreu pausa/retomada/takeover, gravou 3 auditorias, replay não duplicou e rollback zerou controle/timeline; 3 testes focados e 419 regressões aprovados, 12 opt-in pulados. **Limitações:** botões na UI e identidade autenticada ficam em UX/RBAC posteriores. **Artefatos:** migration, DB/API, máquina de incidente, bloqueio do worker, testes e `docs/VALIDACAO_UI_5_13_2026-11-19.md`. **Checkpoint:** `fd126a0`. |
 | 37/74 | 5.14 | Criar modo simulação sem ações externas. | Agente percorre fluxo completo e registra ações que faria, mas nenhum canal externo é acionado. | **Concluída em 19/11/2026 15:56 -03.** **Resultado obtido:** política versiona `execution_mode`; UI cria em `simulation`, ação elegível vira `simulated` e recibo imutável registra o que seria feito sem tocar canal. **Evidências:** migration 041 aplicada/idempotente; prova real persistiu `contact_owner` simulado, bloqueou update/delete e rollback zerou resíduos; nenhum canal externo; 422 backend, 83 frontend, TypeScript/build aprovados. **Limitações:** `live` só gera elegibilidade até a fila 6.x; sem chamada/custo de modelo. **Artefatos:** migration, motor/autorizador, recibos no ledger, UI e `docs/VALIDACAO_UI_5_14_2026-11-19.md`. **Checkpoint:** `8c5dcc8`. |
-| 38/74 | 5.15 | Avaliar com casos esperados. | Dataset cobre risco, normalidade, falso positivo/negativo e mede precisão, segurança e consistência. | **Pendente.** |
+| 38/74 | 5.15 | Avaliar com casos esperados. | Dataset cobre risco, normalidade, falso positivo/negativo e mede precisão, segurança e consistência. | **Concluída em 19/11/2026 15:58 -03.** **Resultado obtido:** dataset v1 tem 12 casos de normalidade, risco, drift/ruído/duplicata, indisponibilidade e incidentes; avaliador mede TP/FP/FN/TN, acurácia, precisão, recall, segurança e consistência com gate explícito. **Evidências:** baseline determinístico 12×3: TP5/TN7/FP0/FN0, métricas 1,0 e zero violações; teste negativo detectou FN/inconsistência; 3 focados e 425 regressões aprovados. **Limitações:** resultado não homologa LLM externo; harness deverá ser repetido com modelo/credencial escolhidos e revisão humana. **Artefatos:** dataset, avaliador, CLI, testes e `docs/VALIDACAO_UI_5_15_2026-11-19.md`. **Checkpoint:** `c76d523`. |
 
 ### E. Ações e comunicação
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 38 de 74 — UI-5.15: avaliar com casos esperados.**
+**Próxima etapa 39 de 74 — UI-6.1: criar migration da fila de ações.**
 
-Ao concluí-la, este documento deverá indicar `36 tarefas pendentes` e anunciar
-`Próxima etapa 39 de 74 — UI-6.1`, preservando o denominador original para mostrar
+Ao concluí-la, este documento deverá indicar `35 tarefas pendentes` e anunciar
+`Próxima etapa 40 de 74 — UI-6.2`, preservando o denominador original para mostrar
 o avanço total da rodada.
