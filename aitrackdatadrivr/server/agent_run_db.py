@@ -7,6 +7,7 @@ from typing import Dict, Optional
 from .monitor_db import get_connection
 from .agent_decision_schema import SCHEMA_VERSION, canonical_decision
 from .agent_autonomy import authorize_decision
+from .agent_evidence import build_provenance
 
 
 FINAL_STATUSES = {'succeeded', 'failed', 'timed_out', 'cancelled'}
@@ -53,14 +54,24 @@ def _serialize(row: Dict, decision=None) -> Dict:
 
 def _decision(cursor, run_id: int):
     cursor.execute(
-        "SELECT format_version,decision_json,decision_sha256,validated_at,"
-        "autonomy_policy_id,autonomy_level,authorization_json,recorded_at FROM "
+        "SELECT id,format_version,decision_json,decision_sha256,validated_at,"
+        "autonomy_policy_id,autonomy_level,authorization_json,classification,confidence,"
+        "risk_level,risk_score,context_sha256,evidence_manifest_sha256,evidence_count,"
+        "recorded_at FROM "
         "monitoramento.agent_run_decisions WHERE run_id=%s",
         (run_id,),
     )
     row = cursor.fetchone()
     if not row:
         return None
+    cursor.execute(
+        "SELECT ordinal,source_code,evidence_type,evidence_ref,summary,observed_at,"
+        "content_sha256,recorded_at FROM monitoramento.agent_decision_evidence "
+        "WHERE decision_id=%s ORDER BY ordinal",(row['id'],))
+    evidence=[]
+    for item in cursor.fetchall():
+        item=dict(item);item['observed_at']=_iso(item.get('observed_at'))
+        item['recorded_at']=_iso(item.get('recorded_at'));evidence.append(item)
     return {
         'format_version': row['format_version'],
         'value': json.loads(row['decision_json']),
@@ -69,6 +80,14 @@ def _decision(cursor, run_id: int):
         'autonomy_policy_id': row.get('autonomy_policy_id'),
         'autonomy_level': row.get('autonomy_level'),
         'authorization': json.loads(row['authorization_json']) if row.get('authorization_json') else None,
+        'classification': row.get('classification'),
+        'confidence': float(row['confidence']) if row.get('confidence') is not None else None,
+        'risk_level': row.get('risk_level'),
+        'risk_score': float(row['risk_score']) if row.get('risk_score') is not None else None,
+        'context_sha256': row.get('context_sha256'),
+        'evidence_manifest_sha256': row.get('evidence_manifest_sha256'),
+        'evidence_count': row.get('evidence_count'),
+        'evidence': evidence,
         'recorded_at': _iso(row['recorded_at']),
     }
 
@@ -196,8 +215,10 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
             raise AgentRunConflict('Versão da execução foi alterada')
         plan_completion(run['status'], target, decision, error_code)
         authorization = None
+        provenance = None
         if target == 'succeeded':
             authorization = authorize_decision(run['config_version_id'], decision)
+            provenance = build_provenance(decision,json.loads(run['context_json']))
         cursor.execute(
             "UPDATE monitoramento.agent_runs SET status=%s,version=%s,output_json=%s,"
             "input_tokens=%s,output_tokens=%s,cost_usd=%s,latency_ms=%s,error_code=%s,"
@@ -212,12 +233,24 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
             cursor.execute(
                 "INSERT INTO monitoramento.agent_run_decisions "
                 "(run_id,format_version,decision_json,decision_sha256,validated_at,"
-                "autonomy_policy_id,autonomy_level,authorization_json) "
-                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP(6),%s,%s,%s)",
+                "autonomy_policy_id,autonomy_level,authorization_json,classification,confidence,"
+                "risk_level,risk_score,context_sha256,evidence_manifest_sha256,evidence_count) "
+                "VALUES(%s,%s,%s,%s,CURRENT_TIMESTAMP(6),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (run['id'], SCHEMA_VERSION, decision_json, decision_sha256,
                  authorization['autonomy_policy_id'], authorization['autonomy_level'],
-                 json.dumps(authorization, ensure_ascii=False, separators=(',', ':'), sort_keys=True)),
+                 json.dumps(authorization, ensure_ascii=False, separators=(',', ':'), sort_keys=True),
+                 provenance['classification'],provenance['confidence'],provenance['risk_level'],
+                 provenance['risk_score'],provenance['context_sha256'],
+                 provenance['evidence_manifest_sha256'],provenance['evidence_count']),
             )
+            decision_id=cursor.lastrowid
+            cursor.executemany(
+                "INSERT INTO monitoramento.agent_decision_evidence "
+                "(decision_id,ordinal,source_code,evidence_type,evidence_ref,summary,observed_at,content_sha256) "
+                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                [(decision_id,item['ordinal'],item['source_code'],item['evidence_type'],
+                  item['evidence_ref'],item['summary'],item['observed_at'],item['content_sha256'])
+                 for item in provenance['evidence']])
         cursor.execute('SELECT * FROM monitoramento.agent_runs WHERE id=%s', (run['id'],))
         row = cursor.fetchone(); conn.commit()
         return _serialize(row, _decision(cursor, run['id']))
