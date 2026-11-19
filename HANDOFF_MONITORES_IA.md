@@ -1129,6 +1129,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-5.9 | `95cf492` | Fila durável prioriza incidentes, controla lease/retry/dead-letter e worker usa contexto permitido, provedor resiliente e ledger por tentativa. Prova real encontrou/corrigiu incompatibilidade MariaDB, comprovou idempotência e zerou resíduos; 411 backend passaram. |
 | 2026-11-19 | UI-5.10 | `986106f` | Decisão passou a guardar classificação/confiança/risco e hashes do contexto/manifesto; evidências normalizadas e imutáveis permitem reconstrução sem raciocínio livre. Prova bloqueou mutações, zerou resíduos e 414 backend passaram. |
 | 2026-11-19 | UI-5.11 | `b481f7d` | Aba Agentes passou a criar versões draft com objetivo/modelo/limites/tools/autonomia e ativação separada; backend valida prontidão. APIs e Chrome reais, 416 backend, 81 frontend, TypeScript/build e zero erro visual passaram. |
+| 2026-11-19 | UI-5.12 | `e1adaa2` | Aba Execuções IA passou a mostrar ledger, contexto, evidências, confiança/risco, autorização, custo/duração e falha sem cadeia de pensamento. 416 backend, 83 frontend, build e Chrome real passaram. |
 
 ---
 
