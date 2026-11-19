@@ -1128,6 +1128,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-18 | UI-5.8 | `bc5523e` | Quatro níveis de autonomia e teto de risco passaram a autorizar cada proposta de forma fail-closed; sensíveis e risco alto/crítico exigem humano. Prova persistiu autorização, bloqueou mutações e zerou resíduos; 407 backend passaram. |
 | 2026-11-19 | UI-5.9 | `95cf492` | Fila durável prioriza incidentes, controla lease/retry/dead-letter e worker usa contexto permitido, provedor resiliente e ledger por tentativa. Prova real encontrou/corrigiu incompatibilidade MariaDB, comprovou idempotência e zerou resíduos; 411 backend passaram. |
 | 2026-11-19 | UI-5.10 | `986106f` | Decisão passou a guardar classificação/confiança/risco e hashes do contexto/manifesto; evidências normalizadas e imutáveis permitem reconstrução sem raciocínio livre. Prova bloqueou mutações, zerou resíduos e 414 backend passaram. |
+| 2026-11-19 | UI-5.11 | `b481f7d` | Aba Agentes passou a criar versões draft com objetivo/modelo/limites/tools/autonomia e ativação separada; backend valida prontidão. APIs e Chrome reais, 416 backend, 81 frontend, TypeScript/build e zero erro visual passaram. |
 
 ---
 
