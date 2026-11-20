@@ -1140,6 +1140,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-6.5 | `1395cb4` | Callback HMAC normaliza entrega/leitura/resposta/falha, deduplica e guarda apenas hashes/metadados allowlisted. Prova append-only/rollback e 446 backend passaram. |
 | 2026-11-19 | UI-6.6 | `8892d59` | Templates ganharam chave/versão imutável, locale, canal, schema tipado, render estrito e aprovação única. Prova de imutabilidade/rollback e 449 backend passaram. |
 | 2026-11-19 | UI-6.7 | `0221614` | Contatos operacionais por papel/escopo usam referência segura, consentimento e política ordenada; telefone/e-mail bruto é recusado. Auditoria imutável/rollback e 453 backend passaram. |
+| 2026-11-19 | UI-6.8 | `bfc51e6` | Aprovação liga ação/versão/política/prazo e exige humano distinto com papel suficiente; rejeição/expiração cancelam. Decisão imutável/rollback e 456 backend passaram. |
 
 ---
 
