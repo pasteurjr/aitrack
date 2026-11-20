@@ -225,6 +225,8 @@ from .agent_control_api import agent_control_bp
 app.register_blueprint(agent_control_bp)
 from .internal_notification_api import notification_bp
 app.register_blueprint(notification_bp)
+from .message_event_api import message_event_bp
+app.register_blueprint(message_event_bp)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)
