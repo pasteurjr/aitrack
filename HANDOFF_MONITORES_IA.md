@@ -1138,6 +1138,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-6.3 | `ecf6ea7` | Notificação interna percorre a fila até `delivered`, aparece em caixa persistente e abre incidente; leitura é idempotente. Prova/replay/rollback, API e Chrome reais passaram; 431 backend e 85 frontend. |
 | 2026-11-19 | UI-6.4 | `f3028e0` | Mensagem somente em sandbox/test e allowlist, com token externo, idempotência e recibo sanitizado imutável. HTTP local e prova MariaDB com rollback passaram; nenhum destinatário real; 436 backend. |
 | 2026-11-19 | UI-6.5 | `1395cb4` | Callback HMAC normaliza entrega/leitura/resposta/falha, deduplica e guarda apenas hashes/metadados allowlisted. Prova append-only/rollback e 446 backend passaram. |
+| 2026-11-19 | UI-6.6 | `8892d59` | Templates ganharam chave/versão imutável, locale, canal, schema tipado, render estrito e aprovação única. Prova de imutabilidade/rollback e 449 backend passaram. |
 
 ---
 
