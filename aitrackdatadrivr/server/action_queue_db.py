@@ -108,3 +108,78 @@ def transition_action(public_id: str,command: str,payload: Dict,connection=None)
     finally:
         cursor.close()
         if owns:conn.close()
+
+
+def _action_summary(source, event_type, from_status=None, to_status=None):
+    labels = {
+        'created': 'Ação criada', 'request_approval': 'Aprovação solicitada',
+        'approve': 'Ação aprovada', 'reject': 'Ação rejeitada',
+        'expire': 'Aprovação expirada', 'claim': 'Execução iniciada',
+        'mark_sent': 'Envio aceito', 'mark_delivered': 'Entrega confirmada',
+        'mark_responded': 'Resposta recebida', 'fail': 'Execução falhou',
+        'retry': 'Nova tentativa agendada', 'dead_letter': 'Movida para fila de falhas',
+        'cancel': 'Ação cancelada', 'simulate': 'Ação simulada',
+        'accepted': 'Provedor aceitou', 'sent': 'Provedor enviou',
+        'delivered': 'Provedor confirmou entrega', 'read': 'Mensagem lida',
+        'responded': 'Destinatário respondeu', 'failed': 'Provedor reportou falha',
+        'unknown': 'Evento desconhecido do provedor',
+        'approval_requested': 'Aprovação humana solicitada',
+        'approval_decided': 'Aprovação humana decidida',
+    }
+    summary = labels.get(event_type, event_type.replace('_', ' ').capitalize())
+    if source == 'action' and from_status and to_status:
+        summary += f' ({from_status} → {to_status})'
+    return summary
+
+
+def list_incident_action_timeline(incident_id: int, limit=200, connection=None):
+    """Compõe timeline segura sem payload, destino, corpo ou credencial."""
+    if not isinstance(incident_id, int) or incident_id < 1 or not 1 <= limit <= 1000:
+        raise ValueError('incident_id ou limit inválido')
+    owns = connection is None; conn = connection or get_connection(); cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""SELECT e.id,e.event_type,e.from_status,e.to_status,e.actor_type,e.actor_id,
+          e.occurred_at,a.public_id action_public_id,a.action_type,a.correlation_id,a.attempt_count
+          FROM monitoramento.action_events e JOIN monitoramento.action_queue a ON a.id=e.action_id
+          WHERE a.incident_id=%s ORDER BY e.occurred_at DESC,e.id DESC LIMIT %s""",(incident_id,limit))
+        items=[]
+        for row in cursor.fetchall():
+            items.append({**row,'timeline_id':f'action:{row["id"]}','source':'action',
+                'summary':_action_summary('action',row['event_type'],row['from_status'],row['to_status'])})
+        cursor.execute("""SELECT p.id,p.normalized_status event_type,NULL from_status,NULL to_status,
+          'provider' actor_type,p.provider_code actor_id,p.received_at occurred_at,
+          a.public_id action_public_id,a.action_type,a.correlation_id,a.attempt_count
+          FROM monitoramento.message_provider_events p JOIN monitoramento.action_queue a ON a.id=p.action_id
+          WHERE a.incident_id=%s ORDER BY p.received_at DESC,p.id DESC LIMIT %s""",(incident_id,limit))
+        for row in cursor.fetchall():
+            items.append({**row,'timeline_id':f'provider:{row["id"]}','source':'provider',
+                'summary':_action_summary('provider',row['event_type'])})
+        cursor.execute("""SELECT p.id,'approval_requested' event_type,NULL from_status,'awaiting_approval' to_status,
+          p.requested_by_type actor_type,p.requested_by actor_id,p.created_at occurred_at,
+          a.public_id action_public_id,a.action_type,a.correlation_id,a.attempt_count
+          FROM monitoramento.action_approvals p JOIN monitoramento.action_queue a ON a.id=p.action_id
+          WHERE a.incident_id=%s ORDER BY p.created_at DESC,p.id DESC LIMIT %s""",(incident_id,limit))
+        for row in cursor.fetchall():
+            items.append({**row,'timeline_id':f'approval-request:{row["id"]}','source':'approval',
+                'summary':_action_summary('approval',row['event_type'])})
+        cursor.execute("""SELECT p.id,'approval_decided' event_type,'awaiting_approval' from_status,p.status to_status,
+          'human' actor_type,p.decided_by actor_id,p.decided_at occurred_at,
+          a.public_id action_public_id,a.action_type,a.correlation_id,a.attempt_count
+          FROM monitoramento.action_approvals p JOIN monitoramento.action_queue a ON a.id=p.action_id
+          WHERE a.incident_id=%s AND p.decided_at IS NOT NULL
+          ORDER BY p.decided_at DESC,p.id DESC LIMIT %s""",(incident_id,limit))
+        for row in cursor.fetchall():
+            items.append({**row,'timeline_id':f'approval-decision:{row["id"]}','source':'approval',
+                'summary':f'{_action_summary("approval",row["event_type"])}: {row["to_status"]}'})
+        items.sort(key=lambda item:(item['occurred_at'],item['timeline_id']))
+        total=len(items); selected=items[-limit:]
+        return [_serialize_timeline(item) for item in selected],total,total>len(selected)
+    finally:
+        cursor.close()
+        if owns:conn.close()
+
+
+def _serialize_timeline(item):
+    result={key:value for key,value in item.items() if key!='id'}
+    if isinstance(result.get('occurred_at'),datetime):result['occurred_at']=result['occurred_at'].isoformat()
+    return result

@@ -10,6 +10,7 @@ from .monitor_db import get_connection
 from .identity_db import configured_read_mode
 from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
 from .incident_sla import deadline_for, enrich_sla
+from .action_queue_db import list_incident_action_timeline
 
 
 class IncidentNotFound(Exception):
@@ -158,6 +159,12 @@ def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
         result['timeline'] = timeline
         result['timeline_total'] = timeline_total
         result['timeline_truncated'] = timeline_total > len(timeline)
+        action_timeline, action_total, action_truncated = list_incident_action_timeline(
+            incident_id, timeline_limit, connection=conn,
+        )
+        result['action_timeline'] = action_timeline
+        result['action_timeline_total'] = action_total
+        result['action_timeline_truncated'] = action_truncated
         return result
     finally:
         cursor.close()

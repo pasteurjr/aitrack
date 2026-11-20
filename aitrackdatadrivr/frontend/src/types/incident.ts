@@ -56,6 +56,22 @@ export interface IncidentTimelineEntry {
   occurred_at: string;
 }
 
+export interface IncidentActionTimelineEntry {
+  timeline_id: string;
+  source: 'action' | 'provider' | 'approval';
+  event_type: string;
+  from_status: string | null;
+  to_status: string | null;
+  actor_type: string;
+  actor_id: string | null;
+  summary: string;
+  occurred_at: string;
+  action_public_id: string;
+  action_type: string;
+  correlation_id: string;
+  attempt_count: number;
+}
+
 export interface IncidentDetail extends IncidentSummary {
   hypothesis: string | null;
   confidence: number | null;
@@ -69,6 +85,9 @@ export interface IncidentDetail extends IncidentSummary {
   timeline: IncidentTimelineEntry[];
   timeline_total: number;
   timeline_truncated: boolean;
+  action_timeline?: IncidentActionTimelineEntry[];
+  action_timeline_total?: number;
+  action_timeline_truncated?: boolean;
 }
 
 export interface IncidentListResponse {

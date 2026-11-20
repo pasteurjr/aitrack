@@ -119,6 +119,15 @@ it('renderiza incidente real e abre seu detalhe auditável', async () => {
           evidence_ref: '900',
           occurred_at: '2026-11-06T15:00:00',
         }],
+        action_timeline_total: 1,
+        action_timeline_truncated: false,
+        action_timeline: [{
+          timeline_id: 'action:1', source: 'action', event_type: 'mark_sent',
+          from_status: 'claimed', to_status: 'sent', actor_type: 'system',
+          actor_id: 'worker-1', summary: 'Envio aceito',
+          occurred_at: '2026-11-19T23:00:00', action_public_id: 'action-1',
+          action_type: 'send_message', correlation_id: 'corr-1', attempt_count: 1,
+        }],
       },
     },
   } as never);

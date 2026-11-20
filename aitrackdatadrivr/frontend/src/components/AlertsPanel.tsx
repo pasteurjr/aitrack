@@ -738,6 +738,24 @@ const IncidentDetails: React.FC<{
           ))}
         </section>
         <section style={{ ...styles.card, cursor: 'default' }}>
+          <h3 style={styles.cardTitle}>Ações automáticas ({incident.action_timeline_total || 0})</h3>
+          {(incident.action_timeline || []).length === 0 ? (
+            <p style={styles.muted}>Nenhuma ação automática registrada para este incidente.</p>
+          ) : (incident.action_timeline || []).map(entry => (
+            <div key={entry.timeline_id} style={styles.timelineEntry}>
+              <strong style={{ color: '#f9fafb' }}>{entry.summary}</strong>
+              <span style={styles.muted}>
+                {entry.action_type} · tentativa {entry.attempt_count} · {entry.actor_id || entry.actor_type}
+                {' · '}{formatDateTime(entry.occurred_at)}
+              </span>
+              <span style={styles.muted}>Correlação: {entry.correlation_id}</span>
+            </div>
+          ))}
+          {incident.action_timeline_truncated && (
+            <p style={styles.muted}>Exibindo somente as ações mais recentes.</p>
+          )}
+        </section>
+        <section style={{ ...styles.card, cursor: 'default' }}>
           <h3 style={styles.cardTitle}>Ações do operador</h3>
           <label style={styles.actionLabel}>
             Seu nome
