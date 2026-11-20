@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 from .action_queue_db import transition_action
 from .monitor_db import get_connection
+from .action_contact_policy import enforce_contact_policy
 
 class MessageSandboxError(RuntimeError):
     code = 'MESSAGE_SANDBOX_ERROR'
@@ -142,6 +143,15 @@ def dispatch_message_action(public_id: str, provider: SandboxMessageProvider):
             raise ValueError(f'Ação não pode ser enviada em {action["status"]}')
 
         body = json.loads(action['payload_json']).get('body', '')
+        action_payload = json.loads(action['payload_json'])
+        policy_decision = enforce_contact_policy(
+            conn, action, 'message', action_payload.get('estimated_cost_cents', 0)
+        )
+        if not policy_decision['allowed']:
+            conn.commit()
+            raise MessageSandboxError(
+                'Contato bloqueado pela política: ' + ','.join(policy_decision['denial_codes'])
+            )
         claim = transition_action(
             public_id,
             'claim',

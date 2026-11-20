@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 from .action_queue_db import transition_action
 from .message_template_db import render_body
 from .monitor_db import get_connection
+from .action_contact_policy import enforce_contact_policy
 
 DISCLOSURES = ('assistente virtual automatizado', 'ligação automatizada', 'chamada automatizada')
 
@@ -80,6 +81,9 @@ def dispatch_voice_action(public_id,provider):
         cursor.execute("SELECT * FROM monitoramento.message_template_versions WHERE id=%s FOR UPDATE",(version_id,));template=cursor.fetchone()
         if not template or template['status']!='approved':raise ValueError('Roteiro aprovado obrigatório')
         script=render_body(template['body'],json.loads(template['variable_schema_json']),variables);validate_automation_disclosure(script)
+        policy_decision=enforce_contact_policy(conn,action,'voice',payload.get('estimated_cost_cents',0))
+        if not policy_decision['allowed']:
+            conn.commit();raise VoiceSandboxError('Contato bloqueado pela política: '+','.join(policy_decision['denial_codes']))
         claim=transition_action(public_id,'claim',{'expected_version':action['version'],'idempotency_key':f'{action["idempotency_key"]}:voice:claim','actor_type':'system','actor_id':'voice-sandbox','worker_id':'voice-sandbox','lease_seconds':30},connection=conn)
         try:receipt=provider.call(action['target_ref'],script,action['public_id'])
         except VoiceSandboxError as exc:
