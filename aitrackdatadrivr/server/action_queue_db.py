@@ -12,7 +12,8 @@ FINAL={'responded','dead','cancelled','simulated'}
 TRANSITIONS={
  ('pending','request_approval'):'awaiting_approval',('pending','approve'):'approved',
  ('pending','claim'):'claimed',('pending','cancel'):'cancelled',('pending','simulate'):'simulated',
- ('awaiting_approval','approve'):'approved',('awaiting_approval','cancel'):'cancelled',
+ ('awaiting_approval','approve'):'approved',('awaiting_approval','reject'):'cancelled',
+ ('awaiting_approval','expire'):'cancelled',('awaiting_approval','cancel'):'cancelled',
  ('approved','claim'):'claimed',('approved','cancel'):'cancelled',
  ('claimed','mark_sent'):'sent',('claimed','fail'):'failed',('claimed','cancel'):'cancelled',
  ('sent','mark_delivered'):'delivered',('sent','mark_responded'):'responded',('sent','fail'):'failed',
