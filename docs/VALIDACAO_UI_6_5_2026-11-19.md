@@ -1,8 +1,8 @@
 # Validação — UI-6.5: eventos do provedor de mensagens
 
-**Executada em:** 19/11/2026 23:12 (`America/Sao_Paulo`)  
-**Etapa:** 43 de 74  
-**Checkpoint anterior:** `e2e2437`  
+**Executada em:** 19/11/2026 23:08 (`America/Sao_Paulo`)
+**Etapa:** 43 de 74
+**Checkpoint anterior:** `e2e2437`
 **Commit de implementação:** `1395cb4`
 
 ## Resultado esperado

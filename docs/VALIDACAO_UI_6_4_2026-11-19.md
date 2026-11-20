@@ -1,8 +1,8 @@
 # Validação — UI-6.4: mensagem em sandbox
 
-**Executada em:** 19/11/2026 23:06 (`America/Sao_Paulo`)  
-**Etapa:** 42 de 74  
-**Checkpoint anterior:** `5bbed3e`  
+**Executada em:** 19/11/2026 23:06 (`America/Sao_Paulo`)
+**Etapa:** 42 de 74
+**Checkpoint anterior:** `5bbed3e`
 **Commit de implementação:** `f3028e0`
 
 ## Resultado esperado

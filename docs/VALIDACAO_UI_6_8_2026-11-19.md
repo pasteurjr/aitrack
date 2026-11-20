@@ -1,8 +1,8 @@
 # Validação — UI-6.8: aprovação humana
 
-**Executada em:** 19/11/2026 23:30 (`America/Sao_Paulo`)  
-**Etapa:** 46 de 74  
-**Checkpoint anterior:** `6194ff1`  
+**Executada em:** 19/11/2026 23:16 (`America/Sao_Paulo`)
+**Etapa:** 46 de 74
+**Checkpoint anterior:** `6194ff1`
 **Commit de implementação:** `bfc51e6`
 
 ## Resultado esperado
