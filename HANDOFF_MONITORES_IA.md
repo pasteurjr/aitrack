@@ -1142,6 +1142,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-6.7 | `0221614` | Contatos operacionais por papel/escopo usam referência segura, consentimento e política ordenada; telefone/e-mail bruto é recusado. Auditoria imutável/rollback e 453 backend passaram. |
 | 2026-11-19 | UI-6.8 | `bfc51e6` | Aprovação liga ação/versão/política/prazo e exige humano distinto com papel suficiente; rejeição/expiração cancelam. Decisão imutável/rollback e 456 backend passaram. |
 | 2026-11-19 | UI-6.9 | `8cf2ae6` | Detalhe do incidente une fila, aprovações e callbacks em ordem, com tentativa/ator/correlação e sem conteúdo sensível. 458 backend, 85 frontend, TypeScript/build e rollback passaram. |
+| 2026-11-19 | UI-6.10 | `f35e1f3` | Lease vencido usa backoff limitado até dead-letter; reprocesso cria ação causal nova e preserva original. Auditoria imutável/rollback e 461 backend passaram. |
 
 ---
 
