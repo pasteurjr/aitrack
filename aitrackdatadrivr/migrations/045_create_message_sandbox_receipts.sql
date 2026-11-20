@@ -1,0 +1,23 @@
+-- UI-6.4: recibo imutável de envio exclusivamente em sandbox.
+CREATE TABLE IF NOT EXISTS monitoramento.message_dispatch_receipts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  action_id BIGINT UNSIGNED NOT NULL,
+  provider_code VARCHAR(50) NOT NULL,
+  provider_message_id VARCHAR(150) NOT NULL,
+  destination_hash CHAR(64) NOT NULL,
+  request_sha256 CHAR(64) NOT NULL,
+  http_status SMALLINT UNSIGNED NOT NULL,
+  response_json LONGTEXT NOT NULL,
+  dispatched_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY(id), UNIQUE KEY uq_message_receipt_action(action_id),
+  UNIQUE KEY uq_message_receipt_provider(provider_code,provider_message_id),
+  CONSTRAINT fk_message_receipt_action FOREIGN KEY(action_id)
+    REFERENCES monitoramento.action_queue(id) ON DELETE RESTRICT,
+  CONSTRAINT chk_message_receipt_response CHECK(JSON_VALID(response_json))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DELIMITER $$
+CREATE OR REPLACE TRIGGER monitoramento.trg_message_receipt_update BEFORE UPDATE ON monitoramento.message_dispatch_receipts
+FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='message receipt is immutable'; END$$
+CREATE OR REPLACE TRIGGER monitoramento.trg_message_receipt_delete BEFORE DELETE ON monitoramento.message_dispatch_receipts
+FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='message receipts cannot be deleted'; END$$
+DELIMITER ;
