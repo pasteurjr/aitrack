@@ -1153,6 +1153,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-7.4 | `d3db04d` | Replay somente leitura reúne rota, posições, episódios e execução em ordem estável; UI controla seek/pausa/reinício/0,5×–4× e fica marcada como replay. Prova confirmou resultado repetível sem escrita/resíduo; 506 backend, 86 frontend, TypeScript e build passaram. |
 | 2026-11-25 | UI-7.5 | `c27b3ec` | Análise histórica usa intervalos UTC semiabertos, fuso e fontes separadas, com período anterior de mesma duração; UI removeu snapshot em memória. Consulta range usou índice; 511 backend, 86 frontend, TypeScript e build passaram. |
 | 2026-11-25 | UI-7.6 | `fe5deef` | Exposição versionada no banco unificado guarda distância, tempo dirigido e qualidade; taxas por 100 km/hora ficam nulas sem denominador. Prova com cobertura parcial/indisponível e rollback zero; 515 backend e 86 frontend passaram. |
+| 2026-11-25 | UI-7.7 | `458d7ea` | Relatórios Tracker/Dirija Bem/unificado congelam definição, fórmula, filtros e fontes; taxas unificadas são recalculadas e runs ficam imutáveis/idempotentes. Prova rollback zero; 518 backend e 86 frontend passaram. |
 
 ---
 
