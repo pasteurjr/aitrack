@@ -1151,6 +1151,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-24 | UI-7.2 | `ad01ecd` | Atribuição congela rota por veículo/motorista e execução versionada cobre fuso, vigência, janela/DST e estados auditáveis. Rollback e 496 backend passaram. |
 | 2026-11-25 | UI-7.3 | `e39c61c` | Detector persistente usa corredor, acurácia e confirmação dupla para desvio/recuperação; paradas não planejadas exigem 5 minutos, previstas são excluídas e recibos deduplicam posições. Prova transacional abriu/recuperou ambos os episódios, rollback zerou resíduos e 499 backend passaram. |
 | 2026-11-25 | UI-7.4 | `d3db04d` | Replay somente leitura reúne rota, posições, episódios e execução em ordem estável; UI controla seek/pausa/reinício/0,5×–4× e fica marcada como replay. Prova confirmou resultado repetível sem escrita/resíduo; 506 backend, 86 frontend, TypeScript e build passaram. |
+| 2026-11-25 | UI-7.5 | `c27b3ec` | Análise histórica usa intervalos UTC semiabertos, fuso e fontes separadas, com período anterior de mesma duração; UI removeu snapshot em memória. Consulta range usou índice; 511 backend, 86 frontend, TypeScript e build passaram. |
 
 ---
 
