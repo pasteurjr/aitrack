@@ -1157,6 +1157,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-7.8 | `38c6f80` | Indicadores medem mediana/p95, SLA, automação, intervenção e falhas com denominadores; EXPLAIN motivou índice temporal e consulta range. Prova leu 9.574 incidentes; 522 backend e 86 frontend passaram. |
 | 2026-11-25 | UI-7.9 | `179e53e` | Exportação CSV/JSON preserva filtros/proveniência e neutraliza fórmulas; jobs/eventos são imutáveis/idempotentes. Agenda calcula fuso, mas fica bloqueada até auth/RBAC. Rollback zero; 525 backend e 86 frontend passaram. |
 | 2026-11-25 | UI-7.10 | `4f62f14` | Dataset dourado de score reproduziu 17/17 valores sem erro, mas revelou FNR de 70% no limiar 70 (Tracker 75%, Dirija Bem 66,7%). Endpoint marca no-go como gatilho único; 528 backend passaram. |
+| 2026-11-25 | UI-8.1 | `2e4f27a` | Sessão opaca/CSRF, expiração, bloqueio, logout e reset único protegem API e dois frontends; sem senha padrão e CORS allowlist. Prova transacional rollback zero; 533 backend, 88+1 frontend e dois builds passaram. |
 
 ---
 
