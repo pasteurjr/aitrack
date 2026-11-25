@@ -1,0 +1,24 @@
+{
+  "schema_version": "behavior-score-golden.v1",
+  "reference_time": "2026-11-25T12:00:00+00:00",
+  "intervention_threshold": 70.0,
+  "cases": [
+    {"id":"S01","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[]},
+    {"id":"S02","source":"dirijabem","profile":"highway","expected_score":100.0,"requires_intervention":false,"events":[{"type":"harsh_brake","severity":"high","age_seconds":7200}]},
+    {"id":"S03","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[{"type":"speeding","severity":"critical","age_seconds":-10}]},
+    {"id":"S04","source":"dirijabem","profile":"urban","expected_score":98.0,"requires_intervention":false,"events":[{"type":"harsh_accel","severity":"medium","age_seconds":300}]},
+    {"id":"S05","source":"tracker","profile":"urban","expected_score":98.0,"requires_intervention":false,"events":[{"type":"sharp_turn","severity":"medium","age_seconds":300}]},
+    {"id":"S06","source":"dirijabem","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":300}]},
+    {"id":"S07","source":"tracker","profile":"highway","expected_score":98.0,"requires_intervention":true,"events":[{"type":"speeding","severity":"critical","age_seconds":300}]},
+    {"id":"S08","source":"dirijabem","profile":"urban","expected_score":94.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":300}]},
+    {"id":"S09","source":"tracker","profile":"urban","expected_score":86.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100},{"type":"harsh_brake","severity":"high","age_seconds":200},{"type":"harsh_brake","severity":"high","age_seconds":300}]},
+    {"id":"S10","source":"dirijabem","profile":"urban","expected_score":68.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100},{"type":"harsh_brake","severity":"high","age_seconds":200},{"type":"harsh_brake","severity":"high","age_seconds":300},{"type":"harsh_brake","severity":"high","age_seconds":400},{"type":"harsh_brake","severity":"high","age_seconds":500},{"type":"harsh_brake","severity":"high","age_seconds":600},{"type":"harsh_brake","severity":"high","age_seconds":700}]},
+    {"id":"S11","source":"tracker","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100,"episode_id":"same"},{"type":"harsh_brake","severity":"high","age_seconds":200,"episode_id":"same"}]},
+    {"id":"S12","source":"dirijabem","profile":"mixed","expected_score":86.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_accel","severity":"high","age_seconds":200},{"type":"sharp_turn","severity":"high","age_seconds":300},{"type":"speeding","severity":"critical","age_seconds":400}]},
+    {"id":"S13","source":"tracker","profile":"urban","expected_score":52.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_brake","severity":"critical","age_seconds":200},{"type":"harsh_brake","severity":"critical","age_seconds":300},{"type":"harsh_brake","severity":"critical","age_seconds":400},{"type":"harsh_brake","severity":"critical","age_seconds":500},{"type":"harsh_brake","severity":"critical","age_seconds":600},{"type":"harsh_brake","severity":"critical","age_seconds":700},{"type":"harsh_brake","severity":"critical","age_seconds":800}]},
+    {"id":"S14","source":"dirijabem","profile":"urban","expected_score":46.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_brake","severity":"critical","age_seconds":200},{"type":"harsh_brake","severity":"critical","age_seconds":300},{"type":"harsh_brake","severity":"critical","age_seconds":400},{"type":"harsh_brake","severity":"critical","age_seconds":500},{"type":"harsh_brake","severity":"critical","age_seconds":600},{"type":"harsh_brake","severity":"critical","age_seconds":700},{"type":"harsh_brake","severity":"critical","age_seconds":800},{"type":"harsh_brake","severity":"critical","age_seconds":900}]},
+    {"id":"S15","source":"tracker","profile":"unknown","expected_score":99.0,"requires_intervention":false,"events":[{"type":"unknown","severity":"low","age_seconds":300}]},
+    {"id":"S16","source":"dirijabem","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":3600}]},
+    {"id":"S17","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[{"type":"harsh_brake","severity":"high","age_seconds":3601}]}
+  ]
+}

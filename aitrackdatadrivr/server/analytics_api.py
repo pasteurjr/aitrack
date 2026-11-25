@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from .analytics_db import aggregate_behavior, parse_sources
 from .analytics_periods import comparison_period, parse_period
 from .operations_metrics_db import get_operations_metrics
+from .score_evaluation import evaluate_score_dataset
 
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
@@ -49,3 +50,8 @@ def operations():
         return jsonify({'code': 'INVALID_OPERATIONS_FILTER', 'error': str(exc)}), 400
     except Exception:
         return jsonify({'code': 'OPERATIONS_METRICS_UNAVAILABLE'}), 500
+
+
+@analytics_bp.get('/score-validation')
+def score_validation():
+    return jsonify(evaluate_score_dataset())

@@ -621,6 +621,18 @@ def _count_events_in_score_window(
 
 def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> float:
     """Calcula o score sem depender de quantas posições foram recebidas."""
+    return calculate_score_from_events(
+        (event for event in vehicle_events if event.get('device_id') == device_id),
+        now=now,
+    )
+
+
+def calculate_score_from_events(events, now: Optional[datetime] = None) -> float:
+    """Calcula o score sobre uma amostra isolada, sem estado global.
+
+    Esta fronteira pura é usada pela validação versionada para provar exatamente a
+    mesma fórmula executada em produção.
+    """
     now_seconds = _timestamp_seconds(now or datetime.now(timezone.utc))
     penalties = {
         'harsh_accel': 2.0,
@@ -630,10 +642,7 @@ def calculate_vehicle_score(device_id: str, now: Optional[datetime] = None) -> f
     }
     total_penalty = 0.0
 
-    device_events = _dedupe_episode_events(
-        event for event in vehicle_events
-        if event.get('device_id') == device_id
-    )
+    device_events = _dedupe_episode_events(events)
     for event in device_events:
         event_seconds = _timestamp_seconds(event.get('timestamp'))
         if event_seconds is None or event_seconds > now_seconds:
