@@ -1168,6 +1168,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.9 | `d05c449` | Cercas aceitam desenho circular/poligonal por teclado e coordenadas, com foco restaurado e mensagens acessíveis; axe nas telas de cerca/saúde. 97 frontend e 569 backend passaram; falta validação manual com leitor de tela/contraste. |
 | 2026-11-25 | UI-8.10 | `6be6e40` | 12 playbooks cobrem incidentes, falsos positivos/negativos, integrações, IA, takeover, concorrência e restart; 8 cenários determinísticos passaram sem efeitos externos. Teste humano ainda pendente. |
 | 2026-11-25 | UI-8.11 | `6c1b76f` | Runbook documenta operação, segurança e contingência; validador marcou zero achados e 571 backend passaram. Rollback/restore/TLS e ensaio no ambiente-alvo ainda pendentes. |
+| 2026-11-25 | UI-8.12 | `268ada8` | Decisão formal NO-GO para piloto: vulnerabilidades altas, rotação histórica, DAST/TLS, homologações humanas/assistivas, sandbox e métricas de detecção ainda sem aceite. Plano encerra 74/74 etapas; gates para nova avaliação em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`. |
 
 ---
 
