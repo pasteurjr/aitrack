@@ -1149,6 +1149,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-24 | UI-6.14 | `ec5215a` | Opt-out revoga canal; destino inválido vai a dead; timeout, no-answer e silêncio usam retry limitado. Prova transacional sem resíduos e 486 backend passaram; zero contato real. |
 | 2026-11-24 | UI-7.1 | `7e9b2e8` | CRUD de rotas em monitoramento usa LineString/corredor, hash, versão imutável, auditoria e arquivamento. Migration/prova rollback e 493 backend passaram. |
 | 2026-11-24 | UI-7.2 | `ad01ecd` | Atribuição congela rota por veículo/motorista e execução versionada cobre fuso, vigência, janela/DST e estados auditáveis. Rollback e 496 backend passaram. |
+| 2026-11-25 | UI-7.3 | `e39c61c` | Detector persistente usa corredor, acurácia e confirmação dupla para desvio/recuperação; paradas não planejadas exigem 5 minutos, previstas são excluídas e recibos deduplicam posições. Prova transacional abriu/recuperou ambos os episódios, rollback zerou resíduos e 499 backend passaram. |
 
 ---
 

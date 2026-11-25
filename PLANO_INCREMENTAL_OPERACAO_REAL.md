@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 19/11/2026 16:09 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 00:43 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `ecf6ea7` — UI-6.3 concluída
+**Checkpoint mais recente:** `5dc45e8` — antes da UI-7.3, criado em 25/11/2026 00:38 -03
 
-**Tarefas pendentes:** 33
+**Tarefas pendentes:** 19
 
-**Próxima tarefa:** **42 de 74 — UI-6.4: integrar mensagem em sandbox**
+**Próxima tarefa:** **56 de 74 — UI-7.4: criar replay de viagem**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -129,7 +129,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 |---:|---:|---|---|---|
 | 53/74 | 7.1 | Criar CRUD de rotas e corredor. | Rota/polilinha versionada possui tolerância, pontos, autoria e validação geométrica. | **Concluída em 24/11/2026 23:49 -03.** **Resultado obtido:** CRUD/API operacional usa `LineString` canônica, corredor 5–5000 m, comprimento/hash, versão geométrica imutável, autoria/motivo, auditoria e arquivamento sem exclusão. **Evidências:** migration 054 idempotente; prova MariaDB persistiu geometria/corredor, bloqueou update e zerou resíduos; 7 focados e 493 regressões aprovados. **Limitações:** desenho visual e pontos/paradas ficam para evolução da interface/detector. **Artefatos:** migration, geometria, DB/API e testes; `docs/VALIDACAO_UI_7_1_2026-11-24.md`. **Checkpoint:** `46fead9`; implementação `7e9b2e8`. |
 | 54/74 | 7.2 | Criar atribuição e janela de execução. | Veículo/motorista recebe rota com vigência, fuso, início/fim e estado da execução. | **Concluída em 24/11/2026 23:51 -03.** **Resultado obtido:** atribuição congela versão e exige alvo exclusivo veículo/motorista, fuso/vigência sem sobreposição; execução tem janela e máquina `scheduled/active/completed/cancelled/expired/failed` com timeline idempotente. **Evidências:** migration 055 idempotente; prova MariaDB confirmou snapshot/alvo/janela e timeline imutável com rollback zero; 10 focados e 496 regressões aprovados. **Limitações:** recorrência semanal e gestão visual futuras. **Artefatos:** migration, DB/API e testes; `docs/VALIDACAO_UI_7_2_2026-11-24.md`. **Checkpoint:** `11c0cc4`; implementação `ad01ecd`. |
-| 55/74 | 7.3 | Detectar desvio e parada não planejada. | Episódios usam tolerância/histerese/permanência e evitam alertas por ruído ou parada prevista. | **Pendente.** |
+| 55/74 | 7.3 | Detectar desvio e parada não planejada. | Episódios usam tolerância/histerese/permanência e evitam alertas por ruído ou parada prevista. | **Concluída em 25/11/2026 00:43 -03.** **Resultado obtido:** cada execução ativa mantém estado persistente; duas amostras confirmam saída/retorno ao corredor, a acurácia GPS amplia a tolerância e paradas previstas são excluídas. Parada não planejada exige 5 minutos e gera episódio recuperável. Recibos impedem repetição e posições fora de ordem são ignoradas. **Evidências:** migration 056 aplicada/idempotente; prova MariaDB abriu/recuperou um desvio e uma parada, deduplicou a posição repetida e rollback deixou zero resíduo; 3 testes focados e 499 regressões aprovados. **Limitações:** integração de ingestão nesta etapa é Tracker; Dirija Bem será ligado pela camada unificada quando houver posição operacional normalizada. **Artefatos:** migration, detector geométrico, persistência, hook Tracker, testes e `docs/VALIDACAO_UI_7_3_2026-11-25.md`. **Checkpoint:** `5dc45e8`; implementação `e39c61c`. |
 | 56/74 | 7.4 | Criar replay de viagem. | Operador reproduz posições/eventos/rota na ordem temporal, com velocidade controlável e teste determinístico. | **Pendente.** |
 | 57/74 | 7.5 | Adicionar período e comparação às análises. | UI/API comparam períodos equivalentes, mostram filtros e evitam misturar fontes/janelas. | **Pendente.** |
 | 58/74 | 7.6 | Normalizar comportamento por distância/tempo. | Métricas usam exposição (km/hora de condução), com fórmula e dados ausentes explícitos. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 55 de 74 — UI-7.3: detectar desvio e parada não planejada.**
+**Próxima etapa 56 de 74 — UI-7.4: criar replay de viagem.**
 
-Há **20 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`19 tarefas pendentes` e anunciar `Próxima etapa 56 de 74 — UI-7.4`, preservando o denominador original para mostrar
+Há **19 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`18 tarefas pendentes` e anunciar `Próxima etapa 57 de 74 — UI-7.5`, preservando o denominador original para mostrar
 o avanço total da rodada.
