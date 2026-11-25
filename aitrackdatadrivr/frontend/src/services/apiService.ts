@@ -33,6 +33,7 @@ import type {
 import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLevel, AutonomousRisk } from '../types/agent';
 import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
 import type { TripReplayResponse } from '../types/tripReplay';
+import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -320,6 +321,18 @@ export const tripReplayService = {
     apiClient.get<TripReplayResponse>(`/routes/executions/${executionId}/replay`, {
       params: { position_limit: positionLimit },
     }),
+};
+
+export const analyticsService = {
+  getBehavior: (filters: {
+    from: string;
+    to: string;
+    timezone: string;
+    sources: AnalyticsSource[];
+    comparison: 'none' | 'previous';
+  }) => apiClient.get<BehaviorAnalyticsResponse>('/analytics/behavior', {
+    params: { ...filters, sources: filters.sources.join(',') },
+  }),
 };
 
 // ==================== Geofence Services ====================

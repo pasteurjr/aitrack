@@ -229,6 +229,8 @@ from .message_event_api import message_event_bp
 app.register_blueprint(message_event_bp)
 from .route_api import route_bp
 app.register_blueprint(route_bp)
+from .analytics_api import analytics_bp
+app.register_blueprint(analytics_bp)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)

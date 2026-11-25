@@ -1,20 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
-import { fleetService } from '../services/apiService';
-
-interface Event {
-    device_id: string;
-    type: string;
-    severity: string;
-}
+import { analyticsService } from '../services/apiService';
+import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
 
 interface VehicleAnalyticsProps {
     onVehicleClick: (deviceId: string) => void;
 }
 
 const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) => {
-    const [scores, setScores] = useState<{[key: string]: number}>({});
-    const [events, setEvents] = useState<Event[]>([]);
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const asLocalInput = (value: Date) => {
+        const offset = value.getTimezoneOffset() * 60_000;
+        return new Date(value.getTime() - offset).toISOString().slice(0, 16);
+    };
+    const [from, setFrom] = useState(asLocalInput(yesterday));
+    const [to, setTo] = useState(asLocalInput(now));
+    const [sources, setSources] = useState<AnalyticsSource[]>(['tracker', 'dirijabem']);
+    const [analytics, setAnalytics] = useState<BehaviorAnalyticsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [stale, setStale] = useState(false);
@@ -23,12 +26,14 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
 
     const fetchData = useCallback(async () => {
         try {
-            const [scoresResponse, eventsResponse] = await Promise.all([
-                fleetService.getScores<{[key: string]: number}>(),
-                fleetService.getEvents<Event[]>(100),
-            ]);
-            setScores(scoresResponse.data);
-            setEvents(eventsResponse.data);
+            const response = await analyticsService.getBehavior({
+                from,
+                to,
+                timezone: 'America/Sao_Paulo',
+                sources,
+                comparison: 'previous',
+            });
+            setAnalytics(response.data);
             setError(false);
             setStale(false);
             hasSuccessfulResponse.current = true;
@@ -43,23 +48,23 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [from, to, sources]);
 
     useEffect(() => {
         fetchData();
-        const intervalId = setInterval(fetchData, 5000);
-        return () => clearInterval(intervalId);
+        // Análise histórica só muda quando os filtros mudam ou o operador atualiza.
     }, [fetchData]);
 
     // Calcular distribuição de eventos por tipo
-    const eventsByType = events.reduce((acc, event) => {
-        acc[event.type] = (acc[event.type] || 0) + 1;
+    const eventsByType = (analytics?.current.by_type || []).reduce((acc, event) => {
+        acc[event.event_type] = (acc[event.event_type] || 0) + event.total;
         return acc;
     }, {} as {[key: string]: number});
 
     // Calcular distribuição de eventos por veículo
-    const eventsByVehicle = events.reduce((acc, event) => {
-        acc[event.device_id] = (acc[event.device_id] || 0) + 1;
+    const eventsByVehicle = (analytics?.current.by_vehicle || []).reduce((acc, event) => {
+        const key = `${event.source}:${event.device_id || 'sem-identificador'}`;
+        acc[key] = (acc[key] || 0) + event.total;
         return acc;
     }, {} as {[key: string]: number});
 
@@ -88,6 +93,27 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
         <div style={styles.container}>
             <h3 style={styles.title}>📈 ANÁLISES COMPORTAMENTAIS</h3>
 
+            <div style={styles.section} aria-label="Filtros da análise">
+                <label>De <input type="datetime-local" value={from} onChange={event => setFrom(event.target.value)} /></label>
+                <label> Até <input type="datetime-local" value={to} onChange={event => setTo(event.target.value)} /></label>
+                {(['tracker', 'dirijabem'] as AnalyticsSource[]).map(source => (
+                    <label key={source} style={{ marginLeft: 8 }}>
+                        <input
+                            type="checkbox"
+                            checked={sources.includes(source)}
+                            disabled={sources.length === 1 && sources.includes(source)}
+                            onChange={() => setSources(current => current.includes(source)
+                                ? current.filter(item => item !== source)
+                                : [...current, source])}
+                        /> {source === 'tracker' ? 'Tracker' : 'Dirija Bem'}
+                    </label>
+                ))}
+                <button onClick={fetchData} disabled={!sources.length} style={{ marginLeft: 8 }}>Atualizar</button>
+                <div style={{ marginTop: 8, color: '#9ca3af' }}>
+                    Comparação automática com o período anterior de mesma duração · fuso America/Sao_Paulo
+                </div>
+            </div>
+
             {loading ? (
                 <AsyncDataState variant="loading" message="Calculando indicadores comportamentais..." />
             ) : error ? (
@@ -96,8 +122,8 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                     message="Não foi possível carregar scores e eventos. Nenhum indicador foi calculado com dados incompletos."
                     onRetry={fetchData}
                 />
-            ) : totalEvents === 0 && Object.keys(scores).length === 0 ? (
-                <AsyncDataState variant="empty" message="Não existem scores ou eventos disponíveis para análise." />
+            ) : totalEvents === 0 ? (
+                <AsyncDataState variant="empty" message="Não existem eventos persistidos nesse período e nas fontes selecionadas." />
             ) : (
               <>
                 {stale && (
@@ -112,6 +138,9 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
             {/* Distribuição de Eventos por Tipo */}
             <div style={styles.section}>
                 <h4 style={styles.sectionTitle}>Eventos por Tipo</h4>
+                <div style={{ fontSize: 12, marginBottom: 12 }}>
+                    Atual: {analytics?.current.total_events ?? 0} · período anterior: {analytics?.comparison?.total_events ?? 0}
+                </div>
                 {Object.entries(eventsByType).map(([type, count]) => {
                     const percentage = totalEvents > 0 ? (count / totalEvents) * 100 : 0;
                     return (
@@ -137,21 +166,21 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
             {/* Top Veículos com Mais Eventos */}
             <div style={styles.section}>
                 <h4 style={styles.sectionTitle}>⚠️ Veículos com Mais Eventos (clique para ver)</h4>
-                {topVehiclesByEvents.map(([device_id, count], index) => {
-                    const score = scores[device_id] || 0;
+                {topVehiclesByEvents.map(([vehicleKey, count], index) => {
+                    const [source, deviceId] = vehicleKey.split(':', 2);
                     return (
                         <div
-                            key={device_id}
+                            key={vehicleKey}
                             style={{...styles.vehicleEventRow, cursor: 'pointer'}}
-                            onClick={() => onVehicleClick(device_id)}
+                            onClick={() => deviceId !== 'sem-identificador' && onVehicleClick(deviceId)}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4b5563'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
                         >
                             <div style={styles.rank}>{index + 1}</div>
                             <div style={styles.vehicleEventInfo}>
-                                <strong>{device_id}</strong>
+                                <strong>{deviceId}</strong>
                                 <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                                    {count} eventos • Score: {score.toFixed(1)}
+                                    {count} eventos · fonte {source}
                                 </div>
                             </div>
                             <div style={{
@@ -163,48 +192,6 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                         </div>
                     );
                 })}
-            </div>
-
-            {/* Correlação Score x Eventos */}
-            <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>📊 Correlação Score x Eventos</h4>
-                <div style={styles.correlationGrid}>
-                    {Object.entries(scores)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 10)
-                        .map(([device_id, score]) => {
-                            const eventCount = eventsByVehicle[device_id] || 0;
-                            return (
-                                <div key={device_id} style={styles.correlationItem}>
-                                    <div style={styles.correlationDevice}>{device_id}</div>
-                                    <div style={styles.correlationBars}>
-                                        <div style={styles.correlationBarRow}>
-                                            <span style={{ fontSize: '10px', width: '50px' }}>Score:</span>
-                                            <div style={styles.miniBarContainer}>
-                                                <div style={{
-                                                    ...styles.miniBar,
-                                                    width: `${score}%`,
-                                                    backgroundColor: getScoreColor(score)
-                                                }} />
-                                            </div>
-                                            <span style={{ fontSize: '10px', width: '30px' }}>{score.toFixed(0)}</span>
-                                        </div>
-                                        <div style={styles.correlationBarRow}>
-                                            <span style={{ fontSize: '10px', width: '50px' }}>Eventos:</span>
-                                            <div style={styles.miniBarContainer}>
-                                                <div style={{
-                                                    ...styles.miniBar,
-                                                    width: `${Math.min(eventCount * 5, 100)}%`,
-                                                    backgroundColor: '#ef4444'
-                                                }} />
-                                            </div>
-                                            <span style={{ fontSize: '10px', width: '30px' }}>{eventCount}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                </div>
             </div>
 
               </>
@@ -221,12 +208,6 @@ const getEventColor = (type: string): string => {
         'sharp_turn': '#f97316'
     };
     return colors[type] || '#6b7280';
-};
-
-const getScoreColor = (score: number): string => {
-    if (score >= 75) return '#10b981';
-    if (score >= 50) return '#f59e0b';
-    return '#ef4444';
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
