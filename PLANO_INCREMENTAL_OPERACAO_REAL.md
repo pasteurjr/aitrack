@@ -4,7 +4,9 @@
 
 **Checkpoint mais recente:** `268ada8` — antes da UI-8.12, criado em 25/11/2026 16:45 -03
 
-**Tarefas pendentes:** 0
+**Etapas da rodada anterior:** 74/74 concluídas
+
+**Tarefas pendentes de remediação:** 8
 
 **Estado do piloto:** **NO-GO** até resolver os gates registrados em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`
 
@@ -168,8 +170,56 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Rodada concluída: 74 de 74 etapas avaliadas; 0 tarefas pendentes nesta rodada.**
+**Rodada de avaliação anterior concluída: 74 de 74.** A rodada pós-74 possui **8 tarefas de remediação pendentes**.
 
-A decisão do gate final foi **NO-GO**. O piloto não está liberado. As condições externas
-para reavaliação estão em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`; concluir a rodada
-não substitui essas validações nem a aprovação formal.
+A decisão do gate final foi **NO-GO**. O piloto não está liberado. A próxima execução está
+definida na seção 8 e as evidências de bloqueio na seção 7 e em
+`docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`.
+
+## 7. Rodada pós-74 — correção dos bloqueios do piloto
+
+A rodada original terminou em 74/74 com decisão NO-GO. A correção dos gates começa
+agora como uma rodada separada de **8 etapas**. O piloto permanece bloqueado até todas
+as evidências obrigatórias serem aprovadas e a decisão final ser refeita. Cada etapa de
+engenharia será dividida em entregas revisáveis de até 30 minutos; exercícios de operação,
+revisões humanas e ações de infraestrutura dependem das pessoas responsáveis.
+
+| Etapa | ID | Ação | Critério de aceite e evidência exigida | Dependências / responsável | Estado |
+|---:|---|---|---|---|---|
+| 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os 16 achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Próxima** |
+| 2/8 | R2 | Rotacionar credenciais históricas | DBA/infra revoga e substitui credenciais expostas; autenticação com credenciais novas provada sem registrar valores; credenciais antigas rejeitadas; scanner não encontra segredo ativo no working tree. Registrar somente identificadores mascarados, data e responsável. Avaliar limpeza do histórico após rotação, coordenando clones e consumidores antes de reescrever Git. | DBA/infra + dono do serviço; execução após identificar dependências sem exibir segredos. | Pendente |
+| 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; R1 e R2. | Pendente |
+| 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset rotulado e autorizado, separado por Tracker/Dirija Bem, classe, severidade e contexto; regra de pontuação não é gatilho único; publicar matriz de confusão, FPR/FNR por classe e intervalos/amostra; revisão humana das divergências; critérios de aceite aprovados antes de ajustar pesos. Casos críticos sem cobertura mantêm detector independente e bloqueiam autonomia daquela classe. | Produto/operação + engenharia de dados; aprovação de uso dos dados. | Pendente |
+| 5/8 | R5 | Homologar agentes e canais em sandbox | Agentes exercitam reconhecer, consultar contexto, decidir, redigir mensagem, respeitar consentimento/horário/limites, pedir aprovação quando exigido, registrar ação e transferir para humano. Provedores de mensagem/voz exclusivamente em sandbox; verificar idempotência, rate limit, timeout, fallback e zero destinatários reais. LLM gera proposta estruturada; política determinística autoriza efeitos. | Engenharia + operação; sandbox e R4 para limites por evento. | Pendente |
+| 6/8 | R6 | Homologar acessibilidade dos fluxos críticos | Operador percorre login, lista/detalhe de veículo, incidente, cerca circular/poligonal e painel de saúde por teclado e leitor de tela; contraste medido em estados normal/erro/foco; defeitos corrigidos; relatório com navegador, tecnologia assistiva, critérios WCAG 2.2 AA aplicáveis e evidências. | QA/acessibilidade + operador; build estável. | Pendente |
+| 7/8 | R7 | Executar exercício operacional e recuperação | Dois operadores e um supervisor executam playbooks sem ajuda do autor; provar reinício, rollback, backup/restauração e reconciliação em homologação; medir tempos contra RTO/RPO aprovados; verificar filas, incidentes e ações sem perda/duplicação; registrar observações e correções. | Operação + DBA/infra; R3 e R5. | Pendente |
+| 8/8 | R8 | Reavaliar e autorizar ou manter NO-GO | Checklist de todos os gates com links de evidência; grupo e janela definidos; consentimento, suporte, métricas, limites de autonomia e critérios de parar/rollback aprovados; responsáveis assinam. Só muda para GO se nenhum gate obrigatório estiver pendente. Publicar decisão e plano de observação do piloto. | Dono do produto + segurança + operação; R1–R7 concluídas. | Pendente |
+
+### Ordem e controle de risco
+
+- A próxima execução é **etapa 1 de 8 — R1: resolver vulnerabilidades altas do frontend**.
+- R1 começa com inventário atualizado e proposta de migração; não usar `npm audit fix --force`
+  sem revisar o diff e confirmar build. Se a correção demandar mudança de arquitetura, particionar
+  por app/rotas e preservar um build reproduzível em cada fatia.
+- R2 exige coordenação com DBA/infra. Não publicar, copiar ou registrar valores de credenciais.
+  Rotação e revogação precedem qualquer decisão de reescrever histórico.
+- R3, R5 e R7 ocorrem somente em homologação isolada; bancos reais e destinatários reais ficam
+  fora dos testes de segurança e de agentes.
+- R4 exige definição dos critérios por severidade antes de calibrar. Não reduzir falsos positivos
+  às custas de esconder falsos negativos, nem declarar desempenho com apenas dados sintéticos.
+- R8 é um gate, não uma autorização automática. O estado inicial do piloto segue NO-GO.
+
+### Registro de progresso da rodada de remediação
+
+| Data | Etapa | Resultado esperado | Resultado obtido / evidências | Limitações / próximo passo |
+|---|---|---|---|---|
+| 25/11/2026 | Plano R1–R8 | Converter cada bloqueio em tarefa ordenada, critério de aceite e responsável. | Plano criado; 8 etapas definidas, com gates de segurança, credenciais, DAST/TLS, detecção, agentes/canais, acessibilidade, operação e decisão. PDF regenerado e checado. | Nenhum bloqueio foi corrigido ainda. Próxima: R1. Piloto NO-GO. |
+
+## 8. Próxima execução
+
+**Próxima etapa 1 de 8 — R1: resolver vulnerabilidades altas do frontend.**
+
+O primeiro trabalho deve atualizar a auditoria de dependências e identificar a menor mudança
+suportada que elimina os 16 achados altos sem quebrar os dois frontends. O resultado dessa
+inspeção definirá as fatias de implementação; não se deve declarar o gate fechado até scanner,
+testes e builds apresentarem evidência atualizada.
