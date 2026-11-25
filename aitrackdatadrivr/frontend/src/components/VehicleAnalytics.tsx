@@ -163,6 +163,30 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                 })}
             </div>
 
+            <div style={styles.section}>
+                <h4 style={styles.sectionTitle}>Exposição e taxas normalizadas</h4>
+                {analytics && analytics.current.sources.map(source => {
+                    const exposure = analytics.current.exposure[source];
+                    return (
+                        <div key={source} style={{ marginBottom: 12 }}>
+                            <strong>{source === 'tracker' ? 'Tracker' : 'Dirija Bem'}</strong>: {' '}
+                            {exposure.quality === 'unavailable'
+                                ? 'exposição indisponível — taxas não calculadas'
+                                : `${exposure.distance_km.toFixed(1)} km · ${(exposure.driving_seconds / 3600).toFixed(1)} h · cobertura ${(exposure.coverage * 100).toFixed(0)}%`}
+                            <ul>
+                                {analytics.current.normalized_by_type.filter(item => item.source === source).map(item => (
+                                    <li key={`${source}:${item.event_type}`}>
+                                        {eventLabels[item.event_type] || item.event_type}: {' '}
+                                        {item.events_per_100_km === null ? '—' : `${item.events_per_100_km}/100 km`} · {' '}
+                                        {item.events_per_driving_hour === null ? '—' : `${item.events_per_driving_hour}/h`}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    );
+                })}
+            </div>
+
             {/* Top Veículos com Mais Eventos */}
             <div style={styles.section}>
                 <h4 style={styles.sectionTitle}>⚠️ Veículos com Mais Eventos (clique para ver)</h4>
