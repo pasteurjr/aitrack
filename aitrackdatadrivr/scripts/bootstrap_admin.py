@@ -12,7 +12,7 @@ def main():
     tenant = os.environ.get('AITRACK_BOOTSTRAP_TENANT', 'default')
     if not email or not password:
         raise SystemExit('Defina AITRACK_BOOTSTRAP_ADMIN_EMAIL e AITRACK_BOOTSTRAP_ADMIN_PASSWORD')
-    result = create_user(email, name, password, tenant)
+    result = create_user(email, name, password, tenant, role_key='platform_admin')
     print(f"Usuário criado: {result['public_id']} (tenant_id={result['tenant_id']})")
 
 

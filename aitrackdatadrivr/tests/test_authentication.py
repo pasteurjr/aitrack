@@ -46,7 +46,7 @@ def test_middleware_denies_anonymous_and_requires_csrf_for_mutation(monkeypatch)
     app = Flask(__name__)
     app.add_url_rule('/api/private', 'private_get', lambda: jsonify({'ok': True}), methods=['GET'])
     app.add_url_rule('/api/private', 'private_post', lambda: jsonify({'ok': True}), methods=['POST'])
-    principal = {'csrf_sha256': token_digest('csrf-token')}
+    principal = {'csrf_sha256': token_digest('csrf-token'), 'permissions': ['fleet.read', 'platform.admin']}
     monkeypatch.setattr(auth_middleware, 'authenticate_session', lambda token: principal if token == 'session-token' else (_ for _ in ()).throw(auth_middleware.AuthenticationError('no')))
     auth_middleware.install_authentication(app)
     client = app.test_client()

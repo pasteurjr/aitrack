@@ -26,7 +26,7 @@ def auth_login():
     data = request.get_json(silent=True) or {}
     try:
         result = login(data.get('email'), data.get('password'), getattr(g, 'request_id', None), source_ip_hash(request.remote_addr))
-        response = jsonify({'schema_version': 'auth-session.v1', 'user': result['user'], 'tenant': result['tenant'], 'expires_at': result['expires_at']})
+        response = jsonify({'schema_version': 'auth-session.v1', 'user': result['user'], 'tenant': result['tenant'], 'roles': result['roles'], 'permissions': result['permissions'], 'expires_at': result['expires_at']})
         response.set_cookie('aitrack_session', result['token'], max_age=8 * 3600, **_cookie_options(True))
         response.set_cookie('aitrack_csrf', result['csrf'], max_age=8 * 3600, **_cookie_options(False))
         return response
@@ -42,6 +42,7 @@ def me():
     return jsonify({'schema_version': 'auth-session.v1', 'user': {
         'public_id': principal['user_public_id'], 'display_name': principal['display_name'], 'email': principal['email'],
     }, 'tenant': {'public_id': principal['tenant_public_id'], 'slug': principal['tenant_slug']},
+    'roles': principal['roles'], 'permissions': principal['permissions'],
     'expires_at': principal['absolute_expires_at'].isoformat()})
 
 

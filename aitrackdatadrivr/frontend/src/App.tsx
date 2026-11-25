@@ -14,6 +14,7 @@ import AgentConfigurationPanel from './components/AgentConfigurationPanel';
 import AgentRunsPanel from './components/AgentRunsPanel';
 import InternalNotificationsPanel from './components/InternalNotificationsPanel';
 import TripReplayPanel from './components/TripReplayPanel';
+import { useAuth } from './components/AuthGate';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
@@ -21,6 +22,8 @@ import './App.css';
 type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'replay' | 'alerts' | 'events';
 
 function App() {
+  const auth = useAuth();
+  const can = (permission: string) => !auth || auth.permissions.includes(permission);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
@@ -72,66 +75,66 @@ function App() {
           <OperationModeBadge />
         </div>
         <div style={styles.navTabs}>
-          <button
+          {can('fleet.read') && <button
             style={{...styles.navTab, ...(viewMode === 'replay' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('replay')}
           >
             ▶ Replay
-          </button>
-          <button
+          </button>}
+          {can('incident.read') && <button
             style={{...styles.navTab, ...(viewMode === 'notifications' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('notifications')}
           >
             🔔 Notificações
-          </button>
-          <button
+          </button>}
+          {can('agent.configure') && <button
             style={{...styles.navTab, ...(viewMode === 'agentRuns' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('agentRuns')}
           >
             🧾 Execuções IA
-          </button>
-          <button
+          </button>}
+          {can('agent.configure') && <button
             style={{...styles.navTab, ...(viewMode === 'agents' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('agents')}
           >
             🧠 Agentes
-          </button>
-          <button
+          </button>}
+          {can('fleet.read') && <button
             style={{...styles.navTab, ...(viewMode === 'dashboard' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('dashboard')}
           >
             📊 Dashboard
-          </button>
-          <button
+          </button>}
+          {can('fleet.read') && <button
             style={{...styles.navTab, ...(viewMode === 'timeline' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('timeline')}
           >
             ⏱️ Timeline
-          </button>
-          <button
+          </button>}
+          {can('report.read') && <button
             style={{...styles.navTab, ...(viewMode === 'analytics' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('analytics')}
           >
             📈 Análises
-          </button>
-          <button
+          </button>}
+          {can('fleet.read') && <button
             style={{...styles.navTab, ...(viewMode === 'monitors' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('monitors')}
           >
             🤖 Monitores AI
-          </button>
-          <button
+          </button>}
+          {can('incident.read') && <button
             style={{...styles.navTab, ...(viewMode === 'alerts' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('alerts')}
           >
             🚨 Incidentes
-          </button>
-          <button
+          </button>}
+          {can('fleet.read') && <button
             style={{...styles.navTab, ...(viewMode === 'events' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('events')}
           >
             📋 Eventos
-          </button>
+          </button>}
         </div>
       </div>
 

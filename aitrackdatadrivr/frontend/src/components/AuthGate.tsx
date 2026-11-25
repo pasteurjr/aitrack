@@ -1,8 +1,10 @@
-import React, { FormEvent, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, FormEvent, ReactNode, useContext, useEffect, useState } from 'react';
 
 import { authService } from '../services/apiService';
 import type { AuthSession } from '../types/auth';
 
+const AuthContext = createContext<AuthSession | null>(null);
+export const useAuth = () => useContext(AuthContext);
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -59,7 +61,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         onClick={() => authService.logout().finally(() => setSession(null))}
         style={styles.logout}
       >Sair</button>
-      {children}
+      <AuthContext.Provider value={session}>{children}</AuthContext.Provider>
     </div>
   );
 }

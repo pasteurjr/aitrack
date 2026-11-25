@@ -58,7 +58,7 @@ def token_digest(token):
     return hashlib.sha256(str(token).encode()).hexdigest()
 
 
-def create_user(email, display_name, password, tenant_slug='default', connection=None):
+def create_user(email, display_name, password, tenant_slug='default', role_key=None, connection=None):
     owns = connection is None
     conn = connection or get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -81,9 +81,16 @@ def create_user(email, display_name, password, tenant_slug='default', connection
         )
         user_id = cursor.lastrowid
         cursor.execute("INSERT INTO monitoramento.auth_memberships(user_id,tenant_id,is_default) VALUES(%s,%s,TRUE)", (user_id, tenant['id']))
+        membership_id = cursor.lastrowid
+        if role_key:
+            cursor.execute("SELECT id FROM monitoramento.auth_roles WHERE role_key=%s", (role_key,))
+            role = cursor.fetchone()
+            if not role:
+                raise ValueError('Papel inválido')
+            cursor.execute("INSERT INTO monitoramento.auth_membership_roles(membership_id,role_id) VALUES(%s,%s)", (membership_id, role['id']))
         if owns:
             conn.commit()
-        return {'id': user_id, 'public_id': public_id, 'tenant_id': tenant['id']}
+        return {'id': user_id, 'public_id': public_id, 'tenant_id': tenant['id'], 'membership_id': membership_id}
     except Exception:
         if owns:
             conn.rollback()
@@ -135,12 +142,14 @@ def login(email, password, request_id=None, source_ip_hash=None, connection=None
           (session_public_id, token_digest(token), token_digest(csrf), user['id'], membership['tenant_id'], current, idle, absolute))
         cursor.execute("UPDATE monitoramento.auth_users SET failed_attempts=0,locked_until=NULL,last_login_at=%s WHERE id=%s", (current, user['id']))
         _security_event(cursor, user['id'], membership['tenant_id'], 'login_succeeded', request_id, source_ip_hash, {'session_public_id': session_public_id})
+        permissions, roles = _membership_permissions(cursor, user['id'], membership['tenant_id'])
         if owns:
             conn.commit()
         return {
             'token': token, 'csrf': csrf,
             'user': {'public_id': user['public_id'], 'display_name': user['display_name'], 'email': user['email_normalized']},
             'tenant': {'public_id': membership['tenant_public_id'], 'slug': membership['tenant_slug']},
+            'permissions': permissions, 'roles': roles,
             'expires_at': absolute.isoformat(),
         }
     except AuthenticationError:
@@ -174,6 +183,7 @@ def authenticate_session(token, connection=None, now=None):
             raise AuthenticationError('Sessão inválida ou expirada')
         new_idle = min(current + timedelta(minutes=SESSION_IDLE_MINUTES), row['absolute_expires_at'])
         cursor.execute("UPDATE monitoramento.auth_sessions SET last_seen_at=%s,idle_expires_at=%s WHERE id=%s", (current, new_idle, row['id']))
+        permissions, roles = _membership_permissions(cursor, row['user_id'], row['tenant_id'])
         if owns:
             conn.commit()
         return {
@@ -183,6 +193,7 @@ def authenticate_session(token, connection=None, now=None):
             'email': row['email_normalized'], 'tenant_id': row['tenant_id'],
             'tenant_public_id': row['tenant_public_id'], 'tenant_slug': row['tenant_slug'],
             'absolute_expires_at': row['absolute_expires_at'],
+            'permissions': permissions, 'roles': roles,
         }
     finally:
         cursor.close()
@@ -275,3 +286,16 @@ def _security_event(cursor, user_id, tenant_id, event_type, request_id, source_i
     cursor.execute("""INSERT INTO monitoramento.auth_security_events(
       user_id,tenant_id,event_type,request_id,source_ip_sha256,details_json)
       VALUES(%s,%s,%s,%s,%s,%s)""", (user_id, tenant_id, event_type, request_id, source_ip_hash, json.dumps(details)))
+
+
+def _membership_permissions(cursor, user_id, tenant_id):
+    cursor.execute("""SELECT DISTINCT r.role_key,p.permission_key
+      FROM monitoramento.auth_memberships m
+      JOIN monitoramento.auth_membership_roles mr ON mr.membership_id=m.id
+      JOIN monitoramento.auth_roles r ON r.id=mr.role_id
+      JOIN monitoramento.auth_role_permissions rp ON rp.role_id=r.id
+      JOIN monitoramento.auth_permissions p ON p.id=rp.permission_id
+      WHERE m.user_id=%s AND m.tenant_id=%s AND m.status='active'
+      ORDER BY r.role_key,p.permission_key""", (user_id, tenant_id))
+    rows = cursor.fetchall()
+    return sorted({row['permission_key'] for row in rows}), sorted({row['role_key'] for row in rows})
