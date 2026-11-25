@@ -308,6 +308,25 @@
   min-height: 76px;
 }
 
+.geofence-coordinate-editor {
+  border: 1px solid #475569;
+  border-radius: 7px;
+  margin: 10px 0;
+  padding: 9px;
+}
+
+.geofence-coordinate-editor legend {
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 5px;
+}
+
+.geofence-panel :focus-visible {
+  outline: 3px solid #fbbf24;
+  outline-offset: 2px;
+}
+
 /* Durante o desenho, veículos e linhas não podem roubar o clique destinado ao mapa. */
 .leaflet-container.geofence-drawing .leaflet-marker-pane,
 .leaflet-container.geofence-drawing .leaflet-overlay-pane path {

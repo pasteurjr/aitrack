@@ -151,6 +151,7 @@ const ExistingGeofence: React.FC<{ geofence: Geofence }> = ({ geofence }) => {
 const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting = true }) => {
   const map = useMap();
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const launcherRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<DrawMode>(null);
   const [draft, setDraft] = useState<GeofenceDraft | null>(null);
@@ -180,6 +181,9 @@ const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting =
   const [groupName, setGroupName] = useState('');
   const [groupVehicleIds, setGroupVehicleIds] = useState<number[]>([]);
   const [groupDriverIds, setGroupDriverIds] = useState<number[]>([]);
+  const [coordinateLat, setCoordinateLat] = useState('');
+  const [coordinateLng, setCoordinateLng] = useState('');
+  const [coordinateRadius, setCoordinateRadius] = useState('500');
 
   const loadGeofences = useCallback(async () => {
     try {
@@ -199,6 +203,42 @@ const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting =
     L.DomEvent.disableClickPropagation(panelRef.current);
     L.DomEvent.disableScrollPropagation(panelRef.current);
   }, [open]);
+
+  useEffect(() => {
+    if (open) panelRef.current?.querySelector<HTMLElement>('button, select, input')?.focus();
+  }, [open]);
+
+  const coordinatePoint = () => {
+    const lat = Number(coordinateLat);
+    const lng = Number(coordinateLng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setMessage({ type: 'error', text: 'Informe latitude entre -90 e 90 e longitude entre -180 e 180.' });
+      return null;
+    }
+    return [lat, lng] as LatLngTuple;
+  };
+
+  const defineCircleByKeyboard = () => {
+    const center = coordinatePoint();
+    const radius = Number(coordinateRadius);
+    if (!center) return;
+    if (!Number.isFinite(radius) || radius <= 0 || radius > 1_000_000) {
+      setMessage({ type: 'error', text: 'Informe raio entre 1 e 1.000.000 metros.' });
+      return;
+    }
+    setDraft({ type: 'circle', center, radius });
+    setMode(null); setCursor(null); setMessage(null);
+  };
+
+  const addPolygonPointByKeyboard = () => {
+    const point = coordinatePoint();
+    if (!point) return;
+    setDraft(previous => ({
+      type: 'polygon',
+      points: previous?.type === 'polygon' ? [...previous.points, point] : [point],
+    }));
+    setMode('polygon'); setCursor(null); setMessage(null);
+  };
 
   const cancelDrawing = useCallback(() => {
     setMode(null);
@@ -567,14 +607,17 @@ const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting =
   const panel = (
     <div className="geofence-tool" ref={panelRef}>
       {!open ? (
-        <button type="button" className="geofence-launcher" onClick={() => setOpen(true)}>
+        <button ref={launcherRef} type="button" className="geofence-launcher" onClick={() => setOpen(true)}>
           ⬡ Criar cerca
         </button>
       ) : (
         <section className="geofence-panel" aria-label="Desenhar cerca eletrônica">
           <div className="geofence-heading">
             <div><h2>{editingFence ? 'Editar cerca' : 'Cerca eletrônica'}</h2><span className="geofence-help">{loading ? 'Carregando…' : `${geofences.length} cadastrada(s)`}</span></div>
-            <button type="button" className="geofence-close" aria-label="Fechar desenho de cerca" onClick={() => { cancelDrawing(); setOpen(false); }}>×</button>
+            <button type="button" className="geofence-close" aria-label="Fechar desenho de cerca" onClick={() => {
+              cancelDrawing(); setOpen(false);
+              window.setTimeout(() => launcherRef.current?.focus(), 0);
+            }}>×</button>
           </div>
           <p className="geofence-help">
             Círculo: clique no centro e depois na borda. Polígono: clique em cada vértice, sem cruzar linhas, e conclua no painel. `Esc` cancela.
@@ -597,6 +640,28 @@ const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting =
             <button type="button" className={`geofence-mode ${mode === 'circle' ? 'active' : ''}`} onClick={() => startDrawing('circle')} disabled={saving}>◯ Círculo</button>
             <button type="button" className={`geofence-mode ${mode === 'polygon' ? 'active' : ''}`} onClick={() => startDrawing('polygon')} disabled={saving}>⬡ Polígono</button>
           </div>
+          <fieldset className="geofence-coordinate-editor">
+            <legend>Alternativa por teclado e coordenadas</legend>
+            <p className="geofence-help">Informe coordenadas sem usar o mouse. Para polígono, adicione ao menos três vértices na ordem do contorno.</p>
+            <div className="geofence-row">
+              <label className="geofence-field">Latitude
+                <input aria-label="Latitude do ponto da cerca" type="number" min="-90" max="90" step="0.000001"
+                  value={coordinateLat} onChange={event => setCoordinateLat(event.target.value)} />
+              </label>
+              <label className="geofence-field">Longitude
+                <input aria-label="Longitude do ponto da cerca" type="number" min="-180" max="180" step="0.000001"
+                  value={coordinateLng} onChange={event => setCoordinateLng(event.target.value)} />
+              </label>
+            </div>
+            <label className="geofence-field">Raio do círculo (metros)
+              <input aria-label="Raio do círculo em metros" type="number" min="1" max="1000000" step="1"
+                value={coordinateRadius} onChange={event => setCoordinateRadius(event.target.value)} />
+            </label>
+            <div className="geofence-actions">
+              <button type="button" className="geofence-secondary" onClick={defineCircleByKeyboard}>Definir círculo por coordenadas</button>
+              <button type="button" className="geofence-secondary" onClick={addPolygonPointByKeyboard}>Adicionar vértice por coordenadas</button>
+            </div>
+          </fieldset>
           {mode === 'polygon' && (
             <div className="geofence-actions">
               <button type="button" className="geofence-secondary" onClick={undoPoint} disabled={!draft || draft.type !== 'polygon' || draft.points.length === 0}>Desfazer ponto</button>
@@ -767,7 +832,7 @@ const GeofenceDesigner: React.FC<{ showExisting?: boolean }> = ({ showExisting =
             {draft && !mode && <button type="button" className="geofence-secondary" onClick={cancelDrawing} disabled={saving}>{editingFence ? 'Restaurar original' : 'Refazer desenho'}</button>}
             {editingFence && <button type="button" className="geofence-danger" onClick={archive} disabled={saving || editingFence.active_assignments > 0}>Arquivar</button>}
           </div>
-          {message && <p role="status" className={`geofence-message ${message.type}`}>{message.text}</p>}
+          {message && <p role={message.type === 'error' ? 'alert' : 'status'} aria-live="polite" className={`geofence-message ${message.type}`}>{message.text}</p>}
           <div className="geofence-legend">
             <span><i className="geofence-dot" style={{ background: RULE_COLORS.allowed }} />Permitida</span>
             <span><i className="geofence-dot" style={{ background: RULE_COLORS.forbidden }} />Proibida</span>

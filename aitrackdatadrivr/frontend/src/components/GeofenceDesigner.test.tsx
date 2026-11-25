@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GeofenceDesigner, { draftToApiGeometry } from './GeofenceDesigner';
 import { geofenceService } from '../services/apiService';
+import { axe } from 'jest-axe';
 
 let mockMapHandlers: Record<string, (event: any) => void> = {};
 const mockDoubleClickZoom = {
@@ -178,7 +179,7 @@ test('círculo usa dois cliques e exibe a prévia antes de salvar', async () => 
   render(<GeofenceDesigner />);
   fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
   await screen.findByText('0 cadastrada(s)');
-  fireEvent.click(screen.getByRole('button', { name: /círculo/i }));
+  fireEvent.click(screen.getByRole('button', { name: '◯ Círculo' }));
 
   act(() => mockMapHandlers.click({ latlng: { lat: -23.55, lng: -46.63 } }));
   act(() => mockMapHandlers.click({ latlng: { lat: -23.551, lng: -46.631 } }));
@@ -186,6 +187,52 @@ test('círculo usa dois cliques e exibe a prévia antes de salvar', async () => 
   expect(screen.getByText('Raio: 250 m')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /salvar cerca/i })).toBeEnabled();
   expect(screen.getByTestId('map-circle')).toBeInTheDocument();
+});
+
+test('cria polígono somente por teclado e coordenadas sem clicar no mapa', async () => {
+  render(<GeofenceDesigner />);
+  const launcher = screen.getByRole('button', { name: /criar cerca/i });
+  launcher.focus();
+  fireEvent.click(launcher);
+  await screen.findByText('0 cadastrada(s)');
+
+  const latitude = screen.getByLabelText('Latitude do ponto da cerca');
+  const longitude = screen.getByLabelText('Longitude do ponto da cerca');
+  const add = screen.getByRole('button', { name: 'Adicionar vértice por coordenadas' });
+  for (const [lat, lng] of [[-23.5, -46.6], [-23.51, -46.61], [-23.5, -46.62]]) {
+    fireEvent.change(latitude, { target: { value: String(lat) } });
+    fireEvent.change(longitude, { target: { value: String(lng) } });
+    fireEvent.click(add);
+  }
+  expect(screen.getByText('3 vértice(s) marcado(s)')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Concluir polígono' }));
+  fireEvent.change(screen.getByLabelText('Nome da cerca'), { target: { value: 'Polígono acessível' } });
+  fireEvent.change(screen.getByLabelText('Operador responsável pela cerca'), { target: { value: 'Maria' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Salvar cerca' }));
+
+  await waitFor(() => expect(mockedService.create).toHaveBeenCalledWith(expect.objectContaining({
+    geometry: { type: 'Polygon', coordinates: [[
+      [-46.6, -23.5], [-46.61, -23.51], [-46.62, -23.5], [-46.6, -23.5],
+    ]] },
+  })));
+  expect(Object.keys(mockMapHandlers)).not.toHaveLength(0);
+});
+
+test('fecha o editor e devolve foco ao botão que o abriu', async () => {
+  render(<GeofenceDesigner />);
+  const launcher = screen.getByRole('button', { name: /criar cerca/i });
+  fireEvent.click(launcher);
+  const close = await screen.findByRole('button', { name: 'Fechar desenho de cerca' });
+  expect(close).toHaveFocus();
+  fireEvent.click(close);
+  await waitFor(() => expect(screen.getByRole('button', { name: /criar cerca/i })).toHaveFocus());
+});
+
+test('editor aberto não possui violação axe detectável', async () => {
+  const { container } = render(<GeofenceDesigner />);
+  fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
+  await screen.findByRole('region', { name: 'Desenhar cerca eletrônica' });
+  expect(await axe(container)).toHaveNoViolations();
 });
 
 test('edita cerca existente com versão esperada e motivo auditável', async () => {

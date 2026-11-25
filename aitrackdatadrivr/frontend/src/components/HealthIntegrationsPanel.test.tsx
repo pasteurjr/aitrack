@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { healthIntegrationService } from '../services/apiService';
 import HealthIntegrationsPanel from './HealthIntegrationsPanel';
+import { axe } from 'jest-axe';
 
 jest.mock('../services/apiService', () => ({
   healthIntegrationService: { getAll: jest.fn() },
@@ -66,4 +67,11 @@ test('renderiza os sete cartões com nomes, estados e detalhes acessíveis', asy
   expect(screen.getByRole('article', { name: 'Voz: Indisponível' })).toBeInTheDocument();
   expect(screen.getByRole('article', { name: 'Workers: Degradado' })).toHaveTextContent('3 processos verificados.');
   expect(screen.getByRole('article', { name: 'Banco de dados: Saudável' })).toBeInTheDocument();
+});
+
+test('painel preenchido não possui violação axe detectável', async () => {
+  mockedGetAll.mockResolvedValue({ data: { overall_status: 'healthy', integrations } });
+  const { container } = render(<HealthIntegrationsPanel />);
+  await screen.findByRole('heading', { name: 'Saúde e integrações' });
+  expect(await axe(container)).toHaveNoViolations();
 });
