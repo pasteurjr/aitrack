@@ -833,7 +833,7 @@ Tips for getting started:
  │     4     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     5     'port': 3307,                                                                                                                                               │
  │     6     'user': 'scadabr',                                                                                                                                          │
- │     7     'password': 'scadabr',                                                                                                                                      │
+ │     7     'password': '<REDACTED>',                                                                                                                                      │
  │     8     'database': 'tracker'                                                                                                                                       │
  │     9 }                                                                                                                                                               │
  │    10                                                                                                                                                                 │
@@ -1314,7 +1314,7 @@ Tips for getting started:
  │     4     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     5     'port': 3307,                                                                                                                                               │
  │     6     'user': 'scadabr',                                                                                                                                          │
- │     7     'password': 'scadabr',                                                                                                                                      │
+ │     7     'password': '<REDACTED>',                                                                                                                                      │
  │     8     'database': 'tracker'                                                                                                                                       │
  │     9 }                                                                                                                                                               │
  │    10                                                                                                                                                                 │

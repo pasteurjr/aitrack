@@ -1,10 +1,11 @@
+import os
 import mysql.connector
 
 DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'scadabr',
-    'password': 'scadabr',
+    'host': os.environ['AITRACK_DB_HOST'],
+    'port': int(os.getenv('AITRACK_DB_PORT', '3306')),
+    'user': os.environ['AITRACK_DB_USER'],
+    'password': os.environ['AITRACK_DB_PASSWORD'],
     'database': 'tracker'
 }
 

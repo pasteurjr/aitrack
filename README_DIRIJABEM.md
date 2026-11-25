@@ -9,7 +9,7 @@ The **dirijabem** database is a production vehicle tracking and driver behavior 
 - Port: `3307`
 - Database: `dirijabem`
 - User: `producao`
-- Password: `112358123`
+- Password: `<REDACTED>`
 
 **Data Volume (as of analysis):**
 - 5,682 trips recorded

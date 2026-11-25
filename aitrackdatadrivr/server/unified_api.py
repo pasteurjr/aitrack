@@ -8,36 +8,19 @@ import mysql.connector
 from datetime import datetime
 
 from . import monitor_db
+from .db_config import database_config
 
 # Create blueprint
 unified_bp = Blueprint('unified', __name__, url_prefix='/api/unified')
 
-# Database configs
-TRACKER_DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'producao',
-    'password': '112358123',
-    'database': 'tracker'
-}
-
-DIRIJABEM_DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'producao',
-    'password': '112358123',
-    'database': 'dirijabem'
-}
-
-
 def get_tracker_connection():
     """Get tracker database connection"""
-    return mysql.connector.connect(**TRACKER_DB_CONFIG)
+    return mysql.connector.connect(**database_config('tracker'))
 
 
 def get_dirijabem_connection():
     """Get dirijabem database connection"""
-    return mysql.connector.connect(**DIRIJABEM_DB_CONFIG)
+    return mysql.connector.connect(**database_config('dirijabem'))
 
 
 @unified_bp.route('/vehicles', methods=['GET'])

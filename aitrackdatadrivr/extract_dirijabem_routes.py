@@ -8,15 +8,9 @@ import json
 import mysql.connector
 from pathlib import Path
 from datetime import datetime
+from server.db_config import database_config
 
-# Database connection
-DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'producao',
-    'password': '112358123',
-    'database': 'dirijabem'
-}
+DB_CONFIG = database_config('dirijabem')
 
 # Top 10 users by trip count
 TOP_USERS = [

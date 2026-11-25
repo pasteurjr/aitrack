@@ -13,9 +13,10 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
 def _cookie_options(http_only=True):
+    production = os.getenv('AITRACK_OPERATION_MODE', '').lower() == 'production'
     return {
         'httponly': http_only,
-        'secure': os.getenv('AITRACK_COOKIE_SECURE', 'false').lower() == 'true',
+        'secure': production or os.getenv('AITRACK_COOKIE_SECURE', 'false').lower() == 'true',
         'samesite': 'Lax',
         'path': '/',
     }
@@ -60,7 +61,8 @@ def recover():
     data = request.get_json(silent=True) or {}
     token = request_password_reset(data.get('email'))
     body = {'status': 'accepted', 'message': 'Se a conta existir, as instruções serão enviadas.'}
-    if token and os.getenv('AITRACK_RECOVERY_DEBUG_TOKEN', 'false').lower() == 'true':
+    debug_recovery = os.getenv('AITRACK_RECOVERY_DEBUG_TOKEN', 'false').lower() == 'true'
+    if token and debug_recovery and os.getenv('AITRACK_OPERATION_MODE', '').lower() != 'production':
         body['debug_token'] = token
     return jsonify(body), 202
 

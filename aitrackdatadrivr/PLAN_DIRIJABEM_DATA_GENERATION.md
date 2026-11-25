@@ -889,7 +889,7 @@ python run.py
 curl -X POST http://localhost:5009/api/dirijabem/user/1/start-synthetic
 
 # 3. Verificar no banco
-mysql -h camerascasas.no-ip.info -P 3307 -u producao -p112358123 dirijabem \
+mysql --defaults-extra-file=/caminho/seguro/mysql-client.cnf dirijabem \
   -e "SELECT CODVIA, CODUSU, DISTANCIA, DURACAO, SCORE FROM viagem ORDER BY CODVIA DESC LIMIT 5;"
 
 # 4. Verificar pontos GPS

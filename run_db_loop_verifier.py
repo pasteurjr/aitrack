@@ -6,10 +6,10 @@ import mysql.connector
 from server.routes_loader import load_routes
 
 DB_CONFIG = {
-    'host': os.getenv('AITRACK_DB_HOST', 'camerascasas.no-ip.info'),
-    'port': int(os.getenv('AITRACK_DB_PORT', '3307')),
-    'user': os.getenv('AITRACK_DB_USER', 'scadabr'),
-    'password': os.getenv('AITRACK_DB_PASSWORD', 'scadabr'),
+    'host': os.environ['AITRACK_DB_HOST'],
+    'port': int(os.getenv('AITRACK_DB_PORT', '3306')),
+    'user': os.environ['AITRACK_DB_USER'],
+    'password': os.environ['AITRACK_DB_PASSWORD'],
     'database': os.getenv('AITRACK_DB_NAME', 'tracker'),
 }
 

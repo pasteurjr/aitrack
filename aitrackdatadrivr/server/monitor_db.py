@@ -7,18 +7,11 @@ import mysql.connector
 from typing import List, Dict, Optional
 from datetime import datetime
 import json
-
-DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'scadabr',
-    'password': 'scadabr',
-    'database': 'tracker'
-}
+from .db_config import database_config
 
 def get_connection():
     """Get MySQL database connection"""
-    return mysql.connector.connect(**DB_CONFIG)
+    return mysql.connector.connect(**database_config())
 
 
 # ==================== CRUD Monitores ====================

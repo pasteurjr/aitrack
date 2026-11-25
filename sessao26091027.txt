@@ -452,7 +452,7 @@ Tips for getting started:
 
   Irei executar o comando para obter a descrição das tabelas.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ -  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscada_br tracker -e 'SHOW CREATE TABLE usuario; SHOW CREATE TABLE localizacao;' (Connecting to the r…  │
+ │ -  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e 'SHOW CREATE TABLE usuario; SHOW CREATE TABLE localizacao;' (Connecting to the r…  │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 ╭───────────────────────────────────────────────╮
@@ -462,7 +462,7 @@ Tips for getting started:
 ✦ Você tem razão em apontar, a sintaxe do comando mysql para senhas pode ser confusa.
 
   No cliente de linha de comando do MySQL, ao fornecer a senha diretamente (sem ser solicitado interativamente), ela deve vir colada na flag -p. Portanto, para a senha 
-  scadabr, o formato correto é -pscadabr.
+  scadabr, o formato correto é -p<REDACTED>.
 
   A sintaxe que usei estava correta para a ferramenta. Posso tentar executar o comando novamente?
 
@@ -472,7 +472,7 @@ Tips for getting started:
 
 ✦ Ok, executando o comando novamente.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e 'SHOW CREATE TABLE usuario; SHOW CREATE TABLE localizacao;' (Connecting to the re…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e 'SHOW CREATE TABLE usuario; SHOW CREATE TABLE localizacao;' (Connecting to the re…  │
  │                                                                                                                                                                       │
  │    Table	Create Table                                                                                                                                                 │
  │    usuario	CREATE TABLE `usuario` (\n  `USUCOD` int(11) NOT NULL AUTO_INCREMENT,\n  `USUNOM` varchar(100) NOT NULL,\n  PRIMARY KEY (`USUCOD`),\n  UNIQUE              │
@@ -638,7 +638,7 @@ Tips for getting started:
  │     6     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     7     'port': 3307,                                                                                                                                               │
  │     8     'user': 'scadabr',                                                                                                                                          │
- │     9     'password': 'scadabr',                                                                                                                                      │
+ │     9     'password': '<REDACTED>',                                                                                                                                      │
  │    10     'database': 'tracker'                                                                                                                                       │
  │    11 }                                                                                                                                                               │
  │    12                                                                                                                                                                 │
@@ -1597,7 +1597,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 1: Contagem inicial de registros.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85156                                                                                                                                                              │
@@ -1621,7 +1621,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Agora, vamos verificar o número de registros na tabela novamente.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85168                                                                                                                                                              │
@@ -1747,7 +1747,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 1: Contagem inicial.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85168                                                                                                                                                              │
@@ -1769,7 +1769,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 4: Contagem final.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85174                                                                                                                                                              │
@@ -1924,7 +1924,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 1: Contagem inicial de registros.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85174                                                                                                                                                              │
@@ -1946,7 +1946,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 4: Contagem final de registros.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85179                                                                                                                                                              │
@@ -2856,7 +2856,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 1: Contagem inicial.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85179                                                                                                                                                              │
@@ -2878,7 +2878,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 4: Contagem final de registros.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85189                                                                                                                                                              │
@@ -2960,7 +2960,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
   Esta tabela armazenará as informações dos veículos e os associará a um usuário. O campo VEI_DEVICE_ID é crucial, pois será usado para ligar o ID físico do rastreador 
   (como o IMEI) a um veículo no sistema.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "CREATE TABLE veiculos ( VEICOD INT NOT NULL AUTO_INCREMENT, VEI_DEVICE_ID VARCHA…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "CREATE TABLE veiculos ( VEICOD INT NOT NULL AUTO_INCREMENT, VEI_DEVICE_ID VARCHA…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -2971,7 +2971,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
   Agora, vou executar os quatro comandos necessários para reestruturar a tabela localizacao: remover a referência antiga, apagar a coluna USUCOD, adicionar a nova coluna
    FK_VEICOD e criar a nova referência para a tabela veiculos.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "ALTER TABLE localizacao DROP FOREIGN KEY localizacao_ibfk_1; ALTER TABLE localiz…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "ALTER TABLE localizacao DROP FOREIGN KEY localizacao_ibfk_1; ALTER TABLE localiz…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -2982,7 +2982,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
   Nosso código precisará encontrar um veículo correspondente ao device_id enviado pelo rastreador. Vou inserir um veículo de teste na nova tabela para que os dados do 
   nosso simulador possam ser associados a ele. Vou usar o device_id de um dos veículos Suntech simulados (SIM-1001).
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "INSERT INTO veiculos (VEI_DEVICE_ID, VEIPLACA, VEIMODELO, FK_USUCOD) VALUES ('SI…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "INSERT INTO veiculos (VEI_DEVICE_ID, VEIPLACA, VEIMODELO, FK_USUCOD) VALUES ('SI…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -3109,7 +3109,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 1: Contagem inicial.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the initial number of records in th…  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85189                                                                                                                                                              │
@@ -3131,7 +3131,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 4: Contagem final.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SELECT COUNT(*) FROM localizacao;" (Checking the final number of records in the …  │
  │                                                                                                                                                                       │
  │    COUNT(*)                                                                                                                                                           │
  │    85192                                                                                                                                                              │
@@ -3223,7 +3223,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Vou mostrar a estrutura da tabela veiculos que criei para você ver:
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "DESCRIBE veiculos;" (Displaying the structure of the 'veiculos' table to show ho…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "DESCRIBE veiculos;" (Displaying the structure of the 'veiculos' table to show ho…  │
  │                                                                                                                                                                       │
  │    Field	Type	Null	Key	Default	Extra                                                                                                                                  │
  │    VEICOD	int(11)	NO	PRI	NULL	auto_increment                                                                                                                          │
@@ -3333,7 +3333,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Esta será a nossa tabela de catálogo para os tipos de rastreadores.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "CREATE TABLE tracker_modelos (TMOD_COD INT NOT NULL AUTO_INCREMENT, TMOD_MARCA V…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "CREATE TABLE tracker_modelos (TMOD_COD INT NOT NULL AUTO_INCREMENT, TMOD_MARCA V…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -3343,7 +3343,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Vou adicionar VEI_CHIP_NUMERO e a chave estrangeira FK_TMOD_COD.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "ALTER TABLE veiculos ADD COLUMN VEI_CHIP_NUMERO VARCHAR(30), ADD COLUMN FK_TMOD_…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "ALTER TABLE veiculos ADD COLUMN VEI_CHIP_NUMERO VARCHAR(30), ADD COLUMN FK_TMOD_…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -3351,7 +3351,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Passo 3: Popular a tabela `tracker_modelos` com os nossos modelos conhecidos.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "INSERT INTO tracker_modelos (TMOD_MARCA, TMOD_MODELO) VALUES ('Maxtrack', 'MXT-1…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "INSERT INTO tracker_modelos (TMOD_MARCA, TMOD_MODELO) VALUES ('Maxtrack', 'MXT-1…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -3361,7 +3361,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Vou associar nosso veículo SIM-1001 ao modelo Suntech ST310U (que agora tem TMOD_COD = 2) e adicionar um número de chip fictício.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "UPDATE veiculos SET FK_TMOD_COD = 2, VEI_CHIP_NUMERO = '8955000000000001001' WHE…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "UPDATE veiculos SET FK_TMOD_COD = 2, VEI_CHIP_NUMERO = '8955000000000001001' WHE…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -3449,7 +3449,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
  │     8     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     9     'port': 3307,                                                                                                                                               │
  │    10     'user': 'scadabr',                                                                                                                                          │
- │    11     'password': 'scadabr',                                                                                                                                      │
+ │    11     'password': '<REDACTED>',                                                                                                                                      │
  │    12     'database': 'tracker'                                                                                                                                       │
  │    13 }                                                                                                                                                               │
  │    14                                                                                                                                                                 │
@@ -3760,7 +3760,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Vou adicionar as colunas LOC_IGNICAO (booleano), LOC_BATERIA_VOLTAGEM (float) e LOC_PANICO (booleano) à sua tabela localizacao.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "ALTER TABLE localizacao ADD COLUMN LOC_IGNICAO BOOLEAN, ADD COLUMN LOC_BATERIA_V…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "ALTER TABLE localizacao ADD COLUMN LOC_IGNICAO BOOLEAN, ADD COLUMN LOC_BATERIA_V…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -4768,7 +4768,7 @@ python-3.9.23         │24.7 MB   | #########9 | 100%
 
   Executando o comando para criar a tabela.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "CREATE TABLE geocercas (GCER_COD INT NOT NULL AUTO_INCREMENT, GCER_NOME VARCHAR(…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "CREATE TABLE geocercas (GCER_COD INT NOT NULL AUTO_INCREMENT, GCER_NOME VARCHAR(…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

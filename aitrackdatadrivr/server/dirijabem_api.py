@@ -6,18 +6,10 @@ Endpoints for trip replay management
 from flask import Blueprint, jsonify, request
 import mysql.connector
 from dirijabem_simulator import get_replay_manager
+from .db_config import database_config
 
 # Create blueprint
 dirijabem_bp = Blueprint('dirijabem', __name__, url_prefix='/api/dirijabem')
-
-# Database connection config
-DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'producao',
-    'password': '112358123',
-    'database': 'dirijabem'
-}
 
 # Top 10 users
 USERS = [
@@ -35,7 +27,7 @@ USERS = [
 
 def get_db_connection():
     """Get database connection"""
-    return mysql.connector.connect(**DB_CONFIG)
+    return mysql.connector.connect(**database_config('dirijabem'))
 
 @dirijabem_bp.route('/users', methods=['GET'])
 def get_users():

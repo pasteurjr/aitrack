@@ -13,21 +13,13 @@ from datetime import datetime, timedelta
 from threading import Thread, Lock
 from pathlib import Path
 from typing import List, Dict
+from server.db_config import database_config
 
 # Configuration
 SPEED_MULTIPLIER = 1  # 1 = real-time, 10 = 10x faster
 ROUTES_FILE = 'config/dirijabem_routes.json'
 
-# Database connection
-DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'producao',
-    'password': '112358123',
-    'database': 'dirijabem',
-    'pool_name': 'dirijabem_pool',
-    'pool_size': 5
-}
+DB_CONFIG = {**database_config('dirijabem'), 'pool_name': 'dirijabem_pool', 'pool_size': 5}
 
 
 # ==============================================================================

@@ -1,6 +1,8 @@
 """Proteção padrão da API por sessão e CSRF."""
 
 import hashlib
+import json
+import os
 from uuid import uuid4
 
 from flask import g, jsonify, request
@@ -38,11 +40,26 @@ def install_authentication(app):
 
     @app.after_request
     def security_headers(response):
+        if response.status_code >= 500 and response.is_json:
+            body = response.get_json(silent=True)
+            if isinstance(body, dict):
+                for field in ('error', 'erro', 'message'):
+                    if field in body:
+                        body[field] = 'Erro interno; consulte o request_id.'
+                body.setdefault('request_id', getattr(g, 'request_id', None))
+                response.set_data(json.dumps(body, ensure_ascii=False))
         response.headers['X-Request-ID'] = getattr(g, 'request_id', str(uuid4()))
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'no-referrer'
+        response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(self)'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; "
+            "form-action 'self'; object-src 'none'"
+        )
+        if request.is_secure or os.getenv('AITRACK_OPERATION_MODE', '').lower() == 'production':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
 
 

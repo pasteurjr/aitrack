@@ -1,0 +1,20 @@
+{
+  "schema_version": "security-audit-summary.v1",
+  "generated_at": "2026-11-25T14:00:00-03:00",
+  "working_tree_secret_findings": 0,
+  "python_dependency_vulnerabilities": 0,
+  "bandit": {
+    "high": 0,
+    "medium": 40,
+    "low": 6,
+    "note": "medium findings are predominantly dynamic SQL sites requiring manual review"
+  },
+  "node_before_fix": {"critical": 3, "high": 37, "total": 64},
+  "node_after_safe_fix": {"critical": 0, "high": 16, "moderate": 4, "low": 9, "total": 29},
+  "production_gate": "NO-GO",
+  "blockers": [
+    "16 high transitive Node findings in the legacy react-scripts toolchain",
+    "credential rotation after historical Git exposure is not proven",
+    "authenticated DAST and production TLS validation were not executed"
+  ]
+}

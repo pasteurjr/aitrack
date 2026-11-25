@@ -6,6 +6,7 @@ import mysql.connector
 from mysql.connector import pooling
 from datetime import datetime
 from .env_loader import load_dotenv
+from .db_config import database_config
 from . import behavioral_engine
 from . import geofence_engine
 from . import sensor_db
@@ -17,13 +18,7 @@ LOGGER = logging.getLogger(__name__)
 # carrega .env (config/.env ou .env)
 load_dotenv()
 
-DB_CONFIG = {
-    'host': os.getenv('AITRACK_DB_HOST', 'camerascasas.no-ip.info'),
-    'port': int(os.getenv('AITRACK_DB_PORT', '3307')),
-    'user': os.getenv('AITRACK_DB_USER', 'scadabr'),
-    'password': os.getenv('AITRACK_DB_PASSWORD', 'scadabr'),
-    'database': os.getenv('AITRACK_DB_NAME', 'tracker'),
-}
+DB_CONFIG = database_config()
 
 try:
     cnx_pool = pooling.MySQLConnectionPool(pool_name="aitrack_pool", pool_size=20, **DB_CONFIG)

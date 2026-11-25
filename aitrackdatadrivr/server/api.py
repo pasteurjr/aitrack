@@ -4,17 +4,12 @@ from flask_cors import CORS
 import mysql.connector
 import datetime
 from .env_loader import load_dotenv
+from .db_config import database_config
 
 # carrega .env (config/.env ou .env)
 load_dotenv()
 
-DB_CONFIG = {
-    'host': os.getenv('AITRACK_DB_HOST', 'camerascasas.no-ip.info'),
-    'port': int(os.getenv('AITRACK_DB_PORT', '3307')),
-    'user': os.getenv('AITRACK_DB_USER', 'scadabr'),
-    'password': os.getenv('AITRACK_DB_PASSWORD', 'scadabr'),
-    'database': os.getenv('AITRACK_DB_NAME', 'tracker'),
-}
+DB_CONFIG = database_config()
 
 app = Flask(__name__)
 cors_origins = [item.strip() for item in os.getenv(
@@ -364,4 +359,12 @@ def get_vehicle_score(device_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5009, debug=True)
+    production = os.getenv('AITRACK_OPERATION_MODE', '').lower() == 'production'
+    debug_enabled = (
+        os.getenv('AITRACK_FLASK_DEBUG', 'false').lower() == 'true' and not production
+    )
+    app.run(
+        host=os.getenv('AITRACK_BIND_HOST', '127.0.0.1'),
+        port=int(os.getenv('AITRACK_API_PORT', '5009')),
+        debug=debug_enabled,
+    )

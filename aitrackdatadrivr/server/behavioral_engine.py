@@ -160,14 +160,7 @@ def _detector_episode_gate(
     state['last_emitted_at'] = timestamp_seconds
     return episode_id
 
-# Database configuration for event persistence
-DB_CONFIG = {
-    'host': 'camerascasas.no-ip.info',
-    'port': 3307,
-    'user': 'scadabr',
-    'password': 'scadabr',
-    'database': 'tracker'
-}
+from .db_config import database_config
 
 
 def save_event_to_db(
@@ -186,7 +179,7 @@ def save_event_to_db(
     conn = None
     cursor = None
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(**database_config())
         cursor = conn.cursor(dictionary=True)
 
         # Buscar tipo_evento_id pelo código

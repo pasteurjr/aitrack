@@ -4843,7 +4843,7 @@ Tips for getting started:
 
   Você pode, por favor, executar o seguinte comando no seu terminal e me mostrar o resultado?
 
-  mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SHOW CREATE TABLE veiculos;"
+  mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SHOW CREATE TABLE veiculos;"
 
   Com a estrutura dessa tabela, eu poderei ver os limites de cada coluna e ajustar o código para respeitá-los. Esta é a última peça do quebra-cabeça.
 
@@ -4853,7 +4853,7 @@ Tips for getting started:
 
 ✦ Obrigado. Executando o comando para obter a estrutura da tabela.
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "SHOW CREATE TABLE veiculos;" (Fetching the table structure for `veiculos` to dia…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "SHOW CREATE TABLE veiculos;" (Fetching the table structure for `veiculos` to dia…  │
  │                                                                                                                                                                       │
  │    Table	Create Table                                                                                                                                                 │
  │    veiculos	CREATE TABLE `veiculos` (\n  `VEICOD` int(11) NOT NULL AUTO_INCREMENT,\n  `VEI_DEVICE_ID` varchar(50) DEFAULT NULL,\n  `VEIPLACA` varchar(10)             │
@@ -5652,7 +5652,7 @@ Tips for getting started:
 
   Executando a limpeza no banco de dados:
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "DELETE FROM veiculos WHERE VEI_DEVICE_ID = 'SIM-1001';" (Deleting the incorrectl…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "DELETE FROM veiculos WHERE VEI_DEVICE_ID = 'SIM-1001';" (Deleting the incorrectl…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  │    ERROR 1451 (23000) at line 1: Cannot delete or update a parent row: a foreign key constraint fails (`tracker`.`localizacao`, CONSTRAINT `fk_veiculo`               │
@@ -5666,7 +5666,7 @@ Tips for getting started:
 
   Executando a correção definitiva:
  ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -pscadabr tracker -e "UPDATE veiculos SET VEI_DEVICE_ID = 'SIM-1001-old' WHERE VEICOD = 1 AND VEI_DEVI…  │
+ │ ✓  Shell mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p<REDACTED> tracker -e "UPDATE veiculos SET VEI_DEVICE_ID = 'SIM-1001-old' WHERE VEICOD = 1 AND VEI_DEVI…  │
  │                                                                                                                                                                       │
  │    mysql: [Warning] Using a password on the command line interface can be insecure.                                                                                   │
  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
