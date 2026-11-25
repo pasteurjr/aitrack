@@ -20,3 +20,24 @@ export interface BehaviorReport {
     source_breakdown: Record<string, { event_count: number; distance_km: number; driving_seconds: number; quality: string }>;
   };
 }
+
+export interface ReportExport {
+  schema_version: 'report-export.v1';
+  public_id: string;
+  status: 'completed' | 'failed';
+  format: 'csv' | 'json';
+  artifact_sha256: string;
+  artifact_size_bytes: number;
+  row_count: number;
+  content: string;
+  delivery: 'internal_download';
+}
+
+export interface ReportExportSchedule {
+  schema_version: 'report-export-schedule.v1';
+  public_id: string;
+  status: 'blocked_auth';
+  next_run_at: null;
+  calculated_next_run_at: string;
+  block_reason: 'AUTH_AND_RBAC_REQUIRED';
+}

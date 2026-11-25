@@ -233,6 +233,8 @@ from .analytics_api import analytics_bp
 app.register_blueprint(analytics_bp)
 from .report_api import report_bp
 app.register_blueprint(report_bp)
+from .report_export_api import export_bp
+app.register_blueprint(export_bp)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)

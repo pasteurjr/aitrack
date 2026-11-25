@@ -34,7 +34,7 @@ import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLev
 import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
 import type { TripReplayResponse } from '../types/tripReplay';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
-import type { BehaviorReport, ReportMode } from '../types/report';
+import type { BehaviorReport, ReportExport, ReportExportSchedule, ReportMode } from '../types/report';
 import type { OperationsMetrics } from '../types/operationsMetrics';
 
 export const apiClient = axios.create({
@@ -342,6 +342,10 @@ export const analyticsService = {
 export const reportService = {
   generateBehavior: (body: { mode: ReportMode; from: string; to: string; timezone: string; actor_id: string }) =>
     apiClient.post<BehaviorReport>('/reports/behavior', body),
+  exportBehavior: (body: { mode: ReportMode; from: string; to: string; timezone: string; actor_id: string; format: 'csv'|'json'; idempotency_key: string }) =>
+    apiClient.post<ReportExport>('/report-exports', body),
+  createSchedule: (body: { mode: ReportMode; format: 'csv'|'json'; timezone: string; cadence: 'daily'|'weekly'; local_time: string; weekday?: number; actor_id: string; filters: Record<string, unknown> }) =>
+    apiClient.post<ReportExportSchedule>('/report-exports/schedules', body),
 };
 
 // ==================== Geofence Services ====================

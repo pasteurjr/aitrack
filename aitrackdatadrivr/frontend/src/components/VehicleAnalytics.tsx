@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
 import { analyticsService, reportService } from '../services/apiService';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
-import type { BehaviorReport, ReportMode } from '../types/report';
+import type { BehaviorReport, ReportExportSchedule, ReportMode } from '../types/report';
 import type { OperationsMetrics } from '../types/operationsMetrics';
 
 interface VehicleAnalyticsProps {
@@ -23,6 +23,7 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     const [operations, setOperations] = useState<OperationsMetrics | null>(null);
     const [report, setReport] = useState<BehaviorReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
+    const [schedule, setSchedule] = useState<ReportExportSchedule | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [stale, setStale] = useState(false);
@@ -105,6 +106,40 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
             setError(true);
         } finally {
             setReportLoading(false);
+        }
+    };
+
+    const exportReport = async (format: 'csv' | 'json') => {
+        if (!report) return;
+        try {
+            const response = await reportService.exportBehavior({
+                mode: report.summary.mode, from, to, timezone: 'America/Sao_Paulo',
+                actor_id: 'operator-ui', format,
+                idempotency_key: `ui:${report.public_id}:${format}:${Date.now()}`,
+            });
+            const blob = new Blob([response.data.content], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `relatorio-${report.public_id}.${format}`;
+            anchor.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            setError(true);
+        }
+    };
+
+    const registerSchedule = async () => {
+        if (!report) return;
+        try {
+            const response = await reportService.createSchedule({
+                mode: report.summary.mode, format: 'csv', timezone: 'America/Sao_Paulo',
+                cadence: 'weekly', local_time: '09:00', weekday: 0,
+                actor_id: 'operator-ui', filters: { from, to },
+            });
+            setSchedule(response.data);
+        } catch {
+            setError(true);
         }
     };
 
@@ -222,6 +257,14 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                                 <li key={source}>{source}: {value.event_count} eventos, {value.distance_km.toFixed(1)} km ({value.quality})</li>
                             ))}
                         </ul>
+                        <button onClick={() => exportReport('csv')}>Baixar CSV</button>{' '}
+                        <button onClick={() => exportReport('json')}>Baixar JSON</button>{' '}
+                        <button onClick={registerSchedule}>Registrar agenda semanal</button>
+                        {schedule && (
+                            <p role="status">
+                                Agenda {schedule.public_id}: bloqueada até autenticação e permissões; próxima execução calculada {new Date(schedule.calculated_next_run_at + 'Z').toLocaleString('pt-BR')}.
+                            </p>
+                        )}
                     </div>
                 )}
             </div>
