@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from flask import Flask
+from flask import Flask, g
 
 from server import incident_api, incident_db
 from server.incident_state_machine import InvalidTransition
@@ -10,6 +10,12 @@ from server.incident_state_machine import InvalidTransition
 
 def _client():
     app = Flask(__name__)
+    @app.before_request
+    def authenticated_test_principal():
+        g.auth = {
+            'tenant_id': 7, 'user_public_id': 'operator-7',
+            'display_name': 'Maria Operadora',
+        }
     app.register_blueprint(incident_api.incident_bp)
     return app.test_client()
 

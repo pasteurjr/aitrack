@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from .monitor_db import get_connection
+from .tenant_scope import current_tenant_id
 
 
 class GeofenceNotFound(Exception):
@@ -72,9 +73,9 @@ def _serialize(record: Dict) -> Dict:
     return result
 
 
-def _where_clause(filters: Dict) -> Tuple[str, List]:
-    clauses = []
-    params: List = []
+def _where_clause(filters: Dict, tenant_id=None) -> Tuple[str, List]:
+    clauses = ['g.tenant_id = %s'] if tenant_id is not None else []
+    params: List = [tenant_id] if tenant_id is not None else []
     for key, column in (('status', 'g.status'), ('regra', 'g.regra')):
         if filters.get(key):
             clauses.append(f'{column} = %s')
@@ -86,8 +87,9 @@ def _where_clause(filters: Dict) -> Tuple[str, List]:
     return (' WHERE ' + ' AND '.join(clauses) if clauses else ''), params
 
 
-def list_geofences(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], int]:
-    where_sql, params = _where_clause(filters)
+def list_geofences(filters: Dict, limit: int, offset: int, tenant_id=None) -> Tuple[List[Dict], int]:
+    tenant_id = tenant_id or current_tenant_id(required=False)
+    where_sql, params = _where_clause(filters, tenant_id)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -107,7 +109,8 @@ def list_geofences(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], 
         conn.close()
 
 
-def get_geofence(reference: str) -> Optional[Dict]:
+def get_geofence(reference: str, tenant_id=None) -> Optional[Dict]:
+    tenant_id = tenant_id or current_tenant_id(required=False)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -115,7 +118,9 @@ def get_geofence(reference: str) -> Optional[Dict]:
             clause, parameter = 'g.id = %s', int(reference)
         else:
             clause, parameter = 'g.public_id = %s', reference
-        cursor.execute(GEOFENCE_SELECT + f' WHERE {clause}', (parameter,))
+        tenant_sql = ' AND g.tenant_id = %s' if tenant_id is not None else ''
+        params = (parameter, tenant_id) if tenant_id is not None else (parameter,)
+        cursor.execute(GEOFENCE_SELECT + f' WHERE {clause}' + tenant_sql, params)
         row = cursor.fetchone()
         return _serialize(row) if row else None
     finally:
@@ -123,7 +128,8 @@ def get_geofence(reference: str) -> Optional[Dict]:
         conn.close()
 
 
-def create_geofence(data: Dict, normalized_geometry: Dict) -> Dict:
+def create_geofence(data: Dict, normalized_geometry: Dict, tenant_id=None) -> Dict:
+    tenant_id = tenant_id or current_tenant_id(required=False)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     public_id = str(uuid4())
@@ -132,12 +138,12 @@ def create_geofence(data: Dict, normalized_geometry: Dict) -> Dict:
         cursor.execute(
             """
             INSERT INTO monitoramento.geofences
-                (public_id, nome, descricao, regra, status, owner_ref,
+                (tenant_id, public_id, nome, descricao, regra, status, owner_ref,
                  criado_por, atualizado_por)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
-                public_id, data['nome'], data.get('descricao'), data['regra'],
+                tenant_id, public_id, data['nome'], data.get('descricao'), data['regra'],
                 data['status'], data.get('owner_ref'), data['actor_id'], data['actor_id'],
             ),
         )
@@ -178,14 +184,16 @@ def create_geofence(data: Dict, normalized_geometry: Dict) -> Dict:
         conn.close()
 
 
-def _locked_geofence(cursor, reference: str) -> Dict:
+def _locked_geofence(cursor, reference: str, tenant_id=None) -> Dict:
     if reference.isdigit():
         clause, parameter = 'id = %s', int(reference)
     else:
         clause, parameter = 'public_id = %s', reference
+    tenant_sql = ' AND tenant_id = %s' if tenant_id is not None else ''
+    params = (parameter, tenant_id) if tenant_id is not None else (parameter,)
     cursor.execute(
-        f'SELECT id, version, status FROM monitoramento.geofences WHERE {clause} FOR UPDATE',
-        (parameter,),
+        f'SELECT id, version, status FROM monitoramento.geofences WHERE {clause}'
+        + tenant_sql + ' FOR UPDATE', params,
     )
     row = cursor.fetchone()
     if row is None:
@@ -204,13 +212,15 @@ def update_geofence(
     reference: str,
     data: Dict,
     normalized_geometry: Optional[Dict],
+    tenant_id=None,
 ) -> Dict:
     """Atualiza metadados e cria versão geométrica somente quando o desenho mudou."""
+    tenant_id = tenant_id or current_tenant_id(required=False)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         conn.start_transaction()
-        row = _locked_geofence(cursor, reference)
+        row = _locked_geofence(cursor, reference, tenant_id)
         _assert_mutable(row, data['expected_version'])
         cursor.execute(
             """
@@ -291,13 +301,14 @@ def update_geofence(
         conn.close()
 
 
-def archive_geofence(reference: str, data: Dict) -> Dict:
+def archive_geofence(reference: str, data: Dict, tenant_id=None) -> Dict:
     """Arquiva sem apagar histórico e bloqueia cercas ainda atribuídas."""
+    tenant_id = tenant_id or current_tenant_id(required=False)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         conn.start_transaction()
-        row = _locked_geofence(cursor, reference)
+        row = _locked_geofence(cursor, reference, tenant_id)
         _assert_mutable(row, data['expected_version'])
         cursor.execute(
             """

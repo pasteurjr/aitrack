@@ -11,6 +11,7 @@ from . import geofence_assignment_db
 from . import geofence_engine
 from . import geofence_live_db
 from .geofence_geometry import normalize_geometry
+from .tenant_scope import trusted_actor
 
 
 geofence_bp = Blueprint('geofences', __name__, url_prefix='/api/geofences')
@@ -123,10 +124,7 @@ def _creation_payload():
     status = data.get('status', 'draft')
     if status not in VALID_STATUS:
         raise ValueError('status deve ser draft, active ou inactive')
-    operator = data.get('operator')
-    if not isinstance(operator, dict):
-        raise ValueError('operator é obrigatório')
-    actor_id = str(operator.get('id') or '').strip()
+    actor_id = trusted_actor()['id']
     if not 1 <= len(actor_id) <= 100:
         raise ValueError('operator.id deve ter entre 1 e 100 caracteres')
     change_reason = str(data.get('change_reason') or 'Criação inicial').strip()
@@ -217,14 +215,7 @@ def _mutation_error(exc, operation: str):
 
 
 def _operator(data):
-    operator = data.get('operator')
-    if not isinstance(operator, dict):
-        raise ValueError('operator é obrigatório')
-    actor_id = str(operator.get('id') or '').strip()
-    actor_name = str(operator.get('name') or '').strip()
-    if not 1 <= len(actor_id) <= 100 or not 1 <= len(actor_name) <= 150:
-        raise ValueError('operator inválido')
-    return actor_id
+    return trusted_actor()['id']
 
 
 def _assignment_error(exc):

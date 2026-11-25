@@ -11,6 +11,7 @@ from .identity_db import configured_read_mode
 from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
 from .incident_sla import deadline_for, enrich_sla
 from .action_queue_db import list_incident_action_timeline
+from .tenant_scope import current_tenant_id
 
 
 class IncidentNotFound(Exception):
@@ -83,9 +84,9 @@ def serialize_record(record: Dict) -> Dict:
     return serialized
 
 
-def _where_clause(filters: Dict) -> Tuple[str, List]:
-    clauses = []
-    params: List = []
+def _where_clause(filters: Dict, tenant_id=None) -> Tuple[str, List]:
+    clauses = ['i.tenant_id = %s'] if tenant_id is not None else []
+    params: List = [tenant_id] if tenant_id is not None else []
     field_map = {
         'status': 'i.status',
         'severity': 'i.severity',
@@ -104,8 +105,9 @@ def _where_clause(filters: Dict) -> Tuple[str, List]:
     return (' WHERE ' + ' AND '.join(clauses) if clauses else ''), params
 
 
-def list_incidents(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], int]:
-    where_sql, params = _where_clause(filters)
+def list_incidents(filters: Dict, limit: int, offset: int, tenant_id=None) -> Tuple[List[Dict], int]:
+    tenant_id = tenant_id or current_tenant_id(required=False)
+    where_sql, params = _where_clause(filters, tenant_id)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -129,11 +131,14 @@ def list_incidents(filters: Dict, limit: int, offset: int) -> Tuple[List[Dict], 
         conn.close()
 
 
-def get_incident(incident_id: int, timeline_limit: int) -> Optional[Dict]:
+def get_incident(incident_id: int, timeline_limit: int, tenant_id=None) -> Optional[Dict]:
+    tenant_id = tenant_id or current_tenant_id(required=False)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(INCIDENT_SELECT + ' WHERE i.id = %s', (incident_id,))
+        tenant_sql = ' AND i.tenant_id = %s' if tenant_id is not None else ''
+        params = (incident_id, tenant_id) if tenant_id is not None else (incident_id,)
+        cursor.execute(INCIDENT_SELECT + ' WHERE i.id = %s' + tenant_sql, params)
         incident = cursor.fetchone()
         if not incident:
             return None
@@ -179,8 +184,10 @@ def transition_incident(
     expected_version: int,
     idempotency_key: str,
     connection=None,
+    tenant_id=None,
 ) -> Dict:
     """Altera estado e grava timeline atomicamente com concorrência otimista."""
+    tenant_id = tenant_id or current_tenant_id(required=False)
     if not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1:
         raise ValueError('expected_version deve ser inteiro positivo')
     if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
@@ -203,9 +210,11 @@ def transition_incident(
     conn = connection or get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        tenant_sql = ' AND tenant_id = %s' if tenant_id is not None else ''
+        params = (incident_id, tenant_id) if tenant_id is not None else (incident_id,)
         cursor.execute(
-            'SELECT * FROM monitoramento.incidents WHERE id = %s FOR UPDATE',
-            (incident_id,),
+            'SELECT * FROM monitoramento.incidents WHERE id = %s' + tenant_sql + ' FOR UPDATE',
+            params,
         )
         incident = cursor.fetchone()
         if not incident:
@@ -237,8 +246,8 @@ def transition_incident(
         assignments.extend(['version = version + 1', 'updated_at = CURRENT_TIMESTAMP(6)'])
         cursor.execute(
             f'UPDATE monitoramento.incidents SET {", ".join(assignments)} '
-            'WHERE id = %s AND version = %s',
-            tuple([*values, incident_id, expected_version]),
+            'WHERE id = %s AND version = %s' + tenant_sql,
+            tuple([*values, incident_id, expected_version] + ([tenant_id] if tenant_id is not None else [])),
         )
         if cursor.rowcount != 1:
             raise IncidentConflict('Incidente foi alterado por outro processo')
@@ -285,8 +294,10 @@ def add_incident_comment(
     expected_version: int,
     idempotency_key: str,
     connection=None,
+    tenant_id=None,
 ) -> Dict:
     """Acrescenta comentário auditável e atualiza a versão atomicamente."""
+    tenant_id = tenant_id or current_tenant_id(required=False)
     comment = str(comment or '').strip()
     if not 2 <= len(comment) <= 2000:
         raise ValueError('Comentário deve ter entre 2 e 2000 caracteres')
@@ -304,7 +315,9 @@ def add_incident_comment(
     conn = connection or get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s FOR UPDATE', (incident_id,))
+        tenant_sql = ' AND tenant_id = %s' if tenant_id is not None else ''
+        params = (incident_id, tenant_id) if tenant_id is not None else (incident_id,)
+        cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s' + tenant_sql + ' FOR UPDATE', params)
         incident = cursor.fetchone()
         if not incident:
             raise IncidentNotFound()
@@ -402,8 +415,9 @@ def _resolve_input_vehicle_id(cursor, provided_id: int) -> int:
     return int(matches[0]['id'])
 
 
-def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connection=None) -> Dict:
+def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connection=None, tenant_id=None) -> Dict:
     """Registra fato real que não foi detectado automaticamente."""
+    tenant_id = tenant_id or current_tenant_id(required=False)
     vehicle_id = data.get('vehicle_id')
     if not isinstance(vehicle_id, int) or isinstance(vehicle_id, bool) or vehicle_id < 1:
         raise ValueError('vehicle_id deve ser inteiro positivo')
@@ -445,27 +459,33 @@ def create_false_negative(data: Dict, actor: Dict, idempotency_key: str, connect
         )
         replay = cursor.fetchone()
         if replay:
+            tenant_sql = ' AND tenant_id = %s' if tenant_id is not None else ''
+            params = ((replay['incident_id'], tenant_id) if tenant_id is not None
+                      else (replay['incident_id'],))
             cursor.execute(
-                'SELECT * FROM monitoramento.incidents WHERE id = %s',
-                (replay['incident_id'],),
+                'SELECT * FROM monitoramento.incidents WHERE id = %s' + tenant_sql,
+                params,
             )
-            result = serialize_record(cursor.fetchone())
+            row = cursor.fetchone()
+            if not row:
+                raise IncidentNotFound()
+            result = serialize_record(row)
             result['idempotent_replay'] = True
             return result
 
         operational_vehicle_id = _resolve_input_vehicle_id(cursor, vehicle_id)
         cursor.execute("""
             INSERT INTO monitoramento.incidents
-                (correlation_key, vehicle_id, legacy_vehicle_id,
+                (tenant_id, correlation_key, vehicle_id, legacy_vehicle_id,
                  incident_type, title, summary,
                  status, severity, primary_source, opened_at, triaged_at,
                  detection_outcome, classification_reason, classified_by,
                  classified_at, sla_due_at, version)
-            VALUES (%s, %s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'triage', %s, 'system', %s,
                     CURRENT_TIMESTAMP(6), 'false_negative', %s, %s,
                     CURRENT_TIMESTAMP(6), %s, 1)
         """, (
-            correlation_key, operational_vehicle_id, vehicle_id,
+            tenant_id, correlation_key, operational_vehicle_id, vehicle_id,
             incident_type, title, notes, severity,
             occurred_at, reason, str(actor['id'])[:100], deadline_for(severity),
         ))

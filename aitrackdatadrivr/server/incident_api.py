@@ -12,6 +12,7 @@ from .incident_state_machine import (
     TRUE_POSITIVE_REASONS,
     InvalidTransition,
 )
+from .tenant_scope import trusted_actor
 
 
 incident_bp = Blueprint('incidents', __name__, url_prefix='/api/incidents')
@@ -92,18 +93,7 @@ def _command_body(require_version: bool = True):
     idempotency_key = data.get('idempotency_key')
     if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key.strip()) <= 150:
         raise ValueError('idempotency_key deve ter entre 1 e 150 caracteres')
-    operator = data.get('operator')
-    if not isinstance(operator, dict):
-        raise ValueError('operator é obrigatório')
-    operator_id = str(operator.get('id') or '').strip()
-    operator_name = str(operator.get('name') or '').strip()
-    if not operator_id or len(operator_id) > 100:
-        raise ValueError('operator.id deve ter entre 1 e 100 caracteres')
-    if not operator_name or len(operator_name) > 150:
-        raise ValueError('operator.name deve ter entre 1 e 150 caracteres')
-    return data, expected_version, idempotency_key.strip(), {
-        'type': 'human', 'id': operator_id, 'name': operator_name,
-    }
+    return data, expected_version, idempotency_key.strip(), trusted_actor()
 
 
 def _command_error(exc, incident_id: int):
