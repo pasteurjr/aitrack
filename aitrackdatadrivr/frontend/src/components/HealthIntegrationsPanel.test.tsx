@@ -51,11 +51,12 @@ test('exibe estado vazio quando a API não retorna componentes', async () => {
 
 test('renderiza os sete cartões com nomes, estados e detalhes acessíveis', async () => {
   mockedGetAll.mockResolvedValue({
-    data: { generated_at: '2026-11-25T12:00:00Z', overall_status: 'degraded', integrations },
+    data: { generated_at: '2026-11-25T12:00:00Z', overall_status: 'degraded', integrations,
+      active_alerts: [{ alert_key: 'health:voice', component_key: 'voice_provider', severity: 'high', summary: 'Voz indisponível' }] },
   });
   render(<HealthIntegrationsPanel />);
 
-  expect(await screen.findByText('Estado geral: Degradado')).toBeInTheDocument();
+  expect(await screen.findByText('Estado geral: Degradado. Alertas técnicos ativos: 1')).toBeInTheDocument();
   const region = screen.getByRole('region', { name: 'Integrações monitoradas' });
   expect(within(region).getAllByRole('article')).toHaveLength(7);
   expect(screen.getByRole('article', { name: 'Tracker: Saudável' })).toHaveTextContent('42 ms');

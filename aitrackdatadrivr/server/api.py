@@ -245,12 +245,19 @@ app.register_blueprint(audit_bp)
 from .health_api import health_bp
 app.register_blueprint(health_bp)
 
+from .observability import install_observability, metrics_response
+
+@app.get('/api/metrics')
+def operations_metrics_endpoint():
+    return metrics_response()
+
 @app.get('/api/health/live')
 def health_live():
     return jsonify({'status': 'live'})
 
 from .auth_middleware import install_authentication
 install_authentication(app)
+install_observability(app)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)

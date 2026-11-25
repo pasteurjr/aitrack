@@ -145,7 +145,7 @@ const HealthIntegrationsPanel: React.FC = () => {
           <p>Estado operacional dos serviços usados pelo monitoramento veicular.</p>
         </div>
         <span className="health-panel__summary" role="status">
-          Estado geral: {overallPresentation.label}
+          Estado geral: {overallPresentation.label}. Alertas técnicos ativos: {payload?.active_alerts?.length ?? 0}
         </span>
       </header>
       <section className="health-panel__grid" aria-label="Integrações monitoradas">

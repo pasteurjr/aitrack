@@ -28,6 +28,12 @@ export interface IntegrationHealthResponse {
   status?: string;
   integrations?: IntegrationHealthCollection;
   components?: IntegrationHealthCollection;
+  active_alerts?: Array<{
+    alert_key: string;
+    component_key: string;
+    severity: 'warning' | 'high' | 'critical';
+    summary: string;
+  }>;
   data?: {
     integrations?: IntegrationHealthCollection;
     components?: IntegrationHealthCollection;

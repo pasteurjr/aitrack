@@ -11,7 +11,7 @@ def required_permission(path, method):
         return None
     if path.startswith('/api/audit'):
         return 'audit.read'
-    if path.startswith('/api/health'):
+    if path.startswith('/api/health') or path == '/api/metrics':
         return 'health.read'
     if path.startswith('/api/report-exports/schedules'):
         return 'report.schedule'

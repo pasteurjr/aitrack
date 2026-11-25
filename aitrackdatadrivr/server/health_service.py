@@ -117,7 +117,12 @@ def integration_snapshot(history_limit=30):
         cursor.execute("""SELECT * FROM monitoramento.health_transitions
           ORDER BY occurred_at DESC,id DESC LIMIT %s""", (history_limit,))
         history = cursor.fetchall()
-        for collection in (components, history):
+        cursor.execute("""SELECT alert_key,component_key,alert_type,severity,summary,
+          opened_at,last_observed_at,occurrence_count
+          FROM monitoramento.technical_alerts WHERE state='active'
+          ORDER BY FIELD(severity,'critical','high','warning'),last_observed_at DESC""")
+        active_alerts = cursor.fetchall()
+        for collection in (components, history, active_alerts):
             for row in collection:
                 for key, value in list(row.items()):
                     if isinstance(value, datetime): row[key] = value.isoformat()
@@ -128,6 +133,6 @@ def integration_snapshot(history_limit=30):
         return {'schema_version': 'integration-health.v1',
                 'generated_at': datetime.now(timezone.utc).isoformat(),
                 'overall_status': overall, 'components': components,
-                'history': history}
+                'history': history, 'active_alerts': active_alerts}
     finally:
         cursor.close(); conn.close()
