@@ -1163,6 +1163,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.4 | `9c18090` | Auditoria transversal append-only possui snapshots redigidos, ator/correlação e consulta por cursor; incidentes/cercas gravam na mesma transação. Trigger bloqueou UPDATE, rollback zero; 554 backend passaram. |
 | 2026-11-25 | UI-8.5 | `857da87` | Readiness concilia Tracker/Dirija Bem com saúde consolidada; painel protegido cobre banco, fontes, IA, canais e workers com refresh. Revisão independente corrigiu divergência e redação; 559 backend e 93 frontend passaram. |
 | 2026-11-25 | UI-8.6 | `5776a5b` | Logs JSON redigidos e métricas de baixa cardinalidade cobrem HTTP; alertas técnicos internos deduplicam e registram recuperação. Prova opened/observed/recovered e rollback zero; 563 backend e 93 frontend passaram. |
+| 2026-11-25 | UI-8.7 | `8f7d4f6` | Baseline isolado processou 5.000 correlações, replay e restart: 856,61/s, p95 1,49 ms, zero duplicata/perda e 100 leases recuperados. Harness recusa alvo remoto; não certifica infraestrutura compartilhada. |
 
 ---
 
