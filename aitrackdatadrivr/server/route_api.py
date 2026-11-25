@@ -38,3 +38,24 @@ def archive(public_id):
     try:
         data=request.get_json(silent=True) or {};return jsonify(route_db.archive_route(public_id,data.get('expected_version'),data.get('actor_id'),data.get('reason')))
     except Exception as exc:return error(exc)
+
+@route_bp.post('/<public_id>/assignments')
+def assign(public_id):
+    try:
+        from .route_execution_db import create_assignment
+        return jsonify({'schema_version':'route-assignment.v1','assignment':create_assignment(public_id,request.get_json(silent=True) or {})}),201
+    except Exception as exc:return error(exc)
+
+@route_bp.post('/assignments/<assignment_id>/executions')
+def execution(assignment_id):
+    try:
+        from .route_execution_db import create_execution
+        return jsonify({'schema_version':'route-execution.v1','execution':create_execution(assignment_id,request.get_json(silent=True) or {})}),201
+    except Exception as exc:return error(exc)
+
+@route_bp.post('/executions/<execution_id>/<command>')
+def execution_transition(execution_id,command):
+    try:
+        from .route_execution_db import transition_execution
+        return jsonify({'schema_version':'route-execution.v1','execution':transition_execution(execution_id,command,request.get_json(silent=True) or {})})
+    except Exception as exc:return error(exc)
