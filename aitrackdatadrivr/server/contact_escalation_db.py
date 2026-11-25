@@ -32,13 +32,13 @@ def channel_is_eligible(row, now=None):
     )
 
 
-def order_candidates(candidates, incident_severity):
+def order_candidates(candidates, incident_severity, now=None):
     severity = SEVERITY_RANK.get(incident_severity)
     if severity is None:
         raise ValueError('Severidade inválida')
     eligible = [
         item for item in candidates
-        if channel_is_eligible(item)
+        if channel_is_eligible(item, now)
         and SEVERITY_RANK[item['min_severity']] <= severity
     ]
     return sorted(eligible, key=lambda item: (item['step_order'], item['priority'], item['channel_id']))
@@ -105,3 +105,70 @@ def resolve_escalation(incident_id, policy_key='default'):
         return {'incident_id': incident_id, 'policy_key': policy_key, 'contacts': ordered}
     finally:
         cursor.close(); conn.close()
+
+
+def revoke_contact_by_destination_hash(connection, destination_hash, source, actor_id):
+    """Aplica opt-out a todo canal correspondente e registra auditoria."""
+    if len(str(destination_hash or '')) != 64:
+        raise ValueError('destination_hash inválido')
+    cursor=connection.cursor(dictionary=True)
+    try:
+        cursor.execute("""SELECT ch.id channel_id,ch.contact_id,ch.channel,ch.consent_status
+          FROM monitoramento.contact_channels ch
+          WHERE ch.destination_hash=%s FOR UPDATE""",(destination_hash,))
+        rows=cursor.fetchall();changed=0
+        for row in rows:
+            if row['consent_status']=='revoked':continue
+            cursor.execute("""UPDATE monitoramento.contact_channels SET consent_status='revoked',
+              consent_revoked_at=CURRENT_TIMESTAMP(6),active=FALSE,version=version+1
+              WHERE id=%s""",(row['channel_id'],))
+            snapshot={'channel':row['channel'],'destination_hash':destination_hash,
+                      'previous_consent':row['consent_status'],'consent_status':'revoked','source':source}
+            cursor.execute("""INSERT INTO monitoramento.contact_audit
+              (contact_id,event_type,actor_id,reason,snapshot_json)
+              VALUES(%s,'opt_out',%s,%s,%s)""",(
+                row['contact_id'],actor_id,'Recusa explícita recebida pelo canal',
+                json.dumps(snapshot,separators=(',',':'),sort_keys=True),
+            ));changed+=1
+        return changed
+    finally:cursor.close()
+
+
+def disable_contact_by_destination_hash(connection, destination_hash, source, actor_id):
+    """Desativa destino tecnicamente inválido sem fabricar revogação de consentimento."""
+    if len(str(destination_hash or '')) != 64:
+        raise ValueError('destination_hash inválido')
+    cursor=connection.cursor(dictionary=True)
+    try:
+        cursor.execute("""SELECT ch.id channel_id,ch.contact_id,ch.channel,ch.active,ch.consent_status
+          FROM monitoramento.contact_channels ch WHERE ch.destination_hash=%s FOR UPDATE""",(destination_hash,))
+        rows=cursor.fetchall();changed=0
+        for row in rows:
+            if not row['active']:continue
+            cursor.execute("UPDATE monitoramento.contact_channels SET active=FALSE,version=version+1 WHERE id=%s",(row['channel_id'],))
+            snapshot={'channel':row['channel'],'destination_hash':destination_hash,
+                      'consent_status':row['consent_status'],'active':False,'source':source}
+            cursor.execute("""INSERT INTO monitoramento.contact_audit
+              (contact_id,event_type,actor_id,reason,snapshot_json)
+              VALUES(%s,'invalid_destination',%s,%s,%s)""",(
+                row['contact_id'],actor_id,'Destino reportado como inválido',
+                json.dumps(snapshot,separators=(',',':'),sort_keys=True),
+            ));changed+=1
+        return changed
+    finally:cursor.close()
+
+
+def enforce_contact_consent(connection, destination_ref):
+    """Falha fechado para referência cadastrada inativa/revogada; testes explícitos são permitidos."""
+    ref=validate_destination_ref(destination_ref)
+    if ref.startswith(('TEST-','SANDBOX-')):
+        return True
+    digest=hashlib.sha256(ref.encode()).hexdigest();cursor=connection.cursor(dictionary=True)
+    try:
+        cursor.execute("""SELECT active,verified_at,consent_status,consent_granted_at,
+          consent_revoked_at,consent_expires_at FROM monitoramento.contact_channels
+          WHERE destination_hash=%s""",(digest,));rows=cursor.fetchall()
+        if not rows or not any(channel_is_eligible(row) for row in rows):
+            raise PermissionError('Destino sem consentimento ativo e verificado')
+        return True
+    finally:cursor.close()

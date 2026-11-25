@@ -6,6 +6,8 @@ import json
 
 from .action_queue_db import transition_action
 from .monitor_db import get_connection
+from .action_retry_db import settle_action_failure
+from .contact_escalation_db import disable_contact_by_destination_hash,revoke_contact_by_destination_hash
 
 STATUS_MAP = {
     'accepted': 'accepted', 'queued': 'accepted',
@@ -82,8 +84,9 @@ def record_message_event(payload):
             conn.commit()
             return _serialize(existing, True)
         cursor.execute(
-            """SELECT r.id receipt_id,r.action_id,a.public_id,a.status,a.version,
-                      a.idempotency_key
+            """SELECT r.id receipt_id,r.action_id,r.destination_hash,
+                      a.public_id,a.status,a.version,a.idempotency_key,
+                      a.attempt_count,a.max_attempts
                FROM monitoramento.message_dispatch_receipts r
                JOIN monitoramento.action_queue a ON a.id=r.action_id
               WHERE r.provider_code=%s AND r.provider_message_id=%s FOR UPDATE""",
@@ -111,18 +114,27 @@ def record_message_event(payload):
         elif normalized == 'responded' and linked['status'] in {'sent', 'delivered'}:
             command = 'mark_responded'
         elif normalized == 'failed' and linked['status'] in {'sent', 'delivered'}:
-            command = 'fail'
+            settle_action_failure(
+                linked, str(metadata.get('error_code') or 'PROVIDER_FAILED'),
+                'Falha reportada pelo provedor', f'provider:{event_id}', conn,
+            )
+        is_opt_out = normalized == 'responded' and metadata.get('reply_category') == 'opt_out'
+        if is_opt_out:
+            revoke_contact_by_destination_hash(
+                conn, linked['destination_hash'], 'message_callback', provider,
+            )
+        if normalized == 'failed' and str(metadata.get('error_code') or '').upper() in {
+            'INVALID_DESTINATION','INVALID_NUMBER','UNKNOWN_SUBSCRIBER',
+        }:
+            disable_contact_by_destination_hash(
+                conn,linked['destination_hash'],'message_callback',provider,
+            )
         if command:
             transition_payload = {
                 'expected_version': linked['version'],
                 'idempotency_key': f'{linked["idempotency_key"]}:provider:{event_id}',
                 'actor_type': 'provider', 'actor_id': provider,
             }
-            if command == 'fail':
-                transition_payload.update(
-                    error_code=str(metadata.get('error_code') or 'PROVIDER_FAILED')[:100],
-                    error_message='Falha reportada pelo provedor',
-                )
             transition_action(
                 linked['public_id'], command, transition_payload, connection=conn
             )

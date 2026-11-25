@@ -10,9 +10,12 @@ from urllib.request import Request, urlopen
 from .action_queue_db import transition_action
 from .monitor_db import get_connection
 from .action_contact_policy import enforce_contact_policy
+from .action_retry_db import settle_action_failure
+from .contact_escalation_db import enforce_contact_consent
 
 class MessageSandboxError(RuntimeError):
-    code = 'MESSAGE_SANDBOX_ERROR'
+    def __init__(self, message, code='MESSAGE_SANDBOX_ERROR'):
+        super().__init__(message); self.code=code
 
 @dataclass(frozen=True)
 class MessageReceipt:
@@ -81,8 +84,12 @@ class SandboxMessageProvider:
                 if len(raw) > 65536:
                     raise MessageSandboxError('Resposta sandbox acima de 64 KiB')
                 value = json.loads(raw.decode())
+        except MessageSandboxError:
+            raise
+        except TimeoutError as exc:
+            raise MessageSandboxError('Timeout no provedor sandbox','PROVIDER_TIMEOUT') from exc
         except Exception as exc:
-            raise MessageSandboxError('Falha no provedor sandbox') from exc
+            raise MessageSandboxError('Falha no provedor sandbox','PROVIDER_UNAVAILABLE') from exc
         message_id = str(value.get('message_id') or '').strip()
         if status not in range(200, 300) or not message_id or value.get('sandbox') is not True:
             raise MessageSandboxError('Recibo sandbox inválido')
@@ -144,6 +151,7 @@ def dispatch_message_action(public_id: str, provider: SandboxMessageProvider):
 
         body = json.loads(action['payload_json']).get('body', '')
         action_payload = json.loads(action['payload_json'])
+        enforce_contact_consent(conn,action['target_ref'])
         policy_decision = enforce_contact_policy(
             conn, action, 'message', action_payload.get('estimated_cost_cents', 0)
         )
@@ -170,18 +178,10 @@ def dispatch_message_action(public_id: str, provider: SandboxMessageProvider):
             # se o processo cair depois de o sandbox aceitar a requisição.
             receipt = provider.send(action['target_ref'], body, action['public_id'])
         except MessageSandboxError as exc:
-            transition_action(
-                public_id,
-                'fail',
-                {
-                    'expected_version': claim['version'],
-                    'idempotency_key': f'{action["idempotency_key"]}:sandbox:failed',
-                    'actor_type': 'provider',
-                    'actor_id': provider.provider_code,
-                    'error_code': exc.code,
-                    'error_message': str(exc),
-                },
-                connection=conn,
+            claimed_action={**action,'status':'claimed','version':claim['version'],
+                            'attempt_count':claim['attempt_count']}
+            settle_action_failure(
+                claimed_action,exc.code,str(exc),'sandbox-send',conn,
             )
             conn.commit()
             raise

@@ -6,6 +6,8 @@ import json
 
 from .action_queue_db import transition_action
 from .monitor_db import get_connection
+from .action_retry_db import settle_action_failure
+from .contact_escalation_db import revoke_contact_by_destination_hash
 
 CLASSIFICATIONS={'owner_confirmed','owner_denied','no_answer','unclear','emergency','opt_out'}
 
@@ -72,7 +74,8 @@ def record_voice_response(payload,analysis):
     try:
         conn.start_transaction();cursor.execute("SELECT * FROM monitoramento.voice_response_analyses WHERE provider_event_id=%s FOR UPDATE",(event_id,));existing=cursor.fetchone()
         if existing:conn.commit();existing['idempotent_replay']=True;return existing
-        cursor.execute("""SELECT r.id receipt_id,r.action_id,a.public_id,a.status,a.version,a.idempotency_key
+        cursor.execute("""SELECT r.id receipt_id,r.action_id,r.destination_hash,
+          a.public_id,a.status,a.version,a.idempotency_key,a.attempt_count,a.max_attempts
           FROM monitoramento.voice_dispatch_receipts r JOIN monitoramento.action_queue a ON a.id=r.action_id
           WHERE r.provider_call_id=%s FOR UPDATE""",(call_id,));linked=cursor.fetchone()
         if not linked:raise LookupError('Recibo de voz não encontrado')
@@ -85,8 +88,12 @@ def record_voice_response(payload,analysis):
             analysis.transcript_ref,validation['transcript_sha256'],analysis.model_code,analysis.model_version,
             analysis.classification,analysis.confidence,validation['review_status'],json.dumps(structured,separators=(',',':'),sort_keys=True)))
         analysis_id=cursor.lastrowid
-        if analysis.classification!='no_answer' and linked['status'] in {'sent','delivered'}:
+        if analysis.classification=='no_answer' and linked['status'] in {'sent','delivered'}:
+            settle_action_failure(linked,'NO_ANSWER','Chamada sem resposta',f'voice-response:{event_id}',conn)
+        elif analysis.classification!='no_answer' and linked['status'] in {'sent','delivered'}:
             transition_action(linked['public_id'],'mark_responded',{'expected_version':linked['version'],'idempotency_key':f'{linked["idempotency_key"]}:voice-response:{event_id}','actor_type':'provider','actor_id':analysis.model_code},connection=conn)
+        if analysis.classification=='opt_out':
+            revoke_contact_by_destination_hash(conn,linked['destination_hash'],'voice_response',analysis.model_code)
         cursor.execute("SELECT * FROM monitoramento.voice_response_analyses WHERE id=%s",(analysis_id,));result=cursor.fetchone();conn.commit();result['idempotent_replay']=False;return result
     except Exception:
         if conn.in_transaction:conn.rollback()

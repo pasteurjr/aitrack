@@ -123,6 +123,10 @@ def _action_summary(source, event_type, from_status=None, to_status=None):
         'delivered': 'Provedor confirmou entrega', 'read': 'Mensagem lida',
         'responded': 'Destinatário respondeu', 'failed': 'Provedor reportou falha',
         'unknown': 'Evento desconhecido do provedor',
+        'owner_confirmed': 'Proprietário confirmou normalidade',
+        'owner_denied': 'Proprietário negou a situação',
+        'no_answer': 'Ligação sem resposta', 'unclear': 'Resposta de voz inconclusiva',
+        'emergency': 'Resposta indicou emergência', 'opt_out': 'Destinatário recusou novos contatos',
         'approval_requested': 'Aprovação humana solicitada',
         'approval_decided': 'Aprovação humana decidida',
     }
@@ -171,6 +175,15 @@ def list_incident_action_timeline(incident_id: int, limit=200, connection=None):
         for row in cursor.fetchall():
             items.append({**row,'timeline_id':f'approval-decision:{row["id"]}','source':'approval',
                 'summary':f'{_action_summary("approval",row["event_type"])}: {row["to_status"]}'})
+        cursor.execute("""SELECT v.id,v.classification event_type,NULL from_status,NULL to_status,
+          'provider' actor_type,v.model_code actor_id,v.created_at occurred_at,
+          a.public_id action_public_id,a.action_type,a.correlation_id,a.attempt_count
+          FROM monitoramento.voice_response_analyses v
+          JOIN monitoramento.action_queue a ON a.id=v.action_id
+          WHERE a.incident_id=%s ORDER BY v.created_at DESC,v.id DESC LIMIT %s""",(incident_id,limit))
+        for row in cursor.fetchall():
+            items.append({**row,'timeline_id':f'voice:{row["id"]}','source':'provider',
+                'summary':_action_summary('voice',row['event_type'])})
         items.sort(key=lambda item:(item['occurred_at'],item['timeline_id']))
         total=len(items); selected=items[-limit:]
         return [_serialize_timeline(item) for item in selected],total,total>len(selected)

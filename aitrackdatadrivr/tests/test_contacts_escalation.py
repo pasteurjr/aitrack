@@ -25,7 +25,7 @@ def test_consent_must_be_active_verified_and_not_expired_or_revoked():
 def test_escalation_order_and_severity_are_deterministic():
     rows = [candidate(channel_id=3,step_order=2), candidate(channel_id=2,priority=20),
             candidate(channel_id=1,priority=10), candidate(channel_id=4,min_severity='critical')]
-    assert [x['channel_id'] for x in order_candidates(rows, 'high')] == [1,2,3]
+    assert [x['channel_id'] for x in order_candidates(rows, 'high', NOW)] == [1,2,3]
 
 
 def test_destination_never_accepts_raw_phone_or_email():

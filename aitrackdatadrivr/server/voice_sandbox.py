@@ -11,12 +11,15 @@ from .action_queue_db import transition_action
 from .message_template_db import render_body
 from .monitor_db import get_connection
 from .action_contact_policy import enforce_contact_policy
+from .action_retry_db import settle_action_failure
+from .contact_escalation_db import enforce_contact_consent
 
 DISCLOSURES = ('assistente virtual automatizado', 'ligação automatizada', 'chamada automatizada')
 
 
 class VoiceSandboxError(RuntimeError):
-    code = 'VOICE_SANDBOX_ERROR'
+    def __init__(self,message,code='VOICE_SANDBOX_ERROR'):
+        super().__init__(message);self.code=code
 
 
 @dataclass(frozen=True)
@@ -63,7 +66,9 @@ class SandboxVoiceProvider:
                 status=response.status;raw=response.read(65537)
                 if len(raw)>65536:raise VoiceSandboxError('Resposta acima de 64 KiB')
                 value=json.loads(raw.decode())
-        except Exception as exc:raise VoiceSandboxError('Falha no provedor de voz sandbox') from exc
+        except VoiceSandboxError:raise
+        except TimeoutError as exc:raise VoiceSandboxError('Timeout no provedor de voz sandbox','PROVIDER_TIMEOUT') from exc
+        except Exception as exc:raise VoiceSandboxError('Falha no provedor de voz sandbox','PROVIDER_UNAVAILABLE') from exc
         call_id=str(value.get('call_id') or '').strip()
         if status not in range(200,300) or not call_id or value.get('sandbox') is not True:raise VoiceSandboxError('Recibo de voz inválido')
         return VoiceReceipt(self.provider_code,call_id,hashlib.sha256(destination.encode()).hexdigest(),hashlib.sha256(script.encode()).hexdigest(),hashlib.sha256(encoded).hexdigest(),status,{'call_id':call_id,'status':value.get('status','accepted'),'sandbox':True})
@@ -81,13 +86,15 @@ def dispatch_voice_action(public_id,provider):
         cursor.execute("SELECT * FROM monitoramento.message_template_versions WHERE id=%s FOR UPDATE",(version_id,));template=cursor.fetchone()
         if not template or template['status']!='approved':raise ValueError('Roteiro aprovado obrigatório')
         script=render_body(template['body'],json.loads(template['variable_schema_json']),variables);validate_automation_disclosure(script)
+        enforce_contact_consent(conn,action['target_ref'])
         policy_decision=enforce_contact_policy(conn,action,'voice',payload.get('estimated_cost_cents',0))
         if not policy_decision['allowed']:
             conn.commit();raise VoiceSandboxError('Contato bloqueado pela política: '+','.join(policy_decision['denial_codes']))
         claim=transition_action(public_id,'claim',{'expected_version':action['version'],'idempotency_key':f'{action["idempotency_key"]}:voice:claim','actor_type':'system','actor_id':'voice-sandbox','worker_id':'voice-sandbox','lease_seconds':30},connection=conn)
         try:receipt=provider.call(action['target_ref'],script,action['public_id'])
         except VoiceSandboxError as exc:
-            transition_action(public_id,'fail',{'expected_version':claim['version'],'idempotency_key':f'{action["idempotency_key"]}:voice:failed','actor_type':'provider','actor_id':provider.provider_code,'error_code':exc.code,'error_message':str(exc)},connection=conn);conn.commit();raise
+            claimed={**action,'status':'claimed','version':claim['version'],'attempt_count':claim['attempt_count']}
+            settle_action_failure(claimed,exc.code,str(exc),'voice-send',conn);conn.commit();raise
         cursor.execute("""INSERT INTO monitoramento.voice_dispatch_receipts(action_id,script_version_id,provider_code,provider_call_id,destination_hash,script_sha256,request_sha256,automation_disclosed,http_status,response_json) VALUES(%s,%s,%s,%s,%s,%s,%s,TRUE,%s,%s)""",(action['id'],version_id,receipt.provider_code,receipt.provider_call_id,receipt.destination_hash,receipt.script_sha256,receipt.request_sha256,receipt.http_status,json.dumps(receipt.response,separators=(',',':'),sort_keys=True)))
         transition_action(public_id,'mark_sent',{'expected_version':claim['version'],'idempotency_key':f'{action["idempotency_key"]}:voice:sent','actor_type':'provider','actor_id':provider.provider_code},connection=conn)
         cursor.execute("SELECT * FROM monitoramento.voice_dispatch_receipts WHERE action_id=%s",(action['id'],));result=cursor.fetchone();conn.commit();result['idempotent_replay']=False;return result
