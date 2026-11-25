@@ -1,0 +1,18 @@
+{
+  "after_restart": {"actions": 5000, "incidents": 5000, "receipts": 5000},
+  "before_restart": {"actions": 5000, "incidents": 5000, "receipts": 5000},
+  "duplicate_counts": {"actions": 0, "incidents": 0, "receipts": 0},
+  "environment": "isolated-temporary-sqlite",
+  "generated_at": "2026-11-25T13:56:07.609330+00:00",
+  "iterations": 5000,
+  "p95_persist_ms": 1.49,
+  "p95_replay_ms": 0.013,
+  "p99_persist_ms": 2.75,
+  "passed": true,
+  "recovered_expired_leases": 100,
+  "rpo_records_lost": 0,
+  "rto_seconds": 0.0084,
+  "schema_version": "safe-load-result.v1",
+  "throughput_per_second": 856.61,
+  "workers": 8
+}
