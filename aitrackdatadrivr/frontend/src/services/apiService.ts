@@ -35,6 +35,7 @@ import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
 import type { TripReplayResponse } from '../types/tripReplay';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
 import type { BehaviorReport, ReportMode } from '../types/report';
+import type { OperationsMetrics } from '../types/operationsMetrics';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -334,6 +335,8 @@ export const analyticsService = {
   }) => apiClient.get<BehaviorAnalyticsResponse>('/analytics/behavior', {
     params: { ...filters, sources: filters.sources.join(',') },
   }),
+  getOperations: (filters: { from: string; to: string; timezone: string }) =>
+    apiClient.get<OperationsMetrics>('/analytics/operations', { params: filters }),
 };
 
 export const reportService = {

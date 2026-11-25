@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from .analytics_db import aggregate_behavior, parse_sources
 from .analytics_periods import comparison_period, parse_period
+from .operations_metrics_db import get_operations_metrics
 
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
@@ -29,3 +30,22 @@ def behavior():
         return jsonify({'code': 'INVALID_ANALYTICS_FILTER', 'error': str(exc)}), 400
     except Exception:
         return jsonify({'code': 'ANALYTICS_UNAVAILABLE'}), 500
+
+
+@analytics_bp.get('/operations')
+def operations():
+    try:
+        period = parse_period(
+            request.args.get('from'), request.args.get('to'),
+            request.args.get('timezone', 'America/Sao_Paulo'),
+        )
+        return jsonify(get_operations_metrics(
+            period,
+            source=request.args.get('source') or None,
+            severity=request.args.get('severity') or None,
+            incident_type=request.args.get('incident_type') or None,
+        ))
+    except ValueError as exc:
+        return jsonify({'code': 'INVALID_OPERATIONS_FILTER', 'error': str(exc)}), 400
+    except Exception:
+        return jsonify({'code': 'OPERATIONS_METRICS_UNAVAILABLE'}), 500

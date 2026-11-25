@@ -3,6 +3,7 @@ import AsyncDataState from './AsyncDataState';
 import { analyticsService, reportService } from '../services/apiService';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
 import type { BehaviorReport, ReportMode } from '../types/report';
+import type { OperationsMetrics } from '../types/operationsMetrics';
 
 interface VehicleAnalyticsProps {
     onVehicleClick: (deviceId: string) => void;
@@ -19,6 +20,7 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     const [to, setTo] = useState(asLocalInput(now));
     const [sources, setSources] = useState<AnalyticsSource[]>(['tracker', 'dirijabem']);
     const [analytics, setAnalytics] = useState<BehaviorAnalyticsResponse | null>(null);
+    const [operations, setOperations] = useState<OperationsMetrics | null>(null);
     const [report, setReport] = useState<BehaviorReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -29,14 +31,14 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
 
     const fetchData = useCallback(async () => {
         try {
-            const response = await analyticsService.getBehavior({
-                from,
-                to,
-                timezone: 'America/Sao_Paulo',
-                sources,
-                comparison: 'previous',
-            });
-            setAnalytics(response.data);
+            const [behaviorResponse, operationsResponse] = await Promise.all([
+                analyticsService.getBehavior({
+                    from, to, timezone: 'America/Sao_Paulo', sources, comparison: 'previous',
+                }),
+                analyticsService.getOperations({ from, to, timezone: 'America/Sao_Paulo' }),
+            ]);
+            setAnalytics(behaviorResponse.data);
+            setOperations(operationsResponse.data);
             setError(false);
             setStale(false);
             hasSuccessfulResponse.current = true;
@@ -223,6 +225,19 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                     </div>
                 )}
             </div>
+
+            {operations && (
+                <div style={styles.section}>
+                    <h4 style={styles.sectionTitle}>SLA e automação</h4>
+                    <div>Incidentes: {operations.incident_count} · SLA dentro {operations.sla.within} · em risco {operations.sla.at_risk} · vencido {operations.sla.breached}</div>
+                    <div>Detecção mediana/p95: {operations.detection.median_seconds ?? '—'} s / {operations.detection.p95_seconds ?? '—'} s ({operations.detection.valid_count} válidos)</div>
+                    <div>Triagem mediana/p95: {operations.triage.median_seconds ?? '—'} s / {operations.triage.p95_seconds ?? '—'} s</div>
+                    <div>Resolução mediana/p95: {operations.resolution.median_seconds ?? '—'} s / {operations.resolution.p95_seconds ?? '—'} s</div>
+                    <div>Automação: {operations.automation.rate === null ? '—' : `${(operations.automation.rate * 100).toFixed(1)}%`} ({operations.automation.automated_incidents}/{operations.automation.denominator})</div>
+                    <div>Intervenção humana: {operations.human_intervention.rate === null ? '—' : `${(operations.human_intervention.rate * 100).toFixed(1)}%`}</div>
+                    <div>Falhas: {operations.action_failures.transient_failed} transitórias · {operations.action_failures.dead_letter} dead-letter</div>
+                </div>
+            )}
 
             {/* Top Veículos com Mais Eventos */}
             <div style={styles.section}>
