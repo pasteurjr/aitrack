@@ -1160,6 +1160,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.1 | `2e4f27a` | Sessão opaca/CSRF, expiração, bloqueio, logout e reset único protegem API e dois frontends; sem senha padrão e CORS allowlist. Prova transacional rollback zero; 533 backend, 88+1 frontend e dois builds passaram. |
 | 2026-11-25 | UI-8.2 | `6d34341` | RBAC possui 22 permissões, 7 papéis e matriz método/rota fail-closed; UI esconde áreas sem capacidade e backend decide. Prova viewer/operator com rollback zero; 546 backend e 88 frontend passaram. |
 | 2026-11-25 | UI-8.3 | `568dd13` | Tenant vem da sessão; incidentes, cercas e rotas são filtrados por empresa, raízes operacionais receberam tenant e identificadores Tracker/Dirija Bem têm vínculo exclusivo. Prova cruzada retornou 0, rollback zero; 551 backend passaram. |
+| 2026-11-25 | UI-8.4 | `9c18090` | Auditoria transversal append-only possui snapshots redigidos, ator/correlação e consulta por cursor; incidentes/cercas gravam na mesma transação. Trigger bloqueou UPDATE, rollback zero; 554 backend passaram. |
 
 ---
 
