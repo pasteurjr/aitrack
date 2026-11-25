@@ -12,6 +12,7 @@ from .incident_state_machine import FALSE_NEGATIVE_REASONS, plan_transition
 from .incident_sla import deadline_for, enrich_sla
 from .action_queue_db import list_incident_action_timeline
 from .tenant_scope import current_tenant_id
+from .audit_service import record_event
 
 
 class IncidentNotFound(Exception):
@@ -272,8 +273,19 @@ def transition_incident(
             payload.get('correlation_id'),
         ))
         cursor.execute('SELECT * FROM monitoramento.incidents WHERE id = %s', (incident_id,))
-        result = serialize_record(cursor.fetchone())
+        after_row = cursor.fetchone()
+        result = serialize_record(after_row)
         result['idempotent_replay'] = False
+        if tenant_id is not None:
+            record_event({
+                'tenant_id': tenant_id, 'actor_type': actor['type'],
+                'actor_public_id': actor.get('id'), 'actor_display': actor.get('name'),
+                'action': f'incident.{command}', 'resource_type': 'incident',
+                'resource_public_id': str(incident_id), 'before': incident,
+                'after': after_row, 'reason': payload.get('summary'),
+                'correlation_id': payload.get('correlation_id'),
+                'metadata': {'idempotency_key': idempotency_key},
+            }, connection=conn)
         if owns_connection:
             conn.commit()
         return result

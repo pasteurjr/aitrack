@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from .monitor_db import get_connection
 from .tenant_scope import current_tenant_id
+from .audit_service import record_event
 
 
 class GeofenceNotFound(Exception):
@@ -174,6 +175,13 @@ def create_geofence(data: Dict, normalized_geometry: Dict, tenant_id=None) -> Di
         )
         cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (geofence_id,))
         result = _serialize(cursor.fetchone())
+        if tenant_id is not None:
+            record_event({
+                'tenant_id': tenant_id, 'actor_type': 'human',
+                'actor_public_id': data['actor_id'], 'action': 'geofence.created',
+                'resource_type': 'geofence', 'resource_public_id': public_id,
+                'after': result, 'reason': data['change_reason'],
+            }, connection=conn)
         conn.commit()
         return result
     except Exception:
@@ -291,6 +299,14 @@ def update_geofence(
         )
         cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (row['id'],))
         result = _serialize(cursor.fetchone())
+        if tenant_id is not None:
+            record_event({
+                'tenant_id': tenant_id, 'actor_type': 'human',
+                'actor_public_id': data['actor_id'], 'action': 'geofence.updated',
+                'resource_type': 'geofence', 'resource_public_id': result['public_id'],
+                'before': {'version': row['version'], 'status': row['status']},
+                'after': result, 'reason': data['change_reason'],
+            }, connection=conn)
         conn.commit()
         return result
     except Exception:
@@ -345,6 +361,14 @@ def archive_geofence(reference: str, data: Dict, tenant_id=None) -> Dict:
         )
         cursor.execute(GEOFENCE_SELECT + ' WHERE g.id = %s', (row['id'],))
         result = _serialize(cursor.fetchone())
+        if tenant_id is not None:
+            record_event({
+                'tenant_id': tenant_id, 'actor_type': 'human',
+                'actor_public_id': data['actor_id'], 'action': 'geofence.archived',
+                'resource_type': 'geofence', 'resource_public_id': result['public_id'],
+                'before': {'version': row['version'], 'status': row['status']},
+                'after': result, 'reason': data['change_reason'],
+            }, connection=conn)
         conn.commit()
         return result
     except Exception:

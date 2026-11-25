@@ -240,6 +240,8 @@ from .report_export_api import export_bp
 app.register_blueprint(export_bp)
 from .auth_api import auth_bp
 app.register_blueprint(auth_bp)
+from .audit_api import audit_bp
+app.register_blueprint(audit_bp)
 
 @app.get('/api/health/live')
 def health_live():
