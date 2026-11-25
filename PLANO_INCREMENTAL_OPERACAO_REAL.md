@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 00:53 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 00:56 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `abb96ef` — antes da UI-7.5, criado em 25/11/2026 00:49 -03
+**Checkpoint mais recente:** `37bbf19` — antes da UI-7.6, criado em 25/11/2026 00:53 -03
 
-**Tarefas pendentes:** 17
+**Tarefas pendentes:** 16
 
-**Próxima tarefa:** **58 de 74 — UI-7.6: normalizar comportamento por distância/tempo**
+**Próxima tarefa:** **59 de 74 — UI-7.7: criar relatórios por Tracker e Dirija Bem**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -132,7 +132,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 55/74 | 7.3 | Detectar desvio e parada não planejada. | Episódios usam tolerância/histerese/permanência e evitam alertas por ruído ou parada prevista. | **Concluída em 25/11/2026 00:43 -03.** **Resultado obtido:** cada execução ativa mantém estado persistente; duas amostras confirmam saída/retorno ao corredor, a acurácia GPS amplia a tolerância e paradas previstas são excluídas. Parada não planejada exige 5 minutos e gera episódio recuperável. Recibos impedem repetição e posições fora de ordem são ignoradas. **Evidências:** migration 056 aplicada/idempotente; prova MariaDB abriu/recuperou um desvio e uma parada, deduplicou a posição repetida e rollback deixou zero resíduo; 3 testes focados e 499 regressões aprovados. **Limitações:** integração de ingestão nesta etapa é Tracker; Dirija Bem será ligado pela camada unificada quando houver posição operacional normalizada. **Artefatos:** migration, detector geométrico, persistência, hook Tracker, testes e `docs/VALIDACAO_UI_7_3_2026-11-25.md`. **Checkpoint:** `5dc45e8`; implementação `e39c61c`. |
 | 56/74 | 7.4 | Criar replay de viagem. | Operador reproduz posições/eventos/rota na ordem temporal, com velocidade controlável e teste determinístico. | **Concluída em 25/11/2026 00:49 -03.** **Resultado obtido:** API somente leitura reúne rota congelada, posições, episódios e transições com desempate estável; tela dedicada e marcada como replay permite carregar execução, pausar, reiniciar, buscar e reproduzir em 0,5×/1×/2×/4× sem alterar timestamps ou disparar ações. **Evidências:** migration 057 aplicada/idempotente; prova MariaDB retornou 3 posições e 6 eventos na ordem exata, duas leituras idênticas mantiveram as contagens e rollback zerou resíduos; 506 backend, 86 frontend, TypeScript e build aprovados. **Limitações:** posições históricas anteriores à migration não possuem coordenadas no recibo e não são inventadas; seleção ainda usa UUID da execução. **Artefatos:** migration, consulta/contrato, endpoint, tela/controles, tipos/serviço e testes; `docs/VALIDACAO_UI_7_4_2026-11-25.md`. **Checkpoint:** `0341969`; implementação `d3db04d`. |
 | 57/74 | 7.5 | Adicionar período e comparação às análises. | UI/API comparam períodos equivalentes, mostram filtros e evitam misturar fontes/janelas. | **Concluída em 25/11/2026 00:53 -03.** **Resultado obtido:** API histórica usa `[from,to)`, UTC e fuso IANA, limita 366 dias, compara período anterior/customizado somente com duração igual e mantém Tracker/Dirija Bem explícitos. A UI deixou o snapshot em memória/100 eventos e ganhou período, fontes e comparação anterior. **Evidências:** 5 focados, 511 backend e 86 frontend, TypeScript/build; consulta real vazia foi preservada como zero sem fabricar eventos; `EXPLAIN` usou `idx_timestamp` em range. **Limitações:** a etapa conta eventos persistidos; taxas por exposição entram na UI-7.6. **Artefatos:** períodos, agregador/API, tipos/serviço, UI e testes; `docs/VALIDACAO_UI_7_5_2026-11-25.md`. **Checkpoint:** `abb96ef`; implementação `c27b3ec`. |
-| 58/74 | 7.6 | Normalizar comportamento por distância/tempo. | Métricas usam exposição (km/hora de condução), com fórmula e dados ausentes explícitos. | **Pendente.** |
+| 58/74 | 7.6 | Normalizar comportamento por distância/tempo. | Métricas usam exposição (km/hora de condução), com fórmula e dados ausentes explícitos. | **Concluída em 25/11/2026 00:56 -03.** **Resultado obtido:** buckets versionados no banco unificado guardam km, segundos dirigindo, pontos válidos/descartados e qualidade; cálculo rejeita lacunas, ordem inválida e velocidade impossível. API/UI mostram eventos/100 km e eventos/hora por fonte, com `null` e `unavailable` sem denominador. **Evidências:** migration 058 idempotente; prova transacional mostrou Tracker 25 km/7.200 s/95,2% e Dirija Bem indisponível, rollback zero; 9 focados, 515 backend, 86 frontend, TypeScript/build. **Limitações:** materialização contínua das fontes ainda precisa ser ligada ao worker operacional; ausência atual continua explícita. **Artefatos:** buckets/offsets, fórmulas, agregador/UI e testes; `docs/VALIDACAO_UI_7_6_2026-11-25.md`. **Checkpoint:** `37bbf19`; implementação `fe5deef`. |
 | 59/74 | 7.7 | Criar relatórios por Tracker e Dirija Bem. | Relatório separado/unificado mantém origem, definição das métricas e rastreabilidade. | **Pendente.** |
 | 60/74 | 7.8 | Criar indicadores de SLA e automação. | Painel mede detecção, atendimento, resolução, ação automática, intervenção e falha. | **Pendente.** |
 | 61/74 | 7.9 | Criar exportação e agendamento. | Exportação respeita filtros/permissões e agendamento registra geração, entrega e erro. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 58 de 74 — UI-7.6: normalizar comportamento por distância/tempo.**
+**Próxima etapa 59 de 74 — UI-7.7: criar relatórios por Tracker e Dirija Bem.**
 
-Há **17 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`16 tarefas pendentes` e anunciar `Próxima etapa 59 de 74 — UI-7.7`, preservando o denominador original para mostrar
+Há **16 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`15 tarefas pendentes` e anunciar `Próxima etapa 60 de 74 — UI-7.8`, preservando o denominador original para mostrar
 o avanço total da rodada.
