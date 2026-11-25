@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 10:49 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 10:53 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `c0d70b0` — antes da UI-8.5, criado em 25/11/2026 10:44 -03
+**Checkpoint mais recente:** `4e3d8be` — antes da UI-8.6, criado em 25/11/2026 10:50 -03
 
-**Tarefas pendentes:** 7
+**Tarefas pendentes:** 6
 
-**Próxima tarefa:** **68 de 74 — UI-8.6: adicionar métricas, logs e alertas técnicos**
+**Próxima tarefa:** **69 de 74 — UI-8.7: executar teste de carga e recuperação**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -147,7 +147,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 65/74 | 8.3 | Implementar isolamento por empresa. | Toda consulta/mutação aplica tenant; testes tentam acesso cruzado e falham. | **Concluída em 25/11/2026 10:41 -03.** **Resultado obtido:** tenant é derivado da sessão e não do payload; incidentes, cercas e rotas filtram leitura, detalhe e mutação pelo tenant. Raízes de agentes e relatórios também possuem proprietário, e `tenant_source_bindings` impede que um identificador Tracker/Dirija Bem pertença simultaneamente a empresas distintas. Autoria de incidentes/cercas agora vem do principal autenticado. **Evidências:** migration 064 aplicada; 9.574 incidentes, 2 cercas, 5 agentes e 1 definição de relatório ficaram sem `tenant_id` nulo; tentativa transacional de ler incidente pelo tenant B retornou zero, pelo proprietário retornou um, rollback deixou zero resíduo; 53 testes focados e 551 testes backend passaram. **Limitações:** dados históricos foram atribuídos ao único tenant existente (`migration-default`); onboarding de uma segunda empresa exige vincular suas fontes antes da ingestão. Workers legados sem contexto HTTP continuam operando sobre o tenant explicitamente persistido, nunca recebem tenant de payload público. **Artefatos:** migration 064, contexto de tenant, escopo de incidentes/cercas/rotas e testes; `docs/VALIDACAO_UI_8_3_2026-11-25.md`. **Checkpoint:** `fa548b4`; implementação `568dd13`. |
 | 66/74 | 8.4 | Criar auditoria consultável. | Mudanças críticas possuem ator, antes/depois, motivo, correlação e consulta protegida. | **Concluída em 25/11/2026 10:43 -03.** **Resultado obtido:** eventos append-only isolados por tenant guardam ator confiável, antes/depois, motivo e IDs de correlação/causação/requisição. Writer aceita a conexão da mutação e incidentes/cercas o usam na mesma transação. Consulta protegida usa filtros e cursor, não offset ilimitado. Redação recursiva remove senha, token, contato, áudio, prompt e segredo. **Evidências:** migration 065 aplicada; prova MariaDB confirmou escrita na mesma transação, segredo redigido, UPDATE bloqueado por trigger e rollback com zero resíduo; 50 focados e 554 backend passaram. **Limitações:** módulos legados mantêm timelines especializadas; serão incorporados ao writer transversal gradualmente sem apagá-las. **Artefatos:** migration, writer, API `/api/audit-events`, instrumentação crítica e testes; `docs/VALIDACAO_UI_8_4_2026-11-25.md`. **Checkpoint:** `37c2f22`; implementação `9c18090`. |
 | 67/74 | 8.5 | Criar painel de integrações e saúde. | Tracker, Dirija Bem, IA e canais mostram disponibilidade, atraso, fila e último sucesso/erro. | **Concluída em 25/11/2026 10:49 -03.** **Resultado obtido:** liveness, readiness mínimo e detalhe protegido separam disponibilidade do processo de prontidão operacional. Nove componentes cobrem banco, Tracker, Dirija Bem, IA, mensagens, voz e três workers; transições preservam falha e recuperação. Painel acessível atualiza a cada 30 s, agrega workers pelo pior estado e trata loading/erro/vazio. **Evidências:** migration 066 aplicada; ensaio transacional registrou degradação com segredo redigido e rollback; revisão independente detectou e levou à correção da divergência entre readiness e `integration_health`, além de endurecer Bearer/JSON/URL; 559 backend, 93 frontend, TypeScript e build passaram. **Limitações:** profundidade de filas não é exposta globalmente para não vazar volume entre tenants; cada worker deve publicar seus próprios gauges tenant-safe na UI-8.6. **Artefatos:** schema/serviço/APIs, painel Saúde, navegação por `health.read` e testes; `docs/VALIDACAO_UI_8_5_2026-11-25.md`. **Checkpoint:** `c0d70b0`; implementação `857da87`. |
-| 68/74 | 8.6 | Adicionar métricas, logs e alertas técnicos. | Sinais estruturados permitem detectar ingestão parada, erro, latência, fila e custo anormal. | **Pendente.** |
+| 68/74 | 8.6 | Adicionar métricas, logs e alertas técnicos. | Sinais estruturados permitem detectar ingestão parada, erro, latência, fila e custo anormal. | **Concluída em 25/11/2026 10:53 -03.** **Resultado obtido:** middleware registra requisições em JSON redigido e agrega contadores/histograma apenas por método, rota normalizada e status. `/api/metrics` exige `health.read`. Avaliador interno abre, deduplica, observa e recupera alertas de saúde, sem destinatário externo; painel mostra total ativo. **Evidências:** migration 067 aplicada; prova MariaDB executou `opened → observed → recovered`, uma única linha ativa, duas observações, segredo redigido e rollback zero; 563 backend, 93 frontend, TypeScript e build passaram. **Limitações:** registro é local ao processo; produção multi-instância deve exportar para coletor central. Alertas técnicos continuam internos até canal operacional autorizado. **Artefatos:** registro de métricas, formatter JSON, schema/avaliador de alertas, endpoint e painel; `docs/VALIDACAO_UI_8_6_2026-11-25.md`. **Checkpoint:** `4e3d8be`; implementação `5776a5b`. |
 | 69/74 | 8.7 | Executar teste de carga e recuperação. | Limites são medidos; queda/restart não perde nem duplica episódio, incidente ou ação. | **Pendente.** |
 | 70/74 | 8.8 | Auditar segurança e privacidade. | Credenciais, dados pessoais, retenção, consentimento, criptografia e dependências têm achados tratados. | **Pendente.** |
 | 71/74 | 8.9 | Executar teste de acessibilidade. | Fluxos críticos passam teclado, foco, contraste, rótulos e leitor de tela conforme meta definida. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 68 de 74 — UI-8.6: adicionar métricas, logs e alertas técnicos.**
+**Próxima etapa 69 de 74 — UI-8.7: executar teste de carga e recuperação.**
 
-Há **7 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`6 tarefas pendentes` e anunciar `Próxima etapa 69 de 74 — UI-8.7`, preservando o denominador original para mostrar
+Há **6 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`5 tarefas pendentes` e anunciar `Próxima etapa 70 de 74 — UI-8.8`, preservando o denominador original para mostrar
 o avanço total da rodada.
