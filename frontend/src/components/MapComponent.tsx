@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
-import { LatLngExpression } from 'leaflet';
-import axios from 'axios';
+import { apiClient } from '../apiClient';
 import { movingIcon, stoppedIcon } from '../utils/vehicleIcons';
 import MapViewUpdater from './MapViewUpdater';
 
@@ -29,13 +28,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ selectedVehicleId, selected
 
                 if (selectedPlaca) {
                     // Veículo da lista unificada (tracker ou dirijabem)
-                    const response = await axios.get(`http://localhost:5009/api/unified/position/${selectedPlaca}`);
+                    const response = await apiClient.get(`/unified/position/${selectedPlaca}`);
                     if (response.data.success && response.data.position) {
                         latestPoint = response.data.position;
                     }
                 } else if (selectedVehicleId !== null) {
                     // Veículo tracker clássico (retrocompatibilidade)
-                    const response = await axios.get<TrailPoint>(`http://localhost:5009/api/positions/latest/${selectedVehicleId}`);
+                    const response = await apiClient.get<TrailPoint>(`/positions/latest/${selectedVehicleId}`);
                     latestPoint = response.data;
                 }
 

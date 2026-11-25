@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../apiClient';
 
 interface UnifiedVehicle {
     id: number;
@@ -29,7 +29,7 @@ const VehicleListUnified: React.FC<VehicleListUnifiedProps> = ({
     useEffect(() => {
         const fetchVehicles = async () => {
             try {
-                const response = await axios.get('http://localhost:5009/api/unified/vehicles');
+                const response = await apiClient.get('/unified/vehicles');
                 if (response.data.success) {
                     setVehicles(response.data.vehicles);
                     setError(null);

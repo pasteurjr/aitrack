@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../apiClient';
 
 interface Vehicle {
     VEICOD: number;
@@ -18,7 +18,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ selectedVehicleId, onVehicleS
     useEffect(() => {
         const fetchVehicles = async () => {
             try {
-                const response = await axios.get<Vehicle[]>('http://localhost:5009/api/posicoes');
+                const response = await apiClient.get<Vehicle[]>('/posicoes');
                 const uniqueVehicles = Array.from(new Map(response.data.map(v => [v.VEICOD, v])).values());
                 setVehicles(uniqueVehicles);
             } catch (err) {

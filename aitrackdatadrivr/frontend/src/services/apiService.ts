@@ -36,11 +36,28 @@ import type { TripReplayResponse } from '../types/tripReplay';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
 import type { BehaviorReport, ReportExport, ReportExportSchedule, ReportMode } from '../types/report';
 import type { OperationsMetrics } from '../types/operationsMetrics';
+import type { AuthSession } from '../types/auth';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
+  withCredentials: true,
 });
+
+apiClient.interceptors.request.use(config => {
+  if (typeof document !== 'undefined' && ['post', 'put', 'patch', 'delete'].includes((config.method || '').toLowerCase())) {
+    const csrf = document.cookie.split('; ').find(item => item.startsWith('aitrack_csrf='))?.split('=', 2)[1];
+    if (csrf) config.headers.set('X-CSRF-Token', decodeURIComponent(csrf));
+  }
+  return config;
+});
+
+export const authService = {
+  me: () => apiClient.get<AuthSession>('/auth/me'),
+  login: (email: string, password: string) => apiClient.post<AuthSession>('/auth/login', { email, password }),
+  logout: () => apiClient.post('/auth/logout'),
+  recover: (email: string) => apiClient.post('/auth/recover', { email }),
+};
 
 // ==================== Monitor Services ====================
 

@@ -17,7 +17,10 @@ DB_CONFIG = {
 }
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+cors_origins = [item.strip() for item in os.getenv(
+    'AITRACK_CORS_ORIGINS', 'http://localhost:3001,http://localhost:3003'
+).split(',') if item.strip()]
+CORS(app, resources={r"/api/*": {"origins": cors_origins}}, supports_credentials=True)
 
 # Função helper para converter datetimes para o formato ISO
 def format_results(results):
@@ -235,6 +238,15 @@ from .report_api import report_bp
 app.register_blueprint(report_bp)
 from .report_export_api import export_bp
 app.register_blueprint(export_bp)
+from .auth_api import auth_bp
+app.register_blueprint(auth_bp)
+
+@app.get('/api/health/live')
+def health_live():
+    return jsonify({'status': 'live'})
+
+from .auth_middleware import install_authentication
+install_authentication(app)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)
