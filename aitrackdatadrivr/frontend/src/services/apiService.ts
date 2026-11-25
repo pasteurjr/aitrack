@@ -32,6 +32,7 @@ import type {
 } from '../types/geofence';
 import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLevel, AutonomousRisk } from '../types/agent';
 import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
+import type { TripReplayResponse } from '../types/tripReplay';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -312,6 +313,13 @@ export const securityStateService = {
 
 export const runtimeEnvironmentService = {
   getCurrent: () => apiClient.get<RuntimeEnvironment>('/runtime/environment'),
+};
+
+export const tripReplayService = {
+  getByExecution: (executionId: string, positionLimit = 5000) =>
+    apiClient.get<TripReplayResponse>(`/routes/executions/${executionId}/replay`, {
+      params: { position_limit: positionLimit },
+    }),
 };
 
 // ==================== Geofence Services ====================

@@ -13,11 +13,12 @@ import VehicleSensorsPanel from './components/VehicleSensorsPanel';
 import AgentConfigurationPanel from './components/AgentConfigurationPanel';
 import AgentRunsPanel from './components/AgentRunsPanel';
 import InternalNotificationsPanel from './components/InternalNotificationsPanel';
+import TripReplayPanel from './components/TripReplayPanel';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
 
-type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'alerts' | 'events';
+type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'replay' | 'alerts' | 'events';
 
 function App() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -71,6 +72,12 @@ function App() {
           <OperationModeBadge />
         </div>
         <div style={styles.navTabs}>
+          <button
+            style={{...styles.navTab, ...(viewMode === 'replay' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('replay')}
+          >
+            ▶ Replay
+          </button>
           <button
             style={{...styles.navTab, ...(viewMode === 'notifications' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('notifications')}
@@ -130,7 +137,7 @@ function App() {
 
       {/* Main Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
+        {viewMode === 'replay' ? <TripReplayPanel /> : viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
         {/* Left Sidebar - Conditional Content */}
         <div style={styles.sidebar}>
           {viewMode === 'dashboard' && (

@@ -59,3 +59,14 @@ def execution_transition(execution_id,command):
         from .route_execution_db import transition_execution
         return jsonify({'schema_version':'route-execution.v1','execution':transition_execution(execution_id,command,request.get_json(silent=True) or {})})
     except Exception as exc:return error(exc)
+
+
+@route_bp.get('/executions/<execution_id>/replay')
+def replay(execution_id):
+    try:
+        from .trip_replay_db import get_trip_replay
+
+        limit = int(request.args.get('position_limit', 5000))
+        return jsonify(get_trip_replay(execution_id, limit))
+    except Exception as exc:
+        return error(exc)

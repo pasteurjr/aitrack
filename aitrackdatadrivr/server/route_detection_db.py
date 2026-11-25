@@ -32,7 +32,16 @@ def evaluate_execution_position(execution_id,longitude,latitude,speed_kmh,observ
         if stop_event=='unplanned_stop':cursor.execute("INSERT IGNORE INTO monitoramento.route_episodes(public_id,execution_id,episode_type,status,started_at,evidence_json) VALUES(UUID(),%s,'unplanned_stop','active',%s,%s)",(execution_id,stop_started,json.dumps({'source':source})))
         elif stop_event=='recover_stop':cursor.execute("UPDATE monitoramento.route_episodes SET status='recovered',ended_at=%s WHERE execution_id=%s AND episode_type='unplanned_stop' AND status='active'",(observed_at,execution_id))
         cursor.execute("""UPDATE monitoramento.route_execution_states SET stable_on_route=%s,pending_on_route=%s,pending_samples=%s,last_distance_meters=%s,last_observed_at=%s,stop_started_at=%s,last_speed_kmh=%s,version=version+1 WHERE execution_id=%s""",(evolution.stable_on_route,evolution.pending_on_route,evolution.pending_samples,distance,observed_at,stop_started,speed_kmh,execution_id))
-        cursor.execute("INSERT INTO monitoramento.route_position_receipts(execution_id,source,external_position_id,observed_at,distance_meters) VALUES(%s,%s,%s,%s,%s)",(execution_id,source,str(external_position_id),observed_at,distance))
+        cursor.execute(
+            """INSERT INTO monitoramento.route_position_receipts(
+                 execution_id, source, external_position_id, observed_at,
+                 longitude, latitude, speed_kmh, distance_meters
+               ) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (
+                execution_id, source, str(external_position_id), observed_at,
+                longitude, latitude, speed_kmh, distance,
+            ),
+        )
         if owns:conn.commit()
         return {'distance_meters':round(distance,2),'on_route':evolution.stable_on_route,'transition':evolution.transition,'stop_event':stop_event,'idempotent_replay':False}
     except Exception:
