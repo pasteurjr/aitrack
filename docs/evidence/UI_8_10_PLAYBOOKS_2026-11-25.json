@@ -1,0 +1,22 @@
+{
+  "schema_version": "operational-playbook-result.v1",
+  "environment": "isolated-deterministic",
+  "scenario_count": 8,
+  "passed_count": 8,
+  "failed_count": 0,
+  "side_effects": {
+    "external_message_deliveries": 0,
+    "voice_calls": 0,
+    "physical_commands": 0
+  },
+  "scenarios": [
+    "normal_incident",
+    "false_positive",
+    "classification_guard",
+    "source_outage",
+    "ai_provider_fallback",
+    "human_takeover_blocks_execution",
+    "two_operators_conflict",
+    "no_external_side_effects"
+  ]
+}
