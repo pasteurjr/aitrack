@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 10:57 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 11:04 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `61fbbd9` — antes da UI-8.7, criado em 25/11/2026 10:54 -03
+**Checkpoint mais recente:** `601e524` — antes da UI-8.8, criado em 25/11/2026 10:58 -03
 
-**Tarefas pendentes:** 5
+**Tarefas pendentes:** 4
 
-**Próxima tarefa:** **70 de 74 — UI-8.8: auditar segurança e privacidade**
+**Próxima tarefa:** **71 de 74 — UI-8.9: executar teste de acessibilidade**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -149,7 +149,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 67/74 | 8.5 | Criar painel de integrações e saúde. | Tracker, Dirija Bem, IA e canais mostram disponibilidade, atraso, fila e último sucesso/erro. | **Concluída em 25/11/2026 10:49 -03.** **Resultado obtido:** liveness, readiness mínimo e detalhe protegido separam disponibilidade do processo de prontidão operacional. Nove componentes cobrem banco, Tracker, Dirija Bem, IA, mensagens, voz e três workers; transições preservam falha e recuperação. Painel acessível atualiza a cada 30 s, agrega workers pelo pior estado e trata loading/erro/vazio. **Evidências:** migration 066 aplicada; ensaio transacional registrou degradação com segredo redigido e rollback; revisão independente detectou e levou à correção da divergência entre readiness e `integration_health`, além de endurecer Bearer/JSON/URL; 559 backend, 93 frontend, TypeScript e build passaram. **Limitações:** profundidade de filas não é exposta globalmente para não vazar volume entre tenants; cada worker deve publicar seus próprios gauges tenant-safe na UI-8.6. **Artefatos:** schema/serviço/APIs, painel Saúde, navegação por `health.read` e testes; `docs/VALIDACAO_UI_8_5_2026-11-25.md`. **Checkpoint:** `c0d70b0`; implementação `857da87`. |
 | 68/74 | 8.6 | Adicionar métricas, logs e alertas técnicos. | Sinais estruturados permitem detectar ingestão parada, erro, latência, fila e custo anormal. | **Concluída em 25/11/2026 10:53 -03.** **Resultado obtido:** middleware registra requisições em JSON redigido e agrega contadores/histograma apenas por método, rota normalizada e status. `/api/metrics` exige `health.read`. Avaliador interno abre, deduplica, observa e recupera alertas de saúde, sem destinatário externo; painel mostra total ativo. **Evidências:** migration 067 aplicada; prova MariaDB executou `opened → observed → recovered`, uma única linha ativa, duas observações, segredo redigido e rollback zero; 563 backend, 93 frontend, TypeScript e build passaram. **Limitações:** registro é local ao processo; produção multi-instância deve exportar para coletor central. Alertas técnicos continuam internos até canal operacional autorizado. **Artefatos:** registro de métricas, formatter JSON, schema/avaliador de alertas, endpoint e painel; `docs/VALIDACAO_UI_8_6_2026-11-25.md`. **Checkpoint:** `4e3d8be`; implementação `5776a5b`. |
 | 69/74 | 8.7 | Executar teste de carga e recuperação. | Limites são medidos; queda/restart não perde nem duplica episódio, incidente ou ação. | **Concluída como baseline isolado em 25/11/2026 10:57 -03.** **Resultado obtido:** harness concorrente persistiu 5.000 receipts/incidentes/ações, repetiu todos os pacotes e reiniciou a persistência recuperando 100 leases vencidos. Ele recusa qualquer URL que não seja loopback, inclusive `192.168.0.100:8085`. **Evidências:** 856,61 transações/s, p95 1,49 ms, p99 2,75 ms, replay p95 0,013 ms, RPO 0, RTO 0,0084 s e zero duplicidade; 566 backend passaram. **Limitações:** mede o pipeline durável sintético em SQLite temporário, não capacidade do Tomcat/MySQL remoto nem dos provedores. A certificação de infraestrutura continua gate obrigatório em homologação isolada. **Artefatos:** script seguro, testes e JSON de evidência; `docs/VALIDACAO_UI_8_7_2026-11-25.md`. **Checkpoint:** `61fbbd9`; implementação `8f7d4f6`. |
-| 70/74 | 8.8 | Auditar segurança e privacidade. | Credenciais, dados pessoais, retenção, consentimento, criptografia e dependências têm achados tratados. | **Pendente.** |
+| 70/74 | 8.8 | Auditar segurança e privacidade. | Credenciais, dados pessoais, retenção, consentimento, criptografia e dependências têm achados tratados. | **Auditoria concluída com gate NO-GO em 25/11/2026 11:04 -03.** **Resultado obtido:** credenciais hardcoded foram removidas do código e redigidas no working tree; banco exige ambiente. Cookies são Secure em produção, CSP/HSTS/Permissions-Policy foram adicionados e respostas 5xx são sanitizadas. Dependências seguras automáticas eliminaram 3 críticos e reduziram 64 para 29 achados Node. Política de privacidade/retention foi publicada. **Evidências:** scanner do working tree zero; pip-audit 0; Bandit 0 alto (40 médios para revisão); npm 0 crítico, 16 altos; 569 backend, 93 frontend, TypeScript e build. **Bloqueadores:** 16 altos transitivos do `react-scripts`, credenciais aparecem em 4/2 commits históricos e precisam rotação comprovada, DAST/TLS não executados. Portanto produção permanece NO-GO. **Artefatos:** config segura, scanner, headers/cookies, lock atualizado, política e JSON; `docs/VALIDACAO_UI_8_8_2026-11-25.md`. **Checkpoint:** `601e524`; implementação `be729da`. |
 | 71/74 | 8.9 | Executar teste de acessibilidade. | Fluxos críticos passam teclado, foco, contraste, rótulos e leitor de tela conforme meta definida. | **Pendente.** |
 | 72/74 | 8.10 | Executar teste operacional com playbooks. | Operadores executam incidentes normais/críticos, falhas e takeover com critérios aprovados. | **Pendente.** |
 | 73/74 | 8.11 | Publicar runbook e contingência. | Documento cobre subir/parar, diagnóstico, rollback, indisponibilidade e contatos responsáveis. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 70 de 74 — UI-8.8: auditar segurança e privacidade.**
+**Próxima etapa 71 de 74 — UI-8.9: executar teste de acessibilidade.**
 
-Há **5 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`4 tarefas pendentes` e anunciar `Próxima etapa 71 de 74 — UI-8.9`, preservando o denominador original para mostrar
+Há **4 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`3 tarefas pendentes` e anunciar `Próxima etapa 72 de 74 — UI-8.10`, preservando o denominador original para mostrar
 o avanço total da rodada.
