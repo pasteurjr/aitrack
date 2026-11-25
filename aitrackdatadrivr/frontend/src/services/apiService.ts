@@ -37,6 +37,7 @@ import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analyt
 import type { BehaviorReport, ReportExport, ReportExportSchedule, ReportMode } from '../types/report';
 import type { OperationsMetrics } from '../types/operationsMetrics';
 import type { AuthSession } from '../types/auth';
+import type { IntegrationHealthResponse } from '../types/health';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -57,6 +58,10 @@ export const authService = {
   login: (email: string, password: string) => apiClient.post<AuthSession>('/auth/login', { email, password }),
   logout: () => apiClient.post('/auth/logout'),
   recover: (email: string) => apiClient.post('/auth/recover', { email }),
+};
+
+export const healthIntegrationService = {
+  getAll: () => apiClient.get<IntegrationHealthResponse>('/health/integrations'),
 };
 
 // ==================== Monitor Services ====================

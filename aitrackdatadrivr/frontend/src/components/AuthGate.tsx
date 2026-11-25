@@ -3,7 +3,7 @@ import React, { createContext, FormEvent, ReactNode, useContext, useEffect, useS
 import { authService } from '../services/apiService';
 import type { AuthSession } from '../types/auth';
 
-const AuthContext = createContext<AuthSession | null>(null);
+export const AuthContext = createContext<AuthSession | null>(null);
 export const useAuth = () => useContext(AuthContext);
 
 export default function AuthGate({ children }: { children: ReactNode }) {

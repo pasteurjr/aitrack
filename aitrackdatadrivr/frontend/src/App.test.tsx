@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 import { runtimeEnvironmentService } from './services/apiService';
+import { AuthContext } from './components/AuthGate';
 
 const mockSelectedEpisode = {
   device_id: 'SIM-1001', type: 'harsh_brake', timestamp: '2026-11-06T12:00:00Z',
@@ -25,6 +26,7 @@ jest.mock('./components/MonitorDetailView', () => () => <div />);
 jest.mock('./components/AgentConfigurationPanel', () => () => <div>Configuração de agentes</div>);
 jest.mock('./components/AgentRunsPanel', () => () => <div>Execuções de agentes</div>);
 jest.mock('./components/InternalNotificationsPanel', () => () => <div>Notificações internas</div>);
+jest.mock('./components/HealthIntegrationsPanel', () => () => <div>Painel de saúde</div>);
 jest.mock('./components/AlertsPanel', () => () => <div />);
 jest.mock('./components/EventsCatalog', () => () => <div />);
 jest.mock('./components/VehicleDetailHeader', () => (props: any) => (
@@ -75,4 +77,23 @@ test('drill-down entrega identidade e posição exatas do episódio ao mapa', as
   fireEvent.click(screen.getByRole('button', { name: 'Fechar contexto de teste' }));
   expect(screen.getByTestId('map')).toHaveAttribute('data-selected-vehicle', '');
   expect(screen.getByTestId('map')).toHaveAttribute('data-highlighted-event', '');
+});
+
+test('mostra a navegação de saúde somente para health.read', async () => {
+  const session = {
+    schema_version: 'auth-session.v1' as const,
+    user: { public_id: 'user-test', email: 'auditor@example.test', display_name: 'Auditor' },
+    tenant: { public_id: 'tenant-test', slug: 'tenant-teste' },
+    roles: ['auditor'],
+    permissions: ['health.read'],
+    expires_at: '2026-11-25T20:00:00Z',
+  };
+  const { rerender } = render(<AuthContext.Provider value={session}><App /></AuthContext.Provider>);
+
+  await screen.findByRole('status', { name: 'Ambiente: SIMULAÇÃO' });
+  fireEvent.click(screen.getByRole('button', { name: /Saúde/ }));
+  expect(screen.getByText('Painel de saúde')).toBeInTheDocument();
+
+  rerender(<AuthContext.Provider value={{ ...session, permissions: [] }}><App /></AuthContext.Provider>);
+  expect(screen.queryByRole('button', { name: /Saúde/ })).not.toBeInTheDocument();
 });

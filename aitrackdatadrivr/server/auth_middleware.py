@@ -11,7 +11,7 @@ from .authz import AuthorizationError, require_permission, required_permission
 
 PUBLIC_PATHS = {
     '/api/auth/login', '/api/auth/recover', '/api/auth/reset',
-    '/api/health/live', '/api/message-events/callback',
+    '/api/health/live', '/api/health/ready', '/api/message-events/callback',
 }
 MUTATING_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 

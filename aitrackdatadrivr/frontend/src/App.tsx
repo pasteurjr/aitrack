@@ -14,12 +14,13 @@ import AgentConfigurationPanel from './components/AgentConfigurationPanel';
 import AgentRunsPanel from './components/AgentRunsPanel';
 import InternalNotificationsPanel from './components/InternalNotificationsPanel';
 import TripReplayPanel from './components/TripReplayPanel';
+import HealthIntegrationsPanel from './components/HealthIntegrationsPanel';
 import { useAuth } from './components/AuthGate';
 import type { VehicleInMonitor } from './types/monitor';
 import type { BehavioralEvent } from './types/behavioralEvent';
 import './App.css';
 
-type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'replay' | 'alerts' | 'events';
+type ViewMode = 'dashboard' | 'timeline' | 'analytics' | 'monitors' | 'agents' | 'agentRuns' | 'notifications' | 'replay' | 'alerts' | 'events' | 'health';
 
 function App() {
   const auth = useAuth();
@@ -135,12 +136,18 @@ function App() {
           >
             📋 Eventos
           </button>}
+          {can('health.read') && <button
+            style={{...styles.navTab, ...(viewMode === 'health' ? styles.navTabActive : {})}}
+            onClick={() => setViewMode('health')}
+          >
+            ♥ Saúde
+          </button>}
         </div>
       </div>
 
       {/* Main Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {viewMode === 'replay' ? <TripReplayPanel /> : viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
+        {viewMode === 'health' ? <HealthIntegrationsPanel /> : viewMode === 'replay' ? <TripReplayPanel /> : viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
         {/* Left Sidebar - Conditional Content */}
         <div style={styles.sidebar}>
           {viewMode === 'dashboard' && (
