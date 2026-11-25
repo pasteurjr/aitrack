@@ -1159,6 +1159,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-7.10 | `4f62f14` | Dataset dourado de score reproduziu 17/17 valores sem erro, mas revelou FNR de 70% no limiar 70 (Tracker 75%, Dirija Bem 66,7%). Endpoint marca no-go como gatilho único; 528 backend passaram. |
 | 2026-11-25 | UI-8.1 | `2e4f27a` | Sessão opaca/CSRF, expiração, bloqueio, logout e reset único protegem API e dois frontends; sem senha padrão e CORS allowlist. Prova transacional rollback zero; 533 backend, 88+1 frontend e dois builds passaram. |
 | 2026-11-25 | UI-8.2 | `6d34341` | RBAC possui 22 permissões, 7 papéis e matriz método/rota fail-closed; UI esconde áreas sem capacidade e backend decide. Prova viewer/operator com rollback zero; 546 backend e 88 frontend passaram. |
+| 2026-11-25 | UI-8.3 | `568dd13` | Tenant vem da sessão; incidentes, cercas e rotas são filtrados por empresa, raízes operacionais receberam tenant e identificadores Tracker/Dirija Bem têm vínculo exclusivo. Prova cruzada retornou 0, rollback zero; 551 backend passaram. |
 
 ---
 

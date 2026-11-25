@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 10:33 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 10:41 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `707a59c` — antes da UI-8.2, criado em 25/11/2026 01:21 -03
+**Checkpoint mais recente:** `fa548b4` — antes da UI-8.3, criado em 25/11/2026 10:40 -03
 
-**Tarefas pendentes:** 10
+**Tarefas pendentes:** 9
 
-**Próxima tarefa:** **65 de 74 — UI-8.3: implementar isolamento por empresa**
+**Próxima tarefa:** **66 de 74 — UI-8.4: criar auditoria consultável**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -144,7 +144,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 |---:|---:|---|---|---|
 | 63/74 | 8.1 | Implementar autenticação. | Login/sessão seguros, expiração, recuperação e proteção de endpoints/UI são testados. | **Concluída em 25/11/2026 01:20 -03.** **Resultado obtido:** API protegida por padrão usa sessão opaca, cookie HttpOnly/SameSite, CSRF, 30 min ocioso/8 h absoluto, bloqueio após falhas, logout/revogação e reset único que revoga sessões. Recuperação não enumera conta; CORS é allowlist. App 1 e App 2 possuem login/restauração/logout e cliente com credenciais. Não há senha padrão; bootstrap exige ambiente. **Evidências:** migration 062 idempotente; prova transacional criou usuário/login/reset, rejeitou sessão e token antigos, bloqueou alteração de evento e rollback zerou usuário/tenant; endpoint público 200 e privado anônimo 401; 533 backend, 88 App 2, 1 App 1, TypeScript e dois builds. **Limitações:** entrega do token de recuperação depende de canal configurado; debug é opt-in. Cookie `Secure` deve ser obrigatório no ambiente HTTPS. **Artefatos:** schema, auth/middleware/API/bootstrap, dois frontends e testes; `docs/VALIDACAO_UI_8_1_2026-11-25.md`. **Checkpoint:** `0547c1a`; implementação `2e4f27a`. |
 | 64/74 | 8.2 | Implementar papéis e permissões. | Menor privilégio controla leitura, operação, configuração, aprovação e comando crítico. | **Concluída em 25/11/2026 10:33 -03.** **Resultado obtido:** catálogo contém 22 permissões, 7 papéis e vínculos por membership/tenant. Middleware aplica matriz método/rota e nega mutações desconhecidas por padrão; leitura, operação, classificação, configuração, exportação/agendamento e comando/aprovação são separados. Bootstrap explícito recebe `platform_admin`; UI oculta áreas sem capacidade, sem substituir a decisão backend. **Evidências:** migration 063 idempotente; prova MariaDB confirmou visualizador somente leitura e operador autorizado, rollback zero; 18 focados, 546 backend, 88 frontend, TypeScript/build. **Limitações:** recursos ainda recebem alguns campos legados de autoria no payload; a auditoria transversal da UI-8.4 registrará sempre o principal autenticado. **Artefatos:** schema/catálogo, matriz/autorizador, sessão enriquecida, UI e testes; `docs/VALIDACAO_UI_8_2_2026-11-25.md`. **Checkpoint:** `707a59c`; implementação `6d34341`. |
-| 65/74 | 8.3 | Implementar isolamento por empresa. | Toda consulta/mutação aplica tenant; testes tentam acesso cruzado e falham. | **Pendente.** |
+| 65/74 | 8.3 | Implementar isolamento por empresa. | Toda consulta/mutação aplica tenant; testes tentam acesso cruzado e falham. | **Concluída em 25/11/2026 10:41 -03.** **Resultado obtido:** tenant é derivado da sessão e não do payload; incidentes, cercas e rotas filtram leitura, detalhe e mutação pelo tenant. Raízes de agentes e relatórios também possuem proprietário, e `tenant_source_bindings` impede que um identificador Tracker/Dirija Bem pertença simultaneamente a empresas distintas. Autoria de incidentes/cercas agora vem do principal autenticado. **Evidências:** migration 064 aplicada; 9.574 incidentes, 2 cercas, 5 agentes e 1 definição de relatório ficaram sem `tenant_id` nulo; tentativa transacional de ler incidente pelo tenant B retornou zero, pelo proprietário retornou um, rollback deixou zero resíduo; 53 testes focados e 551 testes backend passaram. **Limitações:** dados históricos foram atribuídos ao único tenant existente (`migration-default`); onboarding de uma segunda empresa exige vincular suas fontes antes da ingestão. Workers legados sem contexto HTTP continuam operando sobre o tenant explicitamente persistido, nunca recebem tenant de payload público. **Artefatos:** migration 064, contexto de tenant, escopo de incidentes/cercas/rotas e testes; `docs/VALIDACAO_UI_8_3_2026-11-25.md`. **Checkpoint:** `fa548b4`; implementação `568dd13`. |
 | 66/74 | 8.4 | Criar auditoria consultável. | Mudanças críticas possuem ator, antes/depois, motivo, correlação e consulta protegida. | **Pendente.** |
 | 67/74 | 8.5 | Criar painel de integrações e saúde. | Tracker, Dirija Bem, IA e canais mostram disponibilidade, atraso, fila e último sucesso/erro. | **Pendente.** |
 | 68/74 | 8.6 | Adicionar métricas, logs e alertas técnicos. | Sinais estruturados permitem detectar ingestão parada, erro, latência, fila e custo anormal. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 65 de 74 — UI-8.3: implementar isolamento por empresa.**
+**Próxima etapa 66 de 74 — UI-8.4: criar auditoria consultável.**
 
-Há **10 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`9 tarefas pendentes` e anunciar `Próxima etapa 66 de 74 — UI-8.4`, preservando o denominador original para mostrar
+Há **9 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`8 tarefas pendentes` e anunciar `Próxima etapa 67 de 74 — UI-8.5`, preservando o denominador original para mostrar
 o avanço total da rodada.
