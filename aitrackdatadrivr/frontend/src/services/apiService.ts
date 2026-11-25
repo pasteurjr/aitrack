@@ -34,6 +34,7 @@ import type { AgentConfigurationsResponse, AgentDefinitionsResponse, AutonomyLev
 import type { AgentRunsResponse, AgentRunStatus } from '../types/agentRun';
 import type { TripReplayResponse } from '../types/tripReplay';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
+import type { BehaviorReport, ReportMode } from '../types/report';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -333,6 +334,11 @@ export const analyticsService = {
   }) => apiClient.get<BehaviorAnalyticsResponse>('/analytics/behavior', {
     params: { ...filters, sources: filters.sources.join(',') },
   }),
+};
+
+export const reportService = {
+  generateBehavior: (body: { mode: ReportMode; from: string; to: string; timezone: string; actor_id: string }) =>
+    apiClient.post<BehaviorReport>('/reports/behavior', body),
 };
 
 // ==================== Geofence Services ====================

@@ -231,6 +231,8 @@ from .route_api import route_bp
 app.register_blueprint(route_bp)
 from .analytics_api import analytics_bp
 app.register_blueprint(analytics_bp)
+from .report_api import report_bp
+app.register_blueprint(report_bp)
 
 from .agent_run_api import agent_run_bp
 app.register_blueprint(agent_run_bp)

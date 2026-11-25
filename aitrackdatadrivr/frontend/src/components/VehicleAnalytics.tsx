@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncDataState from './AsyncDataState';
-import { analyticsService } from '../services/apiService';
+import { analyticsService, reportService } from '../services/apiService';
 import type { AnalyticsSource, BehaviorAnalyticsResponse } from '../types/analytics';
+import type { BehaviorReport, ReportMode } from '../types/report';
 
 interface VehicleAnalyticsProps {
     onVehicleClick: (deviceId: string) => void;
@@ -18,6 +19,8 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     const [to, setTo] = useState(asLocalInput(now));
     const [sources, setSources] = useState<AnalyticsSource[]>(['tracker', 'dirijabem']);
     const [analytics, setAnalytics] = useState<BehaviorAnalyticsResponse | null>(null);
+    const [report, setReport] = useState<BehaviorReport | null>(null);
+    const [reportLoading, setReportLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [stale, setStale] = useState(false);
@@ -88,6 +91,20 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
     const topVehiclesByEvents = Object.entries(eventsByVehicle)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
+
+    const generateReport = async (mode: ReportMode) => {
+        setReportLoading(true);
+        try {
+            const response = await reportService.generateBehavior({
+                mode, from, to, timezone: 'America/Sao_Paulo', actor_id: 'operator-ui',
+            });
+            setReport(response.data);
+        } catch {
+            setError(true);
+        } finally {
+            setReportLoading(false);
+        }
+    };
 
     return (
         <div style={styles.container}>
@@ -185,6 +202,26 @@ const VehicleAnalytics: React.FC<VehicleAnalyticsProps> = ({ onVehicleClick }) =
                         </div>
                     );
                 })}
+            </div>
+
+            <div style={styles.section}>
+                <h4 style={styles.sectionTitle}>Relatório rastreável</h4>
+                {(['tracker', 'dirijabem', 'unified'] as ReportMode[]).map(mode => (
+                    <button key={mode} disabled={reportLoading} onClick={() => generateReport(mode)} style={{ marginRight: 6 }}>
+                        {mode === 'tracker' ? 'Tracker' : mode === 'dirijabem' ? 'Dirija Bem' : 'Unificado'}
+                    </button>
+                ))}
+                {report && (
+                    <div style={{ marginTop: 12 }}>
+                        <strong>Relatório {report.public_id}</strong><br />
+                        {report.summary.event_count} eventos · {report.summary.distance_km.toFixed(1)} km · fontes {report.summary.sources.join(' + ')}
+                        <ul>
+                            {Object.entries(report.summary.source_breakdown).map(([source, value]) => (
+                                <li key={source}>{source}: {value.event_count} eventos, {value.distance_km.toFixed(1)} km ({value.quality})</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
 
             {/* Top Veículos com Mais Eventos */}
