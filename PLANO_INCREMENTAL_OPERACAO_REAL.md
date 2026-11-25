@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 11:10 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 11:14 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `6baa35d` — antes da UI-8.9, criado em 25/11/2026 11:05 -03
+**Checkpoint mais recente:** `95f8be7` — antes da UI-8.10, criado em 25/11/2026 11:11 -03
 
-**Tarefas pendentes:** 3
+**Tarefas pendentes:** 2
 
-**Próxima tarefa:** **72 de 74 — UI-8.10: executar teste operacional com playbooks**
+**Próxima tarefa:** **73 de 74 — UI-8.11: publicar runbook e contingência**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -151,7 +151,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 69/74 | 8.7 | Executar teste de carga e recuperação. | Limites são medidos; queda/restart não perde nem duplica episódio, incidente ou ação. | **Concluída como baseline isolado em 25/11/2026 10:57 -03.** **Resultado obtido:** harness concorrente persistiu 5.000 receipts/incidentes/ações, repetiu todos os pacotes e reiniciou a persistência recuperando 100 leases vencidos. Ele recusa qualquer URL que não seja loopback, inclusive `192.168.0.100:8085`. **Evidências:** 856,61 transações/s, p95 1,49 ms, p99 2,75 ms, replay p95 0,013 ms, RPO 0, RTO 0,0084 s e zero duplicidade; 566 backend passaram. **Limitações:** mede o pipeline durável sintético em SQLite temporário, não capacidade do Tomcat/MySQL remoto nem dos provedores. A certificação de infraestrutura continua gate obrigatório em homologação isolada. **Artefatos:** script seguro, testes e JSON de evidência; `docs/VALIDACAO_UI_8_7_2026-11-25.md`. **Checkpoint:** `61fbbd9`; implementação `8f7d4f6`. |
 | 70/74 | 8.8 | Auditar segurança e privacidade. | Credenciais, dados pessoais, retenção, consentimento, criptografia e dependências têm achados tratados. | **Auditoria concluída com gate NO-GO em 25/11/2026 11:04 -03.** **Resultado obtido:** credenciais hardcoded foram removidas do código e redigidas no working tree; banco exige ambiente. Cookies são Secure em produção, CSP/HSTS/Permissions-Policy foram adicionados e respostas 5xx são sanitizadas. Dependências seguras automáticas eliminaram 3 críticos e reduziram 64 para 29 achados Node. Política de privacidade/retention foi publicada. **Evidências:** scanner do working tree zero; pip-audit 0; Bandit 0 alto (40 médios para revisão); npm 0 crítico, 16 altos; 569 backend, 93 frontend, TypeScript e build. **Bloqueadores:** 16 altos transitivos do `react-scripts`, credenciais aparecem em 4/2 commits históricos e precisam rotação comprovada, DAST/TLS não executados. Portanto produção permanece NO-GO. **Artefatos:** config segura, scanner, headers/cookies, lock atualizado, política e JSON; `docs/VALIDACAO_UI_8_8_2026-11-25.md`. **Checkpoint:** `601e524`; implementação `be729da`. |
 | 71/74 | 8.9 | Executar teste de acessibilidade. | Fluxos críticos passam teclado, foco, contraste, rótulos e leitor de tela conforme meta definida. | **Concluída em 25/11/2026 11:10 -03, com limitação manual.** **Resultado obtido:** cerca circular e poligonal podem ser definidas por campos de latitude/longitude/raio sem mouse, com validação de limites. Editor move foco ao abrir e devolve ao botão de origem; erros usam alert. `jest-axe` cobre cercas e saúde. Playwright no build compilado confirmou heading/login labels, sequência Tab nos dois campos, screenshot capturada e zero erro JS; servidor antigo em 3000 exibia bundle quebrado (`Cannot find module 'crypto'`), então o build foi servido isoladamente. **Evidências:** 15 testes focados passaram, 97 frontend e 569 backend; `tsc`, build e axe passaram. **Limitações:** axe cobre DOM em JSDOM; WCAG AA completa, contraste visual de todos os estados e NVDA/VoiceOver ainda exigem homologação humana. Playwright verificou apenas login no bundle, pois o fluxo de login exige usuário válido; desenho por teclado foi provado pelo teste de componente. **Artefatos:** coordenadas, foco/erros, axe e screenshot temporária `/tmp/aitrack-accessibility-login.png`; `docs/VALIDACAO_UI_8_9_2026-11-25.md`. **Checkpoint:** `6baa35d`; implementação `d05c449`. |
-| 72/74 | 8.10 | Executar teste operacional com playbooks. | Operadores executam incidentes normais/críticos, falhas e takeover com critérios aprovados. | **Pendente.** |
+| 72/74 | 8.10 | Executar teste operacional com playbooks. | Operadores executam incidentes normais/críticos, falhas e takeover com critérios aprovados. | **Playbooks e ensaio determinístico concluídos em 25/11/2026 11:14 -03; teste com operadores pendente.** **Resultado obtido:** 12 playbooks escritos cobrem incidentes, falsos positivos/negativos, cercas, offline, Tracker/Dirija Bem, IA/fallback, mensagem/voz, takeover, concorrência, comando crítico e restart. Harness executável usa máquina de estados/política reais e aprovou 8 cenários. **Evidências:** 8/8 passaram, efeitos externos 0; 570 backend passaram. **Limitações:** faltam dois operadores e supervisor reais para ensaio de usabilidade/tempo/confiança; por isso o componente de homologação humana permanece pendente e o piloto não pode usar esta evidência como aprovação operacional final. **Artefatos:** `docs/PLAYBOOKS_OPERACIONAIS.md`, harness e `docs/evidence/UI_8_10_PLAYBOOKS_2026-11-25.json`; validação em `docs/VALIDACAO_UI_8_10_2026-11-25.md`. **Checkpoint:** `95f8be7`; implementação `6be6e40`. |
 | 73/74 | 8.11 | Publicar runbook e contingência. | Documento cobre subir/parar, diagnóstico, rollback, indisponibilidade e contatos responsáveis. | **Pendente.** |
 | 74/74 | 8.12 | Liberar produção por grupo piloto. | Piloto limitado possui métricas, consentimento, suporte, rollback, critérios de sucesso e aprovação formal. | **Pendente.** |
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 72 de 74 — UI-8.10: executar teste operacional com playbooks.**
+**Próxima etapa 73 de 74 — UI-8.11: publicar runbook e contingência.**
 
-Há **3 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`2 tarefas pendentes` e anunciar `Próxima etapa 73 de 74 — UI-8.11`, preservando o denominador original para mostrar
+Há **2 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`1 tarefa pendente` e anunciar `Próxima etapa 74 de 74 — UI-8.12`, preservando o denominador original para mostrar
 o avanço total da rodada.

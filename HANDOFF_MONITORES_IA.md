@@ -1166,6 +1166,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.7 | `8f7d4f6` | Baseline isolado processou 5.000 correlações, replay e restart: 856,61/s, p95 1,49 ms, zero duplicata/perda e 100 leases recuperados. Harness recusa alvo remoto; não certifica infraestrutura compartilhada. |
 | 2026-11-25 | UI-8.8 | `be729da` | Auditoria removeu/redigiu credenciais no working tree, endureceu cookie/headers/5xx e zerou crítico Node/alto Bandit. Gate permanece NO-GO: 16 altos Node, rotação histórica e DAST/TLS pendentes. |
 | 2026-11-25 | UI-8.9 | `d05c449` | Cercas aceitam desenho circular/poligonal por teclado e coordenadas, com foco restaurado e mensagens acessíveis; axe nas telas de cerca/saúde. 97 frontend e 569 backend passaram; falta validação manual com leitor de tela/contraste. |
+| 2026-11-25 | UI-8.10 | `6be6e40` | 12 playbooks cobrem incidentes, falsos positivos/negativos, integrações, IA, takeover, concorrência e restart; 8 cenários determinísticos passaram sem efeitos externos. Teste humano ainda pendente. |
 
 ---
 
