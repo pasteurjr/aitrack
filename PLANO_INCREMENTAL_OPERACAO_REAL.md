@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 01:08 (`America/Sao_Paulo`)
+**Atualizado em:** 25/11/2026 01:12 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `3c050a9` — antes da UI-7.9, criado em 25/11/2026 01:04 -03
+**Checkpoint mais recente:** `0547c1a` — antes da UI-7.10, criado em 25/11/2026 01:10 -03
 
-**Tarefas pendentes:** 13
+**Tarefas pendentes:** 12
 
-**Próxima tarefa:** **62 de 74 — UI-7.10: validar score com amostra conhecida**
+**Próxima tarefa:** **63 de 74 — UI-8.1: implementar autenticação**
 
 **Priorização extraordinária concluída:** homologação operacional de cercas e filtro de incidentes de cerca, solicitada pelo proprietário. Ela não altera o saldo desta rodada porque as tarefas 3.10–3.12 já constavam como concluídas; essa rodada comprovou o fluxo com dados persistentes de demonstração e corrigiu sua descoberta na fila.
 
@@ -136,7 +136,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 | 59/74 | 7.7 | Criar relatórios por Tracker e Dirija Bem. | Relatório separado/unificado mantém origem, definição das métricas e rastreabilidade. | **Concluída em 25/11/2026 01:00 -03.** **Resultado obtido:** relatórios Tracker, Dirija Bem e unificado congelam filtros, definição/fórmula e decomposição por fonte em run imutável; unificado soma eventos/exposições e recalcula taxas. UI gera e apresenta ID/proveniência. **Evidências:** migration 059 idempotente; prova criou um run, replay retornou o mesmo ID, trigger bloqueou alteração e rollback zero; 7 focados, 518 backend, 86 frontend, TypeScript/build. **Limitações:** arquivo para download e agendamento entram na UI-7.9; autenticação/RBAC ainda bloqueiam entrega externa. **Artefatos:** definições/runs, serviço/API, UI e testes; `docs/VALIDACAO_UI_7_7_2026-11-25.md`. **Checkpoint:** `0dd1311`; implementação `458d7ea`. |
 | 60/74 | 7.8 | Criar indicadores de SLA e automação. | Painel mede detecção, atendimento, resolução, ação automática, intervenção e falha. | **Concluída em 25/11/2026 01:04 -03.** **Resultado obtido:** API/UI medem mediana/p95 e válidos/excluídos de detecção, triagem e resolução; SLA dentro/em risco/vencido; automação, simulação/envio, intervenção humana, falha transitória e dead-letter com denominadores. **Evidências:** consulta real avaliou 9.574 incidentes e preservou ausências; EXPLAIN inicialmente mostrou scan e a migration 060 criou `idx_incidents_opened_at`, passando a range; 5 focados, 522 backend, 86 frontend, TypeScript/build. **Limitações:** dados atuais não têm triagem/resolução, portanto essas métricas aparecem indisponíveis em vez de zero. **Artefatos:** índice, cálculo/DB/API, tipos/UI e testes; `docs/VALIDACAO_UI_7_8_2026-11-25.md`. **Checkpoint:** `9533617`; implementação `38c6f80`. |
 | 61/74 | 7.9 | Criar exportação e agendamento. | Exportação respeita filtros/permissões e agendamento registra geração, entrega e erro. | **Concluída em 25/11/2026 01:08 -03.** **Resultado obtido:** CSV/JSON reutilizam o relatório e preservam filtros/fontes/fórmula; CSV neutraliza `=,+,-,@`; job/evento guardam hash, tamanho, linhas, permissão interna e idempotência. UI baixa artefato interno. Agenda diária/semanal calcula fuso, mas persiste `blocked_auth`, sem execução/entrega externa até RBAC. **Evidências:** migration 061 idempotente; prova gerou 1 job/1 evento/2 linhas, replay manteve hash, trigger bloqueou mutação, agenda ficou bloqueada e rollback zerou jobs/agendas; 6 focados, 525 backend, 86 frontend, TypeScript/build. **Limitações:** worker e entrega externa são intencionalmente bloqueados até UI-8.1/8.2. **Artefatos:** schema, serializador, DB/API, UI e testes; `docs/VALIDACAO_UI_7_9_2026-11-25.md`. **Checkpoint:** `3c050a9`; implementação `179e53e`. |
-| 62/74 | 7.10 | Validar score com amostra conhecida. | Dataset rotulado prova fórmula/faixas e documenta erro, viés, falso positivo e falso negativo. | **Pendente.** |
+| 62/74 | 7.10 | Validar score com amostra conhecida. | Dataset rotulado prova fórmula/faixas e documenta erro, viés, falso positivo e falso negativo. | **Concluída em 25/11/2026 01:12 -03, com restrição operacional.** **Resultado obtido:** dataset dourado v1 com 17 casos Tracker/Dirija Bem prova fórmula, janela de 1 h, deduplicação e faixas; erro de score foi zero. Porém, no limiar 70 houve 3 TP, 0 FP, 7 FN e 7 TN: FNR 70% (Tracker 75%, Dirija Bem 66,7%). API publica o relatório e recomenda `do_not_use_score_as_sole_trigger`. **Evidências:** 21 focados e 528 regressões aprovados; fronteiras de 3.600/3.601 s e episódio duplicado conferidos. **Limitação crítica:** a amostra é sintética e não autoriza recalibrar pesos; eventos críticos/agentes não podem depender apenas do score até haver amostra real rotulada. **Artefatos:** dataset, avaliador/API, cálculo puro e testes; `docs/VALIDACAO_UI_7_10_2026-11-25.md`. **Checkpoint:** `0547c1a`; implementação `4f62f14`. |
 
 ### G. Produção, governança e UX
 
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 62 de 74 — UI-7.10: validar score com amostra conhecida.**
+**Próxima etapa 63 de 74 — UI-8.1: implementar autenticação.**
 
-Há **13 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`12 tarefas pendentes` e anunciar `Próxima etapa 63 de 74 — UI-8.1`, preservando o denominador original para mostrar
+Há **12 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`11 tarefas pendentes` e anunciar `Próxima etapa 64 de 74 — UI-8.2`, preservando o denominador original para mostrar
 o avanço total da rodada.
