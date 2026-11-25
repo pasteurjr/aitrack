@@ -1147,6 +1147,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-19 | UI-6.12 | `6ce72e4` | Áudio só chega ao processador com autorização; banco guarda referência/hash, classificação/confiança/modelo e revisão para risco/ambiguidade. Rollback e 469 backend passaram. |
 | 2026-11-19 | UI-6.13 | `99ccb9c` | Política pré-claim limita horário/fuso, tentativa, volume, custo, cooldown e falta de progresso; decisões são imutáveis. DST, permissão/negação/rollback e 473 backend passaram. |
 | 2026-11-24 | UI-6.14 | `ec5215a` | Opt-out revoga canal; destino inválido vai a dead; timeout, no-answer e silêncio usam retry limitado. Prova transacional sem resíduos e 486 backend passaram; zero contato real. |
+| 2026-11-24 | UI-7.1 | `7e9b2e8` | CRUD de rotas em monitoramento usa LineString/corredor, hash, versão imutável, auditoria e arquivamento. Migration/prova rollback e 493 backend passaram. |
 
 ---
 

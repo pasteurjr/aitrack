@@ -127,7 +127,7 @@ desvios também serão registrados, sem substituir o resultado esperado.
 
 | Ordem | ID | Descrição | Resultado esperado / prova de aceite | Resultado obtido |
 |---:|---:|---|---|---|
-| 53/74 | 7.1 | Criar CRUD de rotas e corredor. | Rota/polilinha versionada possui tolerância, pontos, autoria e validação geométrica. | **Pendente.** |
+| 53/74 | 7.1 | Criar CRUD de rotas e corredor. | Rota/polilinha versionada possui tolerância, pontos, autoria e validação geométrica. | **Concluída em 24/11/2026 23:49 -03.** **Resultado obtido:** CRUD/API operacional usa `LineString` canônica, corredor 5–5000 m, comprimento/hash, versão geométrica imutável, autoria/motivo, auditoria e arquivamento sem exclusão. **Evidências:** migration 054 idempotente; prova MariaDB persistiu geometria/corredor, bloqueou update e zerou resíduos; 7 focados e 493 regressões aprovados. **Limitações:** desenho visual e pontos/paradas ficam para evolução da interface/detector. **Artefatos:** migration, geometria, DB/API e testes; `docs/VALIDACAO_UI_7_1_2026-11-24.md`. **Checkpoint:** `46fead9`; implementação `7e9b2e8`. |
 | 54/74 | 7.2 | Criar atribuição e janela de execução. | Veículo/motorista recebe rota com vigência, fuso, início/fim e estado da execução. | **Pendente.** |
 | 55/74 | 7.3 | Detectar desvio e parada não planejada. | Episódios usam tolerância/histerese/permanência e evitam alertas por ruído ou parada prevista. | **Pendente.** |
 | 56/74 | 7.4 | Criar replay de viagem. | Operador reproduz posições/eventos/rota na ordem temporal, com velocidade controlável e teste determinístico. | **Pendente.** |
@@ -168,8 +168,8 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Próxima etapa 53 de 74 — UI-7.1: criar CRUD de rotas e corredor.**
+**Próxima etapa 54 de 74 — UI-7.2: criar atribuição e janela de execução.**
 
-Há **22 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
-`21 tarefas pendentes` e anunciar `Próxima etapa 54 de 74 — UI-7.2`, preservando o denominador original para mostrar
+Há **21 tarefas pendentes**. Ao concluir a próxima, este documento deverá indicar
+`20 tarefas pendentes` e anunciar `Próxima etapa 55 de 74 — UI-7.3`, preservando o denominador original para mostrar
 o avanço total da rodada.
