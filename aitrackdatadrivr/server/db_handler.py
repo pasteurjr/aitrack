@@ -9,6 +9,7 @@ from .env_loader import load_dotenv
 from . import behavioral_engine
 from . import geofence_engine
 from . import sensor_db
+from . import route_detection_db
 
 
 LOGGER = logging.getLogger(__name__)
@@ -169,6 +170,14 @@ def save_location(data, addr):
             )
         except Exception:
             LOGGER.exception('Falha ao avaliar cercas para veículo Tracker %s', fk_veicod)
+        try:
+            route_detection_db.evaluate_tracker_position(
+                device_id=device_id,legacy_vehicle_id=fk_veicod,longitude=lon,latitude=lat,
+                speed_kmh=speed or 0,observed_at=timestamp,accuracy_m=data.get('accuracy'),
+                external_position_id=location_id,
+            )
+        except Exception:
+            LOGGER.exception('Falha ao avaliar rota para veículo Tracker %s',fk_veicod)
 
     except mysql.connector.Error as err:
         print(f"ERRO de Banco de Dados: {err}")
