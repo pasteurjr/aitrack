@@ -1171,6 +1171,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.12 | `268ada8` | Decisão formal NO-GO para piloto: vulnerabilidades altas, rotação histórica, DAST/TLS, homologações humanas/assistivas, sandbox e métricas de detecção ainda sem aceite. Plano encerra 74/74 etapas; gates para nova avaliação em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`. |
 | 2026-11-26 | R1 | `cc984e4` | CRA removido dos dois frontends; Vite/Vitest instalados; npm audit zero nos dois; 98 testes, TypeScript, builds, instalação limpa e HTTP preview passaram. Evidências: `docs/VALIDACAO_R1_2026-11-26.md`. Próxima etapa: R2, rotação de credenciais históricas. |
 | 2026-11-26 | R2 | em andamento | Inventário seguro encontrou a senha ativa em 177 blobs alcançáveis/18 caminhos; duas configurações ignoradas compartilham conta global. 49 ocorrências em 8 arquivos atuais foram redigidas; scanner marca 0, mas não lê `.env`. Nenhum segredo exibido; aguarda DBA para rotação real. Aguarda DBA provisionar usuário dedicado e planejar migração dos consumidores. Evidências: `docs/VALIDACAO_R2_2026-11-26.md` e JSON. Checkpoint: `f893995`. |
+| 2026-11-26 | R3-prep | `1b6e0ed` | Matriz DAST/TLS preparada por inspeção local; cobre auth, RBAC/tenant, incidentes, cercas, agentes, frota, replay/comandos excluídos do fuzzing ativo e checklist TLS. Nenhum scan/requisição remota; R3 aguarda R2 e homologação isolada. Evidência: `docs/PREPARO_R3_DAST_TLS_2026-11-26.md`. |
 
 ---
 
