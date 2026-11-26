@@ -4,6 +4,8 @@
 
 **Checkpoint pré-etapa:** `f893995`
 
+**Limpeza do working tree:** `c6a9010`
+
 **Estado:** **em andamento — rotação aguarda DBA/infra**
 
 ## Resultado esperado
