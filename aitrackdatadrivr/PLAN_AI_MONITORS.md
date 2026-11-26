@@ -550,7 +550,7 @@ DEFAULT_MONITORS = [
 ### Test 1: Database Schema
 ```bash
 # Create tables
-mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p tracker < schema.sql
+mysql -h camerascasas.no-ip.info -P 3307 -u [REDACTED] -p tracker < schema.sql
 
 # Verify tables exist
 mysql> SHOW TABLES LIKE 'monitor%';

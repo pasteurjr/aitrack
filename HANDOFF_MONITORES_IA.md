@@ -191,7 +191,7 @@ dados_adicionais LONGTEXT(JSON) · severidade ENUM('low','medium','high','critic
 
 ### T0.2 — Configuração de banco centralizada
 
-**Problema:** credenciais estão escritas em `server/behavioral_engine.py`, `server/monitor_db.py`, `server/api.py`, `server/db_handler.py`, `server/unified_api.py`, `server/dirijabem_api.py`, `dirijabem_simulator.py` e `extract_dirijabem_routes.py`. São dois usuários: `scadabr` para `tracker` e `producao` para `dirijabem`/unificado. Além disso, `env_loader.load_dotenv` e `routes_loader.load_routes` usam caminhos relativos ao diretório atual.
+**Problema:** credenciais estão escritas em `server/behavioral_engine.py`, `server/monitor_db.py`, `server/api.py`, `server/db_handler.py`, `server/unified_api.py`, `server/dirijabem_api.py`, `dirijabem_simulator.py` e `extract_dirijabem_routes.py`. São dois usuários: `[REDACTED]` para `tracker` e `producao` para `dirijabem`/unificado. Além disso, `env_loader.load_dotenv` e `routes_loader.load_routes` usam caminhos relativos ao diretório atual.
 
 **O que fazer:**
 1. Criar `server/db_config.py`:
@@ -211,7 +211,7 @@ dados_adicionais LONGTEXT(JSON) · severidade ENUM('low','medium','high','critic
 2. Ajustar `server/env_loader.load_dotenv` para aceitar `Path`. Ajustar `server/routes_loader.load_routes` para usar `BASE_DIR / "config/routes.json"`.
 3. Adicionar ao `aitrackdatadrivr/config/.env` as chaves `DIRIJABEM_DB_HOST`, `DIRIJABEM_DB_PORT`, `DIRIJABEM_DB_USER`, `DIRIJABEM_DB_PASSWORD` e `DIRIJABEM_DB_NAME`, com os valores que hoje estão no código (usuário `producao`). Esse arquivo é ignorado pelo git.
 4. Criar `aitrackdatadrivr/config/.env.example` com **todas** as chaves e valores vazios, incluindo as da Fase 2 (`ANTHROPIC_API_KEY`, `LLM_*`). Esse arquivo é versionado.
-5. Substituir **todos** os `DB_CONFIG` e `TRACKER_DB_CONFIG`/`DIRIJABEM_DB_CONFIG` pelo `db_config`. `unified_api` passa a usar `TRACKER_DB` (usuário `scadabr`) para o `tracker`.
+5. Substituir **todos** os `DB_CONFIG` e `TRACKER_DB_CONFIG`/`DIRIJABEM_DB_CONFIG` pelo `db_config`. `unified_api` passa a usar `TRACKER_DB` (usuário `[REDACTED]`) para o `tracker`.
 6. `db_handler.py` passa a usar `get_tracker_pool()` em vez do pool próprio.
 
 **Critério de aceite:**
@@ -1170,6 +1170,7 @@ Pesos no score (T0.6): acrescentar `aggressive_driving: 4.0` e `fatigue_suspecte
 | 2026-11-25 | UI-8.11 | `6c1b76f` | Runbook documenta operação, segurança e contingência; validador marcou zero achados e 571 backend passaram. Rollback/restore/TLS e ensaio no ambiente-alvo ainda pendentes. |
 | 2026-11-25 | UI-8.12 | `268ada8` | Decisão formal NO-GO para piloto: vulnerabilidades altas, rotação histórica, DAST/TLS, homologações humanas/assistivas, sandbox e métricas de detecção ainda sem aceite. Plano encerra 74/74 etapas; gates para nova avaliação em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`. |
 | 2026-11-26 | R1 | `cc984e4` | CRA removido dos dois frontends; Vite/Vitest instalados; npm audit zero nos dois; 98 testes, TypeScript, builds, instalação limpa e HTTP preview passaram. Evidências: `docs/VALIDACAO_R1_2026-11-26.md`. Próxima etapa: R2, rotação de credenciais históricas. |
+| 2026-11-26 | R2 | em andamento | Inventário seguro encontrou a senha ativa em 177 blobs alcançáveis/18 caminhos; duas configurações ignoradas compartilham conta global. 49 ocorrências em 8 arquivos atuais foram redigidas; scanner marca 0, mas não lê `.env`. Nenhum segredo exibido; aguarda DBA para rotação real. Aguarda DBA provisionar usuário dedicado e planejar migração dos consumidores. Evidências: `docs/VALIDACAO_R2_2026-11-26.md` e JSON. Checkpoint: `f893995`. |
 
 ---
 
@@ -1242,7 +1243,7 @@ ps -o pid,rss,etime,cmd -p <PID>
 for i in 1 2 3; do curl -s -o /dev/null -w '%{time_total}\n' 'localhost:5009/api/events/stats'; done
 
 # Contagens principais (via cliente mysql; a senha será pedida)
-mysql -h camerascasas.no-ip.info -P 3307 -u scadabr -p -e "
+mysql -h camerascasas.no-ip.info -P 3307 -u [REDACTED] -p -e "
   SELECT (SELECT COUNT(*) FROM tracker.monitor_analises) analises,
          (SELECT COUNT(*) FROM tracker.monitor_alertas) alertas,
          (SELECT COUNT(*) FROM tracker.eventos WHERE timestamp >= CURDATE()) eventos_hoje;"

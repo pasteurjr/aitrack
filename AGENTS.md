@@ -113,7 +113,7 @@ cd /home/pasteurjr/progreact/aitrack/aitrackdatadrivr/frontend && npx tsc --noEm
 
 O banco é **remoto, compartilhado e com dados reais**: `camerascasas.no-ip.info:3307`.
 
-1. **O servidor hospeda 35+ bancos de outros sistemas** (ERP, produção etc.). O usuário `scadabr` tem `ALL PRIVILEGES ON *.*`. Um erro pode destruir outro sistema.
+1. **O servidor hospeda 35+ bancos de outros sistemas** (ERP, produção etc.). O usuário `[REDACTED]` tem `ALL PRIVILEGES ON *.*`. Um erro pode destruir outro sistema.
    - Você pode escrever somente nos bancos **`tracker`** (legado durante a
      transição) e **`monitoramento`** (camada operacional unificada).
    - O banco **`dirijabem`** é **somente leitura** para você. Exceção: os simuladores Dirijabem, que já escrevem lá.
@@ -127,7 +127,7 @@ O banco é **remoto, compartilhado e com dados reais**: `camerascasas.no-ip.info
    - Exclusões permitidas estão listadas explicitamente no handoff. Exemplo: apagar os 4 alertas mock.
 4. **Backup antes de migration que altera ou remove dados:**
    ```bash
-   mysqldump -h camerascasas.no-ip.info -P 3307 -u scadabr -p tracker <tabela> > aitrackdatadrivr/migrations/backup/<data>_<tabela>.sql
+   mysqldump -h camerascasas.no-ip.info -P 3307 -u [REDACTED] -p tracker <tabela> > aitrackdatadrivr/migrations/backup/<data>_<tabela>.sql
    ```
    A pasta `migrations/backup/` deve ficar no `.gitignore`.
 5. **Migrations:**
@@ -137,7 +137,7 @@ O banco é **remoto, compartilhado e com dados reais**: `camerascasas.no-ip.info
    - As migrations `001`–`004` **já estão aplicadas**. Não reaplique.
 6. **Credenciais:**
    - Ficam em `aitrackdatadrivr/config/.env` (ignorado pelo git).
-   - Hoje há credenciais **escritas no código** em vários arquivos, com dois usuários: `scadabr` para `tracker` e `producao` para `dirijabem`/unificado. A tarefa T0.2 centraliza isso.
+   - Hoje há credenciais **escritas no código** em vários arquivos, com dois usuários: `[REDACTED]` para `tracker` e `producao` para `dirijabem`/unificado. A tarefa T0.2 centraliza isso.
    - **Nunca** copie senhas para documentos, commits, logs ou mensagens.
    - A chave da Anthropic vai em `ANTHROPIC_API_KEY` no mesmo `.env`.
 

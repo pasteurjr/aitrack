@@ -832,7 +832,7 @@ Tips for getting started:
  │     3 DB_CONFIG = {                                                                                                                                                   │
  │     4     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     5     'port': 3307,                                                                                                                                               │
- │     6     'user': 'scadabr',                                                                                                                                          │
+ │     6     'user': '[REDACTED]',                                                                                                                                          │
  │     7     'password': '<REDACTED>',                                                                                                                                      │
  │     8     'database': 'tracker'                                                                                                                                       │
  │     9 }                                                                                                                                                               │
@@ -1313,7 +1313,7 @@ Tips for getting started:
  │     3 DB_CONFIG = {                                                                                                                                                   │
  │     4     'host': 'camerascasas.no-ip.info',                                                                                                                          │
  │     5     'port': 3307,                                                                                                                                               │
- │     6     'user': 'scadabr',                                                                                                                                          │
+ │     6     'user': '[REDACTED]',                                                                                                                                          │
  │     7     'password': '<REDACTED>',                                                                                                                                      │
  │     8     'database': 'tracker'                                                                                                                                       │
  │     9 }                                                                                                                                                               │

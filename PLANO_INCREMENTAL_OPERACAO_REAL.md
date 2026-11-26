@@ -1,8 +1,8 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 26/11/2026 00:10 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 00:52 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `7c14fbc` — antes da rodada de remediação R1, criado em 25/11/2026 16:52 -03
+**Checkpoint mais recente:** `f893995` — antes da etapa R2, criado em 26/11/2026 00:49 -03
 
 **Etapas da rodada anterior:** 74/74 concluídas
 
@@ -187,7 +187,7 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 | Etapa | ID | Ação | Critério de aceite e evidência exigida | Dependências / responsável | Estado |
 |---:|---|---|---|---|---|
 | 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Concluída em 26/11/2026 00:10 -03.** Auditorias iniciais: App 1 com 3 críticas/37 altas/64 totais e App 2 com 16 altas/29 totais. `react-scripts` foi removido dos dois apps e substituído por Vite/Vitest; `VITE_*` adotado como padrão e compatibilidade explícita mantida para as duas variáveis `REACT_APP_*` antigas. Audits finais: zero achados nos dois apps. `npm ci`, testes (App 1: 1; App 2: 97), TypeScript, builds e preview HTTP passaram. **Limitação:** App 2 gera um chunk acima de 500 kB; há erro interno ao atualizar lockfile com npm 10, mas instalação limpa com `npm ci` passou. **Evidência:** `docs/VALIDACAO_R1_2026-11-26.md` e `docs/evidence/UI_R1_FRONTEND_AUDIT_2026-11-26.json`. **Checkpoint:** `7c14fbc`; **implementação:** `cc984e4`. |
-| 2/8 | R2 | Rotacionar credenciais históricas | DBA/infra revoga e substitui credenciais expostas; autenticação com credenciais novas provada sem registrar valores; credenciais antigas rejeitadas; scanner não encontra segredo ativo no working tree. Registrar somente identificadores mascarados, data e responsável. Avaliar limpeza do histórico após rotação, coordenando clones e consumidores antes de reescrever Git. | DBA/infra + dono do serviço; execução após identificar dependências sem exibir segredos. | Pendente |
+| 2/8 | R2 | Rotacionar credenciais históricas | DBA/infra provisiona identidade AITrack de privilégio mínimo; todos os consumidores são inventariados; app autentica com credencial nova, escopo é testado, senha antiga é revogada e rejeitada; registrar evidência sem segredo. | DBA/infra + donos dos sistemas que compartilham a conta global. | **Em andamento, bloqueada por dependência externa.** As duas configurações locais ignoradas usam a mesma senha de conta compartilhada global; o valor atual está em 177 blobs alcançáveis de 18 caminhos. Scanner do working tree marca zero porque não lê `.env`. Trocar a senha agora pode parar 35+ sistemas. Nenhum SQL ou mudança de credencial foi executado. **Evidência:** `docs/VALIDACAO_R2_2026-11-26.md` e `docs/evidence/UI_R2_CREDENTIAL_INVENTORY_2026-11-26.json`. **Checkpoint:** `f893995`. Aguardar DBA provisionar usuário dedicado e atualizar config local via cofre. |
 | 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; R1 e R2. | Pendente |
 | 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset rotulado e autorizado, separado por Tracker/Dirija Bem, classe, severidade e contexto; regra de pontuação não é gatilho único; publicar matriz de confusão, FPR/FNR por classe e intervalos/amostra; revisão humana das divergências; critérios de aceite aprovados antes de ajustar pesos. Casos críticos sem cobertura mantêm detector independente e bloqueiam autonomia daquela classe. | Produto/operação + engenharia de dados; aprovação de uso dos dados. | Pendente |
 | 5/8 | R5 | Homologar agentes e canais em sandbox | Agentes exercitam reconhecer, consultar contexto, decidir, redigir mensagem, respeitar consentimento/horário/limites, pedir aprovação quando exigido, registrar ação e transferir para humano. Provedores de mensagem/voz exclusivamente em sandbox; verificar idempotência, rate limit, timeout, fallback e zero destinatários reais. LLM gera proposta estruturada; política determinística autoriza efeitos. | Engenharia + operação; sandbox e R4 para limites por evento. | Pendente |
@@ -219,6 +219,7 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 
 **Próxima etapa 2 de 8 — R2: rotacionar credenciais históricas.**
 
-Coordenar com DBA/infra a revogação e substituição das credenciais encontradas em commits
-históricos. Registrar prova sem valores secretos; testar rejeição da credencial antiga e acesso
-com a nova. Não reescrever o histórico Git até avaliar impacto nos clones/consumidores.
+O inventário confirmou que o segredo atualmente configurado aparece em blobs alcançáveis do Git
+e que os dois arquivos ignorados usam a mesma conta de privilégio global. Não trocar a senha
+compartilhada em lugar; aguardar DBA provisionar uma identidade AITrack limitada, migrar os
+consumidores e coordenar a revogação. A análise segura está em `docs/VALIDACAO_R2_2026-11-26.md`.
