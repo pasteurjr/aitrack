@@ -1,7 +1,11 @@
 # Validação R1 — vulnerabilidades dos frontends
 
-**Data:** 26/11/2026 00:10 (`America/Sao_Paulo`)  
-**Checkpoint pré-etapa:** `7c14fbc`  
+**Data:** 26/11/2026 00:10 (`America/Sao_Paulo`)
+
+**Checkpoint pré-etapa:** `7c14fbc`
+
+**Implementação:** `cc984e4`
+
 **Resultado:** **concluída para os dois frontends**
 
 ## Resultado esperado
