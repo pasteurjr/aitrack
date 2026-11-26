@@ -1,0 +1,29 @@
+{
+  "schema_version": "r7-local-recovery-preflight.v1",
+  "stage": "R7",
+  "status": "partial",
+  "date": "2026-11-26",
+  "checkpoint_before": "295800f",
+  "environment": "local deterministic harness; temporary SQLite; no shared database or services",
+  "playbook_scenarios": {"passed": 8, "failed": 0, "external_messages": 0, "voice_calls": 0, "physical_commands": 0},
+  "runbook_validator": {"findings": 0},
+  "focused_tests": {"command": "PYTHONPATH=. pytest -q tests/test_safe_load_test.py tests/test_operational_playbooks.py tests/test_runbook.py", "passed": 5, "failed": 0},
+  "recovery_harness": {
+    "command": "python3 scripts/run_safe_load_test.py --iterations 2000 --workers 4",
+    "passed": true,
+    "iterations": 2000,
+    "workers": 4,
+    "before_restart": {"receipts": 2000, "incidents": 2000, "actions": 2000},
+    "after_restart": {"receipts": 2000, "incidents": 2000, "actions": 2000},
+    "duplicate_counts": {"receipts": 0, "incidents": 0, "actions": 0},
+    "rpo_records_lost": 0,
+    "rto_seconds": 0.0067,
+    "recovered_expired_leases": 100,
+    "throughput_per_second": 993.67,
+    "p95_persist_ms": 1.233,
+    "p99_persist_ms": 2.707,
+    "p95_replay_ms": 0.014
+  },
+  "not_performed": ["backup and restore in homologation", "service restart and application rollback", "exercise with two operators and supervisor", "approval of operational RTO/RPO"],
+  "pilot_gate": "NO-GO"
+}
