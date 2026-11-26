@@ -62,6 +62,18 @@ def test_execute_fails_closed_to_approval(condition):
     assert result['actions'][0]['reasons'] and result['human_review_required'] is True
 
 
+@pytest.mark.parametrize('severity', ['high', 'critical'])
+def test_trusted_incident_severity_overrides_model_low_risk_and_no_review(severity):
+    decision = valid_decision()
+    decision['risk'].update(level='low', score=10)
+    decision['human_review'].update(required=False, reason='Modelo classificou risco baixo.')
+    result = evaluate_autonomy(policy(), decision, {'severity': severity})
+    assert result['actions'][0]['disposition'] == 'approval_required'
+    assert 'decision_requires_human_review' in result['actions'][0]['reasons']
+    assert result['human_review_required'] is True
+    assert result['trusted_incident_severity'] == severity
+
+
 def test_policy_validation_forbids_misleading_or_sensitive_autonomy():
     assert validate_policy({'autonomy_level':'recommend','max_autonomous_risk':'none','allowed_autonomous_actions':[]})['autonomy_level']=='recommend'
     with pytest.raises(ValueError, match='Somente execute'):

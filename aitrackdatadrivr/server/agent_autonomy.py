@@ -59,11 +59,14 @@ def validate_policy(value: Dict) -> Dict:
     }
 
 
-def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict) -> Dict:
+def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict,
+                      safety_context: Optional[Dict] = None) -> Dict:
     decision = validate_decision(decision)
     level = policy.autonomy_level
     max_rank = RISK_RANK.get(policy.max_autonomous_risk, 0)
     decision_risk = decision['risk']['level']
+    trusted_severity = str((safety_context or {}).get('severity') or '').strip().lower()
+    trusted_review_required = trusted_severity in {'high', 'critical'}
     authorizations = []
     for index, action in enumerate(decision['proposed_actions']):
         reasons = []
@@ -75,7 +78,7 @@ def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict) -> Dict:
             disposition = 'approval_required'
             reasons.append('policy_requires_approval')
         else:
-            if decision['human_review']['required']:
+            if decision['human_review']['required'] or trusted_review_required:
                 reasons.append('decision_requires_human_review')
             if action['requires_approval']:
                 reasons.append('action_requires_approval')
@@ -101,9 +104,10 @@ def evaluate_autonomy(policy: AutonomyPolicy, decision: Dict) -> Dict:
         'autonomy_level': level,
         'execution_mode':policy.execution_mode,
         'decision_risk': decision_risk,
-        'human_review_required': decision['human_review']['required'] or any(
+        'human_review_required': decision['human_review']['required'] or trusted_review_required or any(
             item['disposition'] == 'approval_required' for item in authorizations
         ),
+        'trusted_incident_severity': trusted_severity or None,
         'actions': authorizations,
     }
 
@@ -135,11 +139,12 @@ def load_autonomy_policy(config_version_id: int) -> AutonomyPolicy:
 
 
 def authorize_decision(config_version_id: int, decision: Dict,
-                       loader: Optional[Callable] = None) -> Dict:
+                       loader: Optional[Callable] = None,
+                       safety_context: Optional[Dict] = None) -> Dict:
     policy = (loader or load_autonomy_policy)(config_version_id)
     if policy.config_version_id != config_version_id:
         raise ValueError('Política de autonomia pertence a outra versão')
-    return evaluate_autonomy(policy, decision)
+    return evaluate_autonomy(policy, decision, safety_context)
 
 
 def add_autonomy_policy(config_version_id: int, value: Dict,

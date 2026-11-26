@@ -35,6 +35,17 @@ def plan_completion(status: str, target: str, decision: Optional[Dict],
     return {'from_status': status, 'to_status': target, 'final': True}
 
 
+def _trusted_safety_context(input_json):
+    """Extrai sinais persistidos fora da resposta do LLM para autorização."""
+    try:
+        value = json.loads(input_json) if isinstance(input_json, str) else input_json
+    except (TypeError, ValueError) as exc:
+        raise AgentRunError('Entrada persistida da execução está inválida') from exc
+    if not isinstance(value, dict):
+        raise AgentRunError('Entrada persistida da execução deve ser objeto')
+    return {'severity': value.get('severity')}
+
+
 def _iso(value):
     return value.isoformat() if isinstance(value, datetime) else value
 
@@ -226,7 +237,10 @@ def finish_run(public_id: str, payload: Dict) -> Dict:
         authorization = None
         provenance = None
         if target == 'succeeded':
-            authorization = authorize_decision(run['config_version_id'], decision)
+            authorization = authorize_decision(
+                run['config_version_id'], decision,
+                safety_context=_trusted_safety_context(run.get('input_json')),
+            )
             provenance = build_provenance(decision,json.loads(run['context_json']))
         cursor.execute(
             "UPDATE monitoramento.agent_runs SET status=%s,version=%s,output_json=%s,"
