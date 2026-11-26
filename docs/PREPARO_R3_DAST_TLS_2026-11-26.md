@@ -1,6 +1,6 @@
 # Preparação R3 — escopo DAST e TLS
 
-**Atualizado em:** 26/11/2026 03:02 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 10:59 (`America/Sao_Paulo`)
 
 **Checkpoint pré-preparação:** `1b6e0ed`
 
@@ -62,8 +62,22 @@ MySQL. Resultado: **87 passaram**; nenhuma conexão foi aberta. Arquivos: `test_
 `test_authentication.py`, `test_incident_api.py`, `test_geofence_api.py`, `test_device_commands.py`
 e `test_rbac.py`. Evidência estruturada: `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json`.
 
+### Análise estática do backend e dependências
+
+- Bandit 1.9.4 analisou 14.144 linhas em `aitrackdatadrivr/server`: **0 altos, 40 médios e 6
+  baixos**. Os 40 médios são 39 avisos B608 de construção dinâmica de SQL e um B104 porque o
+  socket de telemetria escuta em `0.0.0.0:9000`. Os seis baixos B110 apontam blocos `except/pass`.
+- A amostragem do SQL sinalizado encontrou placeholders para valores e fragmentos de filtros,
+  colunas e listas de placeholders montados pelo código. O Bandit não prova injeção; os avisos
+  permanecem abertos até revisão de cada origem/allowlist e testes DAST. O bind público do socket
+  é necessário para receber rastreadores, mas exige firewall/restrição de exposição no ambiente.
+- `pip-audit` contra `requirements-monitors.txt`: **11 dependências, zero vulnerabilidades
+  conhecidas** na base consultada.
+- Evidência agregada: `docs/evidence/UI_R3_STATIC_AUDIT_2026-11-26.json`.
+
 A matriz inclui auth, RBAC, isolamento tenant, incidentes, cercas, agentes, frota, operações
 com efeitos e TLS. A análise local confirmou que existem endpoints mutativos de replay Dirija Bem
 e comandos; eles foram explicitamente excluídos de fuzzing ativo até isolamento. **R3 continua
-pendente e não há resultado de DAST/TLS ou TLS remoto para declarar.** Os 87 testes validam somente
-os comportamentos locais cobertos; não substituem scan autenticado em homologação.
+pendente e não há resultado de DAST/TLS ou TLS remoto para declarar.** Os testes e scanners
+validam somente o código/dependências locais; não substituem scan autenticado em homologação. O
+alvo HTTPS isolado ainda não foi fornecido, então a etapa continua aberta.

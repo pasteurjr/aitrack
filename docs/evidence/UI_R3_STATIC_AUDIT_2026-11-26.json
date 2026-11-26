@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-26",
+  "stage": "R3 local static security audit",
+  "checkpoint_before_stage": "a3141ab",
+  "tools": {
+    "bandit": {
+      "version": "1.9.4",
+      "scope": "aitrackdatadrivr/server",
+      "lines_of_code": 14144,
+      "findings": {
+        "high": 0,
+        "medium": 40,
+        "low": 6
+      },
+      "by_rule": {
+        "B608_dynamic_sql_review": 39,
+        "B104_bind_all_interfaces": 1,
+        "B110_except_pass": 6
+      },
+      "review": "B608 warnings remain pending full review of dynamic identifier sources and allowlists. The B104 listener on 0.0.0.0:9000 is required for tracker ingress and requires exposure restrictions at deployment."
+    },
+    "pip_audit": {
+      "requirements_file": "requirements-monitors.txt",
+      "dependencies": 11,
+      "known_vulnerabilities": 0
+    }
+  },
+  "limitations": [
+    "No remote target was scanned.",
+    "No TLS endpoint was provided or validated.",
+    "Static analysis does not prove absence of vulnerabilities."
+  ],
+  "safety": {
+    "database_access": false,
+    "credential_changes": false,
+    "remote_dast": false
+  }
+}
