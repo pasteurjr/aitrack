@@ -1,9 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import App from './App';
 
-jest.mock('./components/MapComponent', () => () => <div data-testid="mapa" />);
-jest.mock('./components/VehicleListUnified', () => () => <div data-testid="frota" />);
+vi.mock('./components/MapComponent', () => ({ default: () => <div data-testid="mapa" /> }));
+vi.mock('./components/VehicleListUnified', () => ({ default: () => <div data-testid="frota" /> }));
 
 test('renderiza a aplicação de rastreamento', () => {
   render(<App />);

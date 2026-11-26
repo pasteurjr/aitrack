@@ -1,10 +1,11 @@
+import { vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { authService } from '../services/apiService';
 import AuthGate from './AuthGate';
 
-jest.mock('../services/apiService', () => ({ authService: {
-  me: jest.fn(), login: jest.fn(), logout: jest.fn(), recover: jest.fn(),
+vi.mock('../services/apiService', () => ({ authService: {
+  me: vi.fn(), login: vi.fn(), logout: vi.fn(), recover: vi.fn(),
 } }));
 
 const service = authService as jest.Mocked<typeof authService>;

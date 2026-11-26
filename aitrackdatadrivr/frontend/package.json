@@ -7,9 +7,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
     "@types/leaflet": "^1.9.20",
-    "@types/node": "^16.18.126",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "axios": "^1.12.2",
@@ -18,21 +16,13 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-leaflet": "^5.0.0",
-    "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "start": "vite --port 3003 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
   },
   "browserslist": {
     "production": [
@@ -48,7 +38,13 @@
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "devDependencies": {
+    "@types/jest": "^27.5.2",
     "@types/jest-axe": "^3.5.9",
-    "jest-axe": "^11.0.0"
+    "@types/node": "^22.19.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jest-axe": "^11.0.0",
+    "jsdom": "^26.1.0",
+    "vite": "^7.3.8",
+    "vitest": "^4.1.12"
   }
 }

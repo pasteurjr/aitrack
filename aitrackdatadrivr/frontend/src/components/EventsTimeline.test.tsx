@@ -1,11 +1,12 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import EventsTimeline from './EventsTimeline';
 import { fleetService } from '../services/apiService';
 
-jest.mock('../services/apiService', () => ({
+vi.mock('../services/apiService', () => ({
   fleetService: {
-    getEvents: jest.fn(),
+    getEvents: vi.fn(),
   },
 }));
 
@@ -13,8 +14,8 @@ const mockedGetEvents = fleetService.getEvents as jest.Mock;
 let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  vi.clearAllMocks();
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -24,7 +25,7 @@ afterEach(() => {
 test('diferencia resposta vazia de falha da timeline', async () => {
   mockedGetEvents.mockResolvedValue({ data: [] });
 
-  render(<EventsTimeline onEventClick={jest.fn()} />);
+  render(<EventsTimeline onEventClick={vi.fn()} />);
 
   expect(await screen.findByText('Nenhum evento foi registrado no período consultado.')).toBeInTheDocument();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -35,7 +36,7 @@ test('mostra erro e permite repetir a consulta', async () => {
     .mockRejectedValueOnce(new Error('API indisponível'))
     .mockResolvedValue({ data: [] });
 
-  render(<EventsTimeline onEventClick={jest.fn()} />);
+  render(<EventsTimeline onEventClick={vi.fn()} />);
 
   fireEvent.click(await screen.findByRole('button', { name: 'Tentar novamente' }));
 
@@ -51,7 +52,7 @@ const recentEvents = [
 
 test('combina filtros de veículo, tipo e severidade', async () => {
   mockedGetEvents.mockResolvedValue({ data: recentEvents });
-  render(<EventsTimeline onEventClick={jest.fn()} />);
+  render(<EventsTimeline onEventClick={vi.fn()} />);
   await screen.findByText('3 de 3 episódios exibidos');
 
   fireEvent.change(screen.getByRole('textbox', { name: 'Filtrar por veículo' }), { target: { value: '614' } });
@@ -65,7 +66,7 @@ test('combina filtros de veículo, tipo e severidade', async () => {
 
 test('filtra por período e limpa todos os filtros', async () => {
   mockedGetEvents.mockResolvedValue({ data: recentEvents });
-  render(<EventsTimeline onEventClick={jest.fn()} />);
+  render(<EventsTimeline onEventClick={vi.fn()} />);
   await screen.findByText('3 de 3 episódios exibidos');
 
   fireEvent.change(screen.getByRole('combobox', { name: 'Filtrar por período' }), { target: { value: '1h' } });
@@ -77,7 +78,7 @@ test('filtra por período e limpa todos os filtros', async () => {
 
 test('filtra eventos por origem sem misturar Tracker e Dirija Bem', async () => {
   mockedGetEvents.mockResolvedValue({ data: recentEvents });
-  render(<EventsTimeline onEventClick={jest.fn()} />);
+  render(<EventsTimeline onEventClick={vi.fn()} />);
   await screen.findByText('3 de 3 episódios exibidos');
 
   fireEvent.change(screen.getByRole('combobox', { name: 'Filtrar por origem' }), { target: { value: 'dirijabem' } });
@@ -88,7 +89,7 @@ test('filtra eventos por origem sem misturar Tracker e Dirija Bem', async () => 
 });
 
 test('entrega o episódio completo ao selecionar resultado filtrado', async () => {
-  const onEventClick = jest.fn();
+  const onEventClick = vi.fn();
   mockedGetEvents.mockResolvedValue({ data: recentEvents });
   render(<EventsTimeline onEventClick={onEventClick} />);
   await screen.findByText('3 de 3 episódios exibidos');

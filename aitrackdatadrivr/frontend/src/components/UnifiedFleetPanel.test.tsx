@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import UnifiedFleetPanel from './UnifiedFleetPanel';
@@ -40,7 +41,7 @@ const items: UnifiedFleetItem[] = [
 ];
 
 test('preserva a origem e não inventa score na visão unificada', () => {
-  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={jest.fn()} />);
+  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={vi.fn()} />);
 
   expect(screen.getByText('ABC-1D23')).toBeInTheDocument();
   expect(screen.getByText('Motorista Dirija Bem')).toBeInTheDocument();
@@ -52,7 +53,7 @@ test('preserva a origem e não inventa score na visão unificada', () => {
 });
 
 test('filtra por fonte sem perder a opção de visão conjunta', () => {
-  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={jest.fn()} />);
+  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={vi.fn()} />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Tracker (2)' }));
   expect(screen.getByText('ABC-1D23')).toBeInTheDocument();
@@ -65,7 +66,7 @@ test('filtra por fonte sem perder a opção de visão conjunta', () => {
 });
 
 test('informa o item e sua fonte ao selecionar', () => {
-  const onItemSelect = jest.fn();
+  const onItemSelect = vi.fn();
   render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={onItemSelect} />);
 
   fireEvent.click(screen.getByRole('button', { name: /Motorista Dirija Bem/ }));
@@ -74,7 +75,7 @@ test('informa o item e sua fonte ao selecionar', () => {
 });
 
 test('pesquisa por placa, device ID ou codusu ignorando acentos', () => {
-  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={jest.fn()} />);
+  render(<UnifiedFleetPanel items={items} selectedItemId={null} onItemSelect={vi.fn()} />);
   const search = screen.getByRole('searchbox', { name: 'Pesquisar frota unificada' });
 
   fireEvent.change(search, { target: { value: 'sim-1000' } });

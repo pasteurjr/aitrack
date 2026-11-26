@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
@@ -5,8 +6,8 @@ import { healthIntegrationService } from '../services/apiService';
 import HealthIntegrationsPanel from './HealthIntegrationsPanel';
 import { axe } from 'jest-axe';
 
-jest.mock('../services/apiService', () => ({
-  healthIntegrationService: { getAll: jest.fn() },
+vi.mock('../services/apiService', () => ({
+  healthIntegrationService: { getAll: vi.fn() },
 }));
 
 const mockedGetAll = healthIntegrationService.getAll as jest.Mock;
@@ -23,7 +24,7 @@ const integrations = {
   database: { status: 'healthy' },
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
 test('exibe loading enquanto consulta a API', () => {
   mockedGetAll.mockReturnValue(new Promise(() => undefined));

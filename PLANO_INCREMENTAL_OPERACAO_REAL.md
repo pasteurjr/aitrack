@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 25/11/2026 16:46 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 00:10 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `268ada8` — antes da UI-8.12, criado em 25/11/2026 16:45 -03
+**Checkpoint mais recente:** `7c14fbc` — antes da rodada de remediação R1, criado em 25/11/2026 16:52 -03
 
 **Etapas da rodada anterior:** 74/74 concluídas
 
-**Tarefas pendentes de remediação:** 8
+**Tarefas pendentes de remediação:** 7
 
 **Estado do piloto:** **NO-GO** até resolver os gates registrados em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`
 
@@ -170,7 +170,7 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Rodada de avaliação anterior concluída: 74 de 74.** A rodada pós-74 possui **8 tarefas de remediação pendentes**.
+**Rodada de avaliação anterior concluída: 74 de 74.** A rodada pós-74 possui **7 tarefas de remediação pendentes**; R1 foi concluída.
 
 A decisão do gate final foi **NO-GO**. O piloto não está liberado. A próxima execução está
 definida na seção 8 e as evidências de bloqueio na seção 7 e em
@@ -178,15 +178,15 @@ definida na seção 8 e as evidências de bloqueio na seção 7 e em
 
 ## 7. Rodada pós-74 — correção dos bloqueios do piloto
 
-A rodada original terminou em 74/74 com decisão NO-GO. A correção dos gates começa
-agora como uma rodada separada de **8 etapas**. O piloto permanece bloqueado até todas
+A rodada original terminou em 74/74 com decisão NO-GO. A correção dos gates começou
+como uma rodada separada de **8 etapas**. O piloto permanece bloqueado até todas
 as evidências obrigatórias serem aprovadas e a decisão final ser refeita. Cada etapa de
 engenharia será dividida em entregas revisáveis de até 30 minutos; exercícios de operação,
 revisões humanas e ações de infraestrutura dependem das pessoas responsáveis.
 
 | Etapa | ID | Ação | Critério de aceite e evidência exigida | Dependências / responsável | Estado |
 |---:|---|---|---|---|---|
-| 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os 16 achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Próxima** |
+| 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Concluída em 26/11/2026 00:10 -03.** Auditorias iniciais: App 1 com 3 críticas/37 altas/64 totais e App 2 com 16 altas/29 totais. `react-scripts` foi removido dos dois apps e substituído por Vite/Vitest; `VITE_*` adotado como padrão e compatibilidade explícita mantida para as duas variáveis `REACT_APP_*` antigas. Audits finais: zero achados nos dois apps. `npm ci`, testes (App 1: 1; App 2: 97), TypeScript, builds e preview HTTP passaram. **Limitação:** App 2 gera um chunk acima de 500 kB; há erro interno ao atualizar lockfile com npm 10, mas instalação limpa com `npm ci` passou. **Evidência:** `docs/VALIDACAO_R1_2026-11-26.md` e `docs/evidence/UI_R1_FRONTEND_AUDIT_2026-11-26.json`. **Checkpoint:** `7c14fbc`. |
 | 2/8 | R2 | Rotacionar credenciais históricas | DBA/infra revoga e substitui credenciais expostas; autenticação com credenciais novas provada sem registrar valores; credenciais antigas rejeitadas; scanner não encontra segredo ativo no working tree. Registrar somente identificadores mascarados, data e responsável. Avaliar limpeza do histórico após rotação, coordenando clones e consumidores antes de reescrever Git. | DBA/infra + dono do serviço; execução após identificar dependências sem exibir segredos. | Pendente |
 | 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; R1 e R2. | Pendente |
 | 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset rotulado e autorizado, separado por Tracker/Dirija Bem, classe, severidade e contexto; regra de pontuação não é gatilho único; publicar matriz de confusão, FPR/FNR por classe e intervalos/amostra; revisão humana das divergências; critérios de aceite aprovados antes de ajustar pesos. Casos críticos sem cobertura mantêm detector independente e bloqueiam autonomia daquela classe. | Produto/operação + engenharia de dados; aprovação de uso dos dados. | Pendente |
@@ -197,10 +197,9 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 
 ### Ordem e controle de risco
 
-- A próxima execução é **etapa 1 de 8 — R1: resolver vulnerabilidades altas do frontend**.
-- R1 começa com inventário atualizado e proposta de migração; não usar `npm audit fix --force`
-  sem revisar o diff e confirmar build. Se a correção demandar mudança de arquitetura, particionar
-  por app/rotas e preservar um build reproduzível em cada fatia.
+- R1 removeu o CRA dos dois apps e deixou `npm audit` sem achados. A atualização de
+  lockfiles deve usar `npm ci`; instalar/atualizar dependências precisa de npm 11.6.4 enquanto
+  npm 10.9.2 apresentar o erro interno de Arborist observado nesta etapa.
 - R2 exige coordenação com DBA/infra. Não publicar, copiar ou registrar valores de credenciais.
   Rotação e revogação precedem qualquer decisão de reescrever histórico.
 - R3, R5 e R7 ocorrem somente em homologação isolada; bancos reais e destinatários reais ficam
@@ -213,13 +212,13 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 
 | Data | Etapa | Resultado esperado | Resultado obtido / evidências | Limitações / próximo passo |
 |---|---|---|---|---|
-| 25/11/2026 | Plano R1–R8 | Converter cada bloqueio em tarefa ordenada, critério de aceite e responsável. | Plano criado; 8 etapas definidas, com gates de segurança, credenciais, DAST/TLS, detecção, agentes/canais, acessibilidade, operação e decisão. PDF regenerado e checado. | Nenhum bloqueio foi corrigido ainda. Próxima: R1. Piloto NO-GO. |
+| 25/11/2026 | Plano R1–R8 | Converter cada bloqueio em tarefa ordenada, critério de aceite e responsável. | Plano criado; 8 etapas definidas, com gates de segurança, credenciais, DAST/TLS, detecção, agentes/canais, acessibilidade, operação e decisão. PDF regenerado e checado. | Plano mantido. |
+| 26/11/2026 | R1 | Zerar vulnerabilidades críticas/altas dos dois frontends preservando comportamento. | CRA removido, Vite/Vitest configurados; npm audit zero nos dois; instalações limpas, 98 testes totais, TypeScript, builds e HTTP preview passaram. Evidência: `docs/VALIDACAO_R1_2026-11-26.md`. | Bundle App 2 >500 kB e atualização do lock via npm10 falha; `npm ci` passou. Próxima: R2. Piloto segue NO-GO. |
 
 ## 8. Próxima execução
 
-**Próxima etapa 1 de 8 — R1: resolver vulnerabilidades altas do frontend.**
+**Próxima etapa 2 de 8 — R2: rotacionar credenciais históricas.**
 
-O primeiro trabalho deve atualizar a auditoria de dependências e identificar a menor mudança
-suportada que elimina os 16 achados altos sem quebrar os dois frontends. O resultado dessa
-inspeção definirá as fatias de implementação; não se deve declarar o gate fechado até scanner,
-testes e builds apresentarem evidência atualizada.
+Coordenar com DBA/infra a revogação e substituição das credenciais encontradas em commits
+históricos. Registrar prova sem valores secretos; testar rejeição da credencial antiga e acesso
+com a nova. Não reescrever o histórico Git até avaliar impacto nos clones/consumidores.

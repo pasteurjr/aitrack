@@ -1,20 +1,21 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import EventsCatalog from './EventsCatalog';
 import MonitorDetailView from './MonitorDetailView';
 import { eventService, monitorService } from '../services/apiService';
 
-jest.mock('./MapComponent', () => () => <div data-testid="map" />);
-jest.mock('../services/apiService', () => ({
-  eventService: { getCatalog: jest.fn(), getStats: jest.fn(), getAll: jest.fn() },
-  monitorService: { getVehicles: jest.fn() },
+vi.mock('./MapComponent', () => ({ default: () => <div data-testid="map" /> }));
+vi.mock('../services/apiService', () => ({
+  eventService: { getCatalog: vi.fn(), getStats: vi.fn(), getAll: vi.fn() },
+  monitorService: { getVehicles: vi.fn() },
 }));
 
 const mockedEvents = eventService as jest.Mocked<typeof eventService>;
 const mockedMonitors = monitorService as jest.Mocked<typeof monitorService>;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockedEvents.getCatalog.mockResolvedValue({ data: [{
     id: 1, codigo: 'speeding', nome: 'Excesso de Velocidade',
     categoria: 'behavioral', severidade_padrao: 'high', icone: '🚨',

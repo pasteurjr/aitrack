@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 
-const baseURL = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5009/api').replace(/\/+$/, '');
+const baseURL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL || 'http://localhost:5009/api').replace(/\/+$/, '');
 
 export const apiClient = axios.create({ baseURL, timeout: 15000, withCredentials: true });
 

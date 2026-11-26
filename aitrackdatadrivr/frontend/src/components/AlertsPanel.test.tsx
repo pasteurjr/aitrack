@@ -1,21 +1,22 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { incidentService, unifiedVehicleService } from '../services/apiService';
 import AlertsPanel from './AlertsPanel';
 
-jest.mock('../services/apiService', () => ({
+vi.mock('../services/apiService', () => ({
   incidentService: {
-    getAll: jest.fn(),
-    getById: jest.fn(),
-    acknowledge: jest.fn(),
-    assume: jest.fn(),
-    comment: jest.fn(),
-    getClassificationCatalog: jest.fn(),
-    resolve: jest.fn(),
-    classifyFalsePositive: jest.fn(),
-    reportFalseNegative: jest.fn(),
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    acknowledge: vi.fn(),
+    assume: vi.fn(),
+    comment: vi.fn(),
+    getClassificationCatalog: vi.fn(),
+    resolve: vi.fn(),
+    classifyFalsePositive: vi.fn(),
+    reportFalseNegative: vi.fn(),
   },
-  unifiedVehicleService: { getAll: jest.fn() },
+  unifiedVehicleService: { getAll: vi.fn() },
 }));
 
 const mockedIncidentService = incidentService as jest.Mocked<typeof incidentService>;
@@ -63,7 +64,7 @@ const listResponse = (incidents: unknown[]) => ({
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   window.localStorage.clear();
   mockedIncidentService.getAll.mockResolvedValue(listResponse([]) as never);
   mockedIncidentService.acknowledge.mockResolvedValue({ data: {} } as never);
@@ -205,7 +206,7 @@ it('exige motivo e confirmação explícita para classificar falso positivo', as
       },
     },
   } as never);
-  const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
   render(<AlertsPanel />);
   fireEvent.click(await screen.findByText('Excesso de velocidade detectado'));

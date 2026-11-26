@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import AsyncDataState from './AsyncDataState';
@@ -17,7 +18,7 @@ describe('AsyncDataState', () => {
   });
 
   it('oferece nova tentativa quando a operação pode ser repetida', () => {
-    const onRetry = jest.fn();
+    const onRetry = vi.fn();
     render(<AsyncDataState variant="error" message="Falha" onRetry={onRetry} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));

@@ -1,10 +1,10 @@
 # Matriz da interface, endpoints, fontes e modos operacionais
 
 **Sistema:** AITrack + DataDrivr  
-**Atualizada em:** 17/11/2026 11:20 (`America/Sao_Paulo`)
+**Atualizada em:** 26/11/2026 00:10 (`America/Sao_Paulo`)
 **Frontend:** `aitrackdatadrivr/frontend`  
 **Backend:** `aitrackdatadrivr/server`  
-**Base da API:** `REACT_APP_API_BASE_URL` → `src/config/api.ts`
+**Base da API:** `VITE_API_BASE_URL` → `aitrackdatadrivr/frontend/src/config/api.ts` (App 2) e `frontend/src/apiClient.ts` (App 1).
 **Objetivo:** declarar, para cada bloco visual, endpoint, fonte, modo, efeito colateral e comportamento em erro.
 
 ## 1. Regras de interpretação

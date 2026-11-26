@@ -1,13 +1,14 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MonitorDashboard from './MonitorDashboard';
 import { monitorService } from '../services/apiService';
 
-jest.mock('../services/apiService', () => ({
+vi.mock('../services/apiService', () => ({
   monitorService: {
-    getAll: jest.fn(),
-    getById: jest.fn(),
-    getVehicles: jest.fn(),
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    getVehicles: vi.fn(),
   },
 }));
 
@@ -30,8 +31,8 @@ const monitor = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  vi.clearAllMocks();
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   mockedMonitorService.getAll.mockResolvedValue({ data: [monitor] } as any);
 });
 
@@ -46,8 +47,8 @@ test('mostra erro explícito quando os detalhes não podem ser consultados', asy
   render(
     <MonitorDashboard
       selectedMonitorId={1}
-      onMonitorSelect={jest.fn()}
-      onVehicleSelect={jest.fn()}
+      onMonitorSelect={vi.fn()}
+      onVehicleSelect={vi.fn()}
     />,
   );
 
@@ -67,8 +68,8 @@ test('permite tentar novamente após falha dos detalhes', async () => {
   render(
     <MonitorDashboard
       selectedMonitorId={1}
-      onMonitorSelect={jest.fn()}
-      onVehicleSelect={jest.fn()}
+      onMonitorSelect={vi.fn()}
+      onVehicleSelect={vi.fn()}
     />,
   );
 

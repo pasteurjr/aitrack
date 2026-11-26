@@ -1,0 +1,63 @@
+{
+  "stage": "R1",
+  "validated_at": "2026-11-26T00:10:00-03:00",
+  "node": "v22.16.0",
+  "npm_clean_install": "10.9.2",
+  "npm_lock_update": "11.6.4",
+  "tooling": {
+    "vite": "7.3.8",
+    "vitest": "4.1.12"
+  },
+  "apps": {
+    "app1": {
+      "directory": "frontend",
+      "audit_before": {
+        "critical": 3,
+        "high": 37,
+        "moderate": 13,
+        "low": 11,
+        "total": 64
+      },
+      "audit_after": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "total": 0
+      },
+      "tests": "1 passed",
+      "typecheck": "passed",
+      "production_build": "passed",
+      "clean_install": "npm ci passed",
+      "preview_http": "HTML and 2 assets returned 200",
+      "legacy_api_env": "verified",
+      "lock_sha256": "0ad15120857cd3f71c47110e0dc350115bc52615d077febdd9372a5bcea6edc4"
+    },
+    "app2": {
+      "directory": "aitrackdatadrivr/frontend",
+      "audit_before": {
+        "critical": 0,
+        "high": 16,
+        "moderate": 4,
+        "low": 9,
+        "total": 29
+      },
+      "audit_after": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "total": 0
+      },
+      "tests": "97 passed across 22 suites",
+      "typecheck": "passed",
+      "production_build": "passed with one chunk-size warning over 500 kB",
+      "clean_install": "npm ci passed",
+      "preview_http": "HTML and 2 assets returned 200",
+      "legacy_api_and_map_env": "verified",
+      "lock_sha256": "70571be634fbb83840df6487ff3f9eaacc5c311b93f7540e1320be553388deb4"
+    }
+  },
+  "legacy_environment_compatibility": "VITE_* preferred; explicit Vite envPrefix allowlists preserve REACT_APP_API_BASE_URL and REACT_APP_MAP_TILE_URL.",
+  "security_scope": "npm audit scans installed dependency trees; historical credential rotation and DAST/TLS remain separate gates R2/R3"
+}

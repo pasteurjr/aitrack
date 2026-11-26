@@ -1,11 +1,12 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import OperationModeBadge from './OperationModeBadge';
 import { resolveOperationMode } from '../config/operationMode';
 import { runtimeEnvironmentService } from '../services/apiService';
 
-jest.mock('../services/apiService', () => ({
-  runtimeEnvironmentService: { getCurrent: jest.fn() },
+vi.mock('../services/apiService', () => ({
+  runtimeEnvironmentService: { getCurrent: vi.fn() },
 }));
 
 const mockedGetCurrent = runtimeEnvironmentService.getCurrent as jest.Mock;
@@ -45,7 +46,7 @@ describe('resolveOperationMode', () => {
 });
 
 describe('OperationModeBadge', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it.each([
     ['production', 'PRODUÇÃO'],

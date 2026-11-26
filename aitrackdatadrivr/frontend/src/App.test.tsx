@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
@@ -9,36 +10,36 @@ const mockSelectedEpisode = {
   severity: 'critical', icon: '🛑', lat: -23.51, lon: -46.61, episode_id: 'ep-test',
 };
 
-jest.mock('./components/MapComponent', () => (props: any) => (
+vi.mock('./components/MapComponent', () => ({ default: (props: any) => (
   <div
     data-testid="map"
     data-selected-vehicle={props.selectedVehicleId ?? ''}
     data-highlighted-event={props.highlightedEvent?.episode_id ?? ''}
   />
-));
-jest.mock('./components/BehavioralDashboard', () => () => <div data-testid="dashboard" />);
-jest.mock('./components/EventsTimeline', () => (props: any) => (
+)}));
+vi.mock('./components/BehavioralDashboard', () => ({ default: () => <div data-testid="dashboard" /> }));
+vi.mock('./components/EventsTimeline', () => ({ default: (props: any) => (
   <button type="button" onClick={() => props.onEventClick(mockSelectedEpisode)}>Selecionar episódio de teste</button>
-));
-jest.mock('./components/VehicleAnalytics', () => () => <div />);
-jest.mock('./components/MonitorDashboard', () => () => <div />);
-jest.mock('./components/MonitorDetailView', () => () => <div />);
-jest.mock('./components/AgentConfigurationPanel', () => () => <div>Configuração de agentes</div>);
-jest.mock('./components/AgentRunsPanel', () => () => <div>Execuções de agentes</div>);
-jest.mock('./components/InternalNotificationsPanel', () => () => <div>Notificações internas</div>);
-jest.mock('./components/HealthIntegrationsPanel', () => () => <div>Painel de saúde</div>);
-jest.mock('./components/AlertsPanel', () => () => <div />);
-jest.mock('./components/EventsCatalog', () => () => <div />);
-jest.mock('./components/VehicleDetailHeader', () => (props: any) => (
+)}));
+vi.mock('./components/VehicleAnalytics', () => ({ default: () => <div /> }));
+vi.mock('./components/MonitorDashboard', () => ({ default: () => <div /> }));
+vi.mock('./components/MonitorDetailView', () => ({ default: () => <div /> }));
+vi.mock('./components/AgentConfigurationPanel', () => ({ default: () => <div>Configuração de agentes</div> }));
+vi.mock('./components/AgentRunsPanel', () => ({ default: () => <div>Execuções de agentes</div> }));
+vi.mock('./components/InternalNotificationsPanel', () => ({ default: () => <div>Notificações internas</div> }));
+vi.mock('./components/HealthIntegrationsPanel', () => ({ default: () => <div>Painel de saúde</div> }));
+vi.mock('./components/AlertsPanel', () => ({ default: () => <div /> }));
+vi.mock('./components/EventsCatalog', () => ({ default: () => <div /> }));
+vi.mock('./components/VehicleDetailHeader', () => ({ default: (props: any) => (
   props.selectedVehicleId
     ? <button type="button" onClick={props.onClear}>Fechar contexto de teste</button>
     : null
-));
-jest.mock('./components/VehicleSensorsPanel', () => (props: any) => (
+)}));
+vi.mock('./components/VehicleSensorsPanel', () => ({ default: (props: any) => (
   <div data-testid="sensors" data-selected-vehicle={props.selectedVehicleId ?? ''} />
-));
-jest.mock('./services/apiService', () => ({
-  runtimeEnvironmentService: { getCurrent: jest.fn() },
+)}));
+vi.mock('./services/apiService', () => ({
+  runtimeEnvironmentService: { getCurrent: vi.fn() },
 }));
 
 const mockedGetCurrent = runtimeEnvironmentService.getCurrent as jest.Mock;

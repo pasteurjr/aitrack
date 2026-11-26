@@ -5,4 +5,6 @@ export function resolveApiBaseUrl(value?: string): string {
   return (configuredValue || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
 }
 
-export const API_BASE_URL = resolveApiBaseUrl(process.env.REACT_APP_API_BASE_URL);
+export const API_BASE_URL = resolveApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL,
+);

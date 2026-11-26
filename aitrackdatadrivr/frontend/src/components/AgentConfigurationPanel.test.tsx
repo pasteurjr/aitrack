@@ -1,11 +1,12 @@
+import { vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AgentConfigurationPanel from './AgentConfigurationPanel';
 import { agentConfigurationService } from '../services/apiService';
 
-jest.mock('../services/apiService',()=>({agentConfigurationService:{getAgents:jest.fn(),getConfigurations:jest.fn(),getTools:jest.fn(),create:jest.fn(),addTool:jest.fn(),addAutonomy:jest.fn(),activate:jest.fn()}}));
+vi.mock('../services/apiService',()=>({agentConfigurationService:{getAgents:vi.fn(),getConfigurations:vi.fn(),getTools:vi.fn(),create:vi.fn(),addTool:vi.fn(),addAutonomy:vi.fn(),activate:vi.fn()}}));
 const api=agentConfigurationService as jest.Mocked<typeof agentConfigurationService>;
 
-beforeEach(()=>{jest.clearAllMocks();api.getAgents.mockResolvedValue({data:{schema_version:'x',count:1,agents:[{id:1,agent_key:'monitor-1',display_name:'Segurança',monitor_id:1,lifecycle_status:'active',version_count:0,active_config_id:null}]}} as any);api.getConfigurations.mockResolvedValue({data:{schema_version:'x',count:0,configurations:[]}} as any);api.getTools.mockResolvedValue({data:{schema_version:'x',tools:['vehicle.get']}} as any)});
+beforeEach(()=>{vi.clearAllMocks();api.getAgents.mockResolvedValue({data:{schema_version:'x',count:1,agents:[{id:1,agent_key:'monitor-1',display_name:'Segurança',monitor_id:1,lifecycle_status:'active',version_count:0,active_config_id:null}]}} as any);api.getConfigurations.mockResolvedValue({data:{schema_version:'x',count:0,configurations:[]}} as any);api.getTools.mockResolvedValue({data:{schema_version:'x',tools:['vehicle.get']}} as any)});
 
 test('shows persisted empty state and versioned form without model defaults',async()=>{render(<AgentConfigurationPanel/>);expect(await screen.findByText('Nenhuma configuração foi criada.')).toBeInTheDocument();expect(screen.getByPlaceholderText('anthropic ou openai')).toHaveValue('');expect(screen.getByText(/Nenhum modelo é chamado/)).toBeInTheDocument()});
 

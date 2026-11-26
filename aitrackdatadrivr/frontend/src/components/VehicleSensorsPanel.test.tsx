@@ -1,13 +1,14 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import VehicleSensorsPanel from './VehicleSensorsPanel';
 import { detectorPolicyService, securityStateService, sensorService, unifiedVehicleService } from '../services/apiService';
 
-jest.mock('../services/apiService', () => ({
-  sensorService: { getByVehicle: jest.fn(), getEpisodes: jest.fn() },
-  detectorPolicyService: { getAll: jest.fn(), activate: jest.fn() },
-  securityStateService: { getByVehicle: jest.fn(), transition: jest.fn() },
-  unifiedVehicleService: { getAll: jest.fn() },
+vi.mock('../services/apiService', () => ({
+  sensorService: { getByVehicle: vi.fn(), getEpisodes: vi.fn() },
+  detectorPolicyService: { getAll: vi.fn(), activate: vi.fn() },
+  securityStateService: { getByVehicle: vi.fn(), transition: vi.fn() },
+  unifiedVehicleService: { getAll: vi.fn() },
 }));
 
 const getFleet = unifiedVehicleService.getAll as jest.Mock;
@@ -76,7 +77,7 @@ const disarmedState = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   getFleet.mockResolvedValue(fleet);
   getSensors.mockResolvedValue(sensors);
   getPolicies.mockResolvedValue({ data: { schema_version: 'detector-policies.v1', count: 0, policies: [] } });
@@ -184,7 +185,7 @@ test('vazio não transforma evento Dirija Bem em sensor físico', async () => {
 });
 
 test('falha é explícita e permite tentar novamente', async () => {
-  const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   getSensors.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(sensors);
   render(<VehicleSensorsPanel selectedVehicleId="SIM-1000" selectedUserId={null} />);
 

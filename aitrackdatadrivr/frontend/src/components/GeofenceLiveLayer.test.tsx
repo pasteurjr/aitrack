@@ -1,20 +1,21 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GeofenceLiveLayer from './GeofenceLiveLayer';
 import { geofenceService } from '../services/apiService';
 
 
-jest.mock('leaflet', () => ({
+vi.mock('leaflet', () => ({
   __esModule: true,
   default: {
     DomEvent: {
-      disableClickPropagation: jest.fn(),
-      disableScrollPropagation: jest.fn(),
+      disableClickPropagation: vi.fn(),
+      disableScrollPropagation: vi.fn(),
     },
   },
 }));
 
-jest.mock('react-leaflet', () => ({
+vi.mock('react-leaflet', () => ({
   useMap: () => ({ getContainer: () => global.document.body }),
   Circle: ({ children }: any) => <div data-testid="live-circle">{children}</div>,
   CircleMarker: ({ children }: any) => <div data-testid="live-state-marker">{children}</div>,
@@ -22,8 +23,8 @@ jest.mock('react-leaflet', () => ({
   Popup: ({ children }: any) => <div>{children}</div>,
 }));
 
-jest.mock('../services/apiService', () => ({
-  geofenceService: { getLiveState: jest.fn() },
+vi.mock('../services/apiService', () => ({
+  geofenceService: { getLiveState: vi.fn() },
 }));
 
 const mockedGetLiveState = geofenceService.getLiveState as jest.Mock;
@@ -85,7 +86,7 @@ const response = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockedGetLiveState.mockResolvedValue(response);
 });
 

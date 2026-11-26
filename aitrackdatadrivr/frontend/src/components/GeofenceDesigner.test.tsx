@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GeofenceDesigner, { draftToApiGeometry } from './GeofenceDesigner';
@@ -6,27 +7,27 @@ import { axe } from 'jest-axe';
 
 let mockMapHandlers: Record<string, (event: any) => void> = {};
 const mockDoubleClickZoom = {
-  enabled: jest.fn(() => true),
-  disable: jest.fn(),
-  enable: jest.fn(),
+  enabled: vi.fn(() => true),
+  disable: vi.fn(),
+  enable: vi.fn(),
 };
 const mockMap = {
   getContainer: () => document.body,
-  distance: jest.fn(() => 250),
+  distance: vi.fn(() => 250),
   doubleClickZoom: mockDoubleClickZoom,
 };
 
-jest.mock('leaflet', () => ({
+vi.mock('leaflet', () => ({
   __esModule: true,
   default: {
     DomEvent: {
-      disableClickPropagation: jest.fn(),
-      disableScrollPropagation: jest.fn(),
+      disableClickPropagation: vi.fn(),
+      disableScrollPropagation: vi.fn(),
     },
   },
 }));
 
-jest.mock('react-leaflet', () => ({
+vi.mock('react-leaflet', () => ({
   useMap: () => mockMap,
   useMapEvents: (handlers: Record<string, (event: any) => void>) => {
     mockMapHandlers = handlers;
@@ -39,18 +40,18 @@ jest.mock('react-leaflet', () => ({
   Popup: ({ children }: any) => <div>{children}</div>,
 }));
 
-jest.mock('../services/apiService', () => ({
+vi.mock('../services/apiService', () => ({
   geofenceService: {
-    getAll: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    archive: jest.fn(),
-    getAssignmentOptions: jest.fn(),
-    getAssignments: jest.fn(),
-    assign: jest.fn(),
-    updateAssignment: jest.fn(),
-    deactivateAssignment: jest.fn(),
-    createGroup: jest.fn(),
+    getAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    archive: vi.fn(),
+    getAssignmentOptions: vi.fn(),
+    getAssignments: vi.fn(),
+    assign: vi.fn(),
+    updateAssignment: vi.fn(),
+    deactivateAssignment: vi.fn(),
+    createGroup: vi.fn(),
   },
 }));
 
@@ -59,7 +60,7 @@ const mockedService = geofenceService as jest.Mocked<typeof geofenceService>;
 beforeEach(() => {
   window.localStorage.clear();
   mockMapHandlers = {};
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockMap.distance.mockReturnValue(250);
   mockDoubleClickZoom.enabled.mockReturnValue(true);
   mockedService.getAll.mockResolvedValue({
@@ -276,7 +277,7 @@ test('arquiva sem apagar e exige confirmação do operador', async () => {
       }],
     },
   } as any);
-  jest.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
   render(<GeofenceDesigner />);
   fireEvent.click(screen.getByRole('button', { name: /criar cerca/i }));
   await screen.findByText('1 cadastrada(s)');
