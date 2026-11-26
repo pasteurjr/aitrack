@@ -1,0 +1,700 @@
+{
+  "schema_version": "behavior-score-evaluation.v2",
+  "dataset_version": "behavior-score-golden.v2",
+  "dataset_kind": "synthetic_golden_cases_not_real_world_performance_evidence",
+  "limitations": [
+    "Casos sintéticos determinísticos; não são amostra aleatória de viagens reais.",
+    "Rótulos de intervenção são referência de avaliação do cenário e ainda requerem revisão independente por operação.",
+    "As métricas não representam estimativa de produção; intervalos refletem apenas incerteza amostral binomial e são amplos com estes poucos casos."
+  ],
+  "case_count": 17,
+  "intervention_threshold": 70.0,
+  "confusion": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 7,
+    "tn": 7
+  },
+  "metrics": {
+    "mean_absolute_score_error": 0.0,
+    "max_absolute_score_error": 0.0,
+    "positive_cases": 10,
+    "negative_cases": 7,
+    "false_negative_rate": 0.7,
+    "false_negative_rate_ci95": [
+      0.3968,
+      0.8922
+    ],
+    "false_positive_rate": 0.0,
+    "false_positive_rate_ci95": [
+      0.0,
+      0.3543
+    ]
+  },
+  "group_metrics": {
+    "tracker": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 3,
+      "tn": 5,
+      "positive_cases": 4,
+      "negative_cases": 5,
+      "false_negative_rate": 0.75,
+      "false_negative_rate_ci95": [
+        0.3006,
+        0.9544
+      ],
+      "false_positive_rate": 0.0,
+      "false_positive_rate_ci95": [
+        0.0,
+        0.4345
+      ]
+    },
+    "dirijabem": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 4,
+      "tn": 2,
+      "positive_cases": 6,
+      "negative_cases": 2,
+      "false_negative_rate": 0.6666666666666666,
+      "false_negative_rate_ci95": [
+        0.3,
+        0.9032
+      ],
+      "false_positive_rate": 0.0,
+      "false_positive_rate_ci95": [
+        0.0,
+        0.6576
+      ]
+    }
+  },
+  "stratified_metrics": {
+    "source": {
+      "tracker": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 3,
+        "tn": 5,
+        "positive_cases": 4,
+        "negative_cases": 5,
+        "false_negative_rate": 0.75,
+        "false_negative_rate_ci95": [
+          0.3006,
+          0.9544
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.4345
+        ]
+      },
+      "dirijabem": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 4,
+        "tn": 2,
+        "positive_cases": 6,
+        "negative_cases": 2,
+        "false_negative_rate": 0.6666666666666666,
+        "false_negative_rate_ci95": [
+          0.3,
+          0.9032
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.6576
+        ]
+      }
+    },
+    "event_class": {
+      "no_event": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "harsh_brake": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 5,
+        "tn": 2,
+        "positive_cases": 8,
+        "negative_cases": 2,
+        "false_negative_rate": 0.625,
+        "false_negative_rate_ci95": [
+          0.3057,
+          0.8632
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.6576
+        ]
+      },
+      "speeding": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 1,
+        "tn": 1,
+        "positive_cases": 1,
+        "negative_cases": 1,
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci95": [
+          0.2065,
+          1.0
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "harsh_accel": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "sharp_turn": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "mixed": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 1,
+        "tn": 0,
+        "positive_cases": 1,
+        "negative_cases": 0,
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci95": [
+          0.2065,
+          1.0
+        ],
+        "false_positive_rate": null,
+        "false_positive_rate_ci95": null
+      },
+      "unknown": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      }
+    },
+    "severity": {
+      "none": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "high": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 4,
+        "tn": 2,
+        "positive_cases": 5,
+        "negative_cases": 2,
+        "false_negative_rate": 0.8,
+        "false_negative_rate_ci95": [
+          0.3755,
+          0.9638
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.6576
+        ]
+      },
+      "critical": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 3,
+        "tn": 1,
+        "positive_cases": 5,
+        "negative_cases": 1,
+        "false_negative_rate": 0.6,
+        "false_negative_rate_ci95": [
+          0.2307,
+          0.8824
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "medium": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "positive_cases": 0,
+        "negative_cases": 2,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.6576
+        ]
+      },
+      "low": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      }
+    },
+    "context": {
+      "urban": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 5,
+        "tn": 5,
+        "positive_cases": 8,
+        "negative_cases": 5,
+        "false_negative_rate": 0.625,
+        "false_negative_rate_ci95": [
+          0.3057,
+          0.8632
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.4345
+        ]
+      },
+      "highway": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 1,
+        "tn": 1,
+        "positive_cases": 1,
+        "negative_cases": 1,
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci95": [
+          0.2065,
+          1.0
+        ],
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      },
+      "mixed": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 1,
+        "tn": 0,
+        "positive_cases": 1,
+        "negative_cases": 0,
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci95": [
+          0.2065,
+          1.0
+        ],
+        "false_positive_rate": null,
+        "false_positive_rate_ci95": null
+      },
+      "unknown": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "positive_cases": 0,
+        "negative_cases": 1,
+        "false_negative_rate": null,
+        "false_negative_rate_ci95": null,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci95": [
+          0.0,
+          0.7935
+        ]
+      }
+    }
+  },
+  "blocked_autonomy_classes": [
+    "harsh_brake",
+    "mixed",
+    "speeding"
+  ],
+  "passed": false,
+  "operational_recommendation": "do_not_use_score_as_sole_trigger",
+  "results": [
+    {
+      "id": "S01",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "actual_score": 100.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S02",
+      "source": "dirijabem",
+      "profile": "highway",
+      "expected_score": 100.0,
+      "actual_score": 100.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S03",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "actual_score": 100.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S04",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 98.0,
+      "actual_score": 98.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S05",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 98.0,
+      "actual_score": 98.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S06",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "actual_score": 95.5,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S07",
+      "source": "tracker",
+      "profile": "highway",
+      "expected_score": 98.0,
+      "actual_score": 98.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S08",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 94.0,
+      "actual_score": 94.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S09",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 86.5,
+      "actual_score": 86.5,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S10",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 68.5,
+      "actual_score": 68.5,
+      "score_error": 0.0,
+      "band": "attention",
+      "requires_intervention": true,
+      "predicted_intervention": true,
+      "outcome": "tp"
+    },
+    {
+      "id": "S11",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "actual_score": 95.5,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S12",
+      "source": "dirijabem",
+      "profile": "mixed",
+      "expected_score": 86.0,
+      "actual_score": 86.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S13",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 52.0,
+      "actual_score": 52.0,
+      "score_error": 0.0,
+      "band": "attention",
+      "requires_intervention": true,
+      "predicted_intervention": true,
+      "outcome": "tp"
+    },
+    {
+      "id": "S14",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 46.0,
+      "actual_score": 46.0,
+      "score_error": 0.0,
+      "band": "critical",
+      "requires_intervention": true,
+      "predicted_intervention": true,
+      "outcome": "tp"
+    },
+    {
+      "id": "S15",
+      "source": "tracker",
+      "profile": "unknown",
+      "expected_score": 99.0,
+      "actual_score": 99.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    },
+    {
+      "id": "S16",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "actual_score": 95.5,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": true,
+      "predicted_intervention": false,
+      "outcome": "fn"
+    },
+    {
+      "id": "S17",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "actual_score": 100.0,
+      "score_error": 0.0,
+      "band": "safe",
+      "requires_intervention": false,
+      "predicted_intervention": false,
+      "outcome": "tn"
+    }
+  ],
+  "review_of_false_negatives": {
+    "review_type": "inspection tecnica dos cenarios sinteticos; sem aceite por operador independente",
+    "cases": [
+      {
+        "case_id": "S06",
+        "source": "dirijabem",
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban",
+        "expected_score": 95.5,
+        "score": 95.5,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_brake"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S07",
+        "source": "tracker",
+        "event_class": "speeding",
+        "severity": "critical",
+        "context": "highway",
+        "expected_score": 98.0,
+        "score": 98.0,
+        "threshold": 70.0,
+        "event_types": [
+          "speeding"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S08",
+        "source": "dirijabem",
+        "event_class": "harsh_brake",
+        "severity": "critical",
+        "context": "urban",
+        "expected_score": 94.0,
+        "score": 94.0,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_brake"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S09",
+        "source": "tracker",
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban",
+        "expected_score": 86.5,
+        "score": 86.5,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_brake"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S11",
+        "source": "tracker",
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban",
+        "expected_score": 95.5,
+        "score": 95.5,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_brake"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S12",
+        "source": "dirijabem",
+        "event_class": "mixed",
+        "severity": "critical",
+        "context": "mixed",
+        "expected_score": 86.0,
+        "score": 86.0,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_accel",
+          "harsh_brake",
+          "sharp_turn",
+          "speeding"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      },
+      {
+        "case_id": "S16",
+        "source": "dirijabem",
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban",
+        "expected_score": 95.5,
+        "score": 95.5,
+        "threshold": 70.0,
+        "event_types": [
+          "harsh_brake"
+        ],
+        "review": "Cenário rotulado para intervenção, mas o score fica acima do limite; manter detector do evento e revisão humana independentes do score."
+      }
+    ]
+  },
+  "interpretation": {
+    "decision": "FAIL: não usar o score como gatilho único nem autorizar autonomia por essas classes.",
+    "scope": "Somente fórmula de score no dataset sintético versionado; não mede taxa real dos simuladores, frota ou LLM.",
+    "next": "Operação deve revisar os rótulos dos sete casos FN antes de qualquer ajuste de pesos; preservar a detecção independente de freada, velocidade e cenários mistos."
+  }
+}

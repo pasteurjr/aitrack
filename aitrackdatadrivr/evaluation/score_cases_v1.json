@@ -1,24 +1,467 @@
 {
-  "schema_version": "behavior-score-golden.v1",
+  "schema_version": "behavior-score-golden.v2",
   "reference_time": "2026-11-25T12:00:00+00:00",
   "intervention_threshold": 70.0,
   "cases": [
-    {"id":"S01","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[]},
-    {"id":"S02","source":"dirijabem","profile":"highway","expected_score":100.0,"requires_intervention":false,"events":[{"type":"harsh_brake","severity":"high","age_seconds":7200}]},
-    {"id":"S03","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[{"type":"speeding","severity":"critical","age_seconds":-10}]},
-    {"id":"S04","source":"dirijabem","profile":"urban","expected_score":98.0,"requires_intervention":false,"events":[{"type":"harsh_accel","severity":"medium","age_seconds":300}]},
-    {"id":"S05","source":"tracker","profile":"urban","expected_score":98.0,"requires_intervention":false,"events":[{"type":"sharp_turn","severity":"medium","age_seconds":300}]},
-    {"id":"S06","source":"dirijabem","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":300}]},
-    {"id":"S07","source":"tracker","profile":"highway","expected_score":98.0,"requires_intervention":true,"events":[{"type":"speeding","severity":"critical","age_seconds":300}]},
-    {"id":"S08","source":"dirijabem","profile":"urban","expected_score":94.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":300}]},
-    {"id":"S09","source":"tracker","profile":"urban","expected_score":86.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100},{"type":"harsh_brake","severity":"high","age_seconds":200},{"type":"harsh_brake","severity":"high","age_seconds":300}]},
-    {"id":"S10","source":"dirijabem","profile":"urban","expected_score":68.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100},{"type":"harsh_brake","severity":"high","age_seconds":200},{"type":"harsh_brake","severity":"high","age_seconds":300},{"type":"harsh_brake","severity":"high","age_seconds":400},{"type":"harsh_brake","severity":"high","age_seconds":500},{"type":"harsh_brake","severity":"high","age_seconds":600},{"type":"harsh_brake","severity":"high","age_seconds":700}]},
-    {"id":"S11","source":"tracker","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":100,"episode_id":"same"},{"type":"harsh_brake","severity":"high","age_seconds":200,"episode_id":"same"}]},
-    {"id":"S12","source":"dirijabem","profile":"mixed","expected_score":86.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_accel","severity":"high","age_seconds":200},{"type":"sharp_turn","severity":"high","age_seconds":300},{"type":"speeding","severity":"critical","age_seconds":400}]},
-    {"id":"S13","source":"tracker","profile":"urban","expected_score":52.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_brake","severity":"critical","age_seconds":200},{"type":"harsh_brake","severity":"critical","age_seconds":300},{"type":"harsh_brake","severity":"critical","age_seconds":400},{"type":"harsh_brake","severity":"critical","age_seconds":500},{"type":"harsh_brake","severity":"critical","age_seconds":600},{"type":"harsh_brake","severity":"critical","age_seconds":700},{"type":"harsh_brake","severity":"critical","age_seconds":800}]},
-    {"id":"S14","source":"dirijabem","profile":"urban","expected_score":46.0,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"critical","age_seconds":100},{"type":"harsh_brake","severity":"critical","age_seconds":200},{"type":"harsh_brake","severity":"critical","age_seconds":300},{"type":"harsh_brake","severity":"critical","age_seconds":400},{"type":"harsh_brake","severity":"critical","age_seconds":500},{"type":"harsh_brake","severity":"critical","age_seconds":600},{"type":"harsh_brake","severity":"critical","age_seconds":700},{"type":"harsh_brake","severity":"critical","age_seconds":800},{"type":"harsh_brake","severity":"critical","age_seconds":900}]},
-    {"id":"S15","source":"tracker","profile":"unknown","expected_score":99.0,"requires_intervention":false,"events":[{"type":"unknown","severity":"low","age_seconds":300}]},
-    {"id":"S16","source":"dirijabem","profile":"urban","expected_score":95.5,"requires_intervention":true,"events":[{"type":"harsh_brake","severity":"high","age_seconds":3600}]},
-    {"id":"S17","source":"tracker","profile":"urban","expected_score":100.0,"requires_intervention":false,"events":[{"type":"harsh_brake","severity":"high","age_seconds":3601}]}
+    {
+      "id": "S01",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "requires_intervention": false,
+      "events": [],
+      "labels": {
+        "event_class": "no_event",
+        "severity": "none",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S02",
+      "source": "dirijabem",
+      "profile": "highway",
+      "expected_score": 100.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 7200
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "highway"
+      }
+    },
+    {
+      "id": "S03",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "speeding",
+          "severity": "critical",
+          "age_seconds": -10
+        }
+      ],
+      "labels": {
+        "event_class": "speeding",
+        "severity": "critical",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S04",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 98.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "harsh_accel",
+          "severity": "medium",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_accel",
+        "severity": "medium",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S05",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 98.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "sharp_turn",
+          "severity": "medium",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "sharp_turn",
+        "severity": "medium",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S06",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S07",
+      "source": "tracker",
+      "profile": "highway",
+      "expected_score": 98.0,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "speeding",
+          "severity": "critical",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "speeding",
+        "severity": "critical",
+        "context": "highway"
+      }
+    },
+    {
+      "id": "S08",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 94.0,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "critical",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S09",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 86.5,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 100
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 200
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S10",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 68.5,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 100
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 200
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 300
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 400
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 500
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 600
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 700
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S11",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 100,
+          "episode_id": "same"
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 200,
+          "episode_id": "same"
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S12",
+      "source": "dirijabem",
+      "profile": "mixed",
+      "expected_score": 86.0,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 100
+        },
+        {
+          "type": "harsh_accel",
+          "severity": "high",
+          "age_seconds": 200
+        },
+        {
+          "type": "sharp_turn",
+          "severity": "high",
+          "age_seconds": 300
+        },
+        {
+          "type": "speeding",
+          "severity": "critical",
+          "age_seconds": 400
+        }
+      ],
+      "labels": {
+        "event_class": "mixed",
+        "severity": "critical",
+        "context": "mixed"
+      }
+    },
+    {
+      "id": "S13",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 52.0,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 100
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 200
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 300
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 400
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 500
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 600
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 700
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 800
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "critical",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S14",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 46.0,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 100
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 200
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 300
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 400
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 500
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 600
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 700
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 800
+        },
+        {
+          "type": "harsh_brake",
+          "severity": "critical",
+          "age_seconds": 900
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "critical",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S15",
+      "source": "tracker",
+      "profile": "unknown",
+      "expected_score": 99.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "unknown",
+          "severity": "low",
+          "age_seconds": 300
+        }
+      ],
+      "labels": {
+        "event_class": "unknown",
+        "severity": "low",
+        "context": "unknown"
+      }
+    },
+    {
+      "id": "S16",
+      "source": "dirijabem",
+      "profile": "urban",
+      "expected_score": 95.5,
+      "requires_intervention": true,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 3600
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    },
+    {
+      "id": "S17",
+      "source": "tracker",
+      "profile": "urban",
+      "expected_score": 100.0,
+      "requires_intervention": false,
+      "events": [
+        {
+          "type": "harsh_brake",
+          "severity": "high",
+          "age_seconds": 3601
+        }
+      ],
+      "labels": {
+        "event_class": "harsh_brake",
+        "severity": "high",
+        "context": "urban"
+      }
+    }
+  ],
+  "dataset_kind": "synthetic_golden_cases_not_real_world_performance_evidence",
+  "limitations": [
+    "Casos sintéticos determinísticos; não são amostra aleatória de viagens reais.",
+    "Rótulos de intervenção são referência de avaliação do cenário e ainda requerem revisão independente por operação.",
+    "As métricas não representam estimativa de produção; intervalos refletem apenas incerteza amostral binomial e são amplos com estes poucos casos."
   ]
 }

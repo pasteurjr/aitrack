@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 26/11/2026 10:59 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 11:05 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `28ade09` — antes da validação local R3, criado em 26/11/2026 03:00 -03
+**Checkpoint pré-R4:** `5a39921` — etapa iniciada após auditoria local R3, em 26/11/2026.
 
 **Etapas da rodada anterior:** 74/74 concluídas
 
-**Tarefas pendentes de remediação:** 6 (R2 dispensada pelo proprietário; exposição histórica permanece)
+**Próximas etapas de execução:** 4 (R5–R8). R2 foi dispensada para testes; a exposição histórica permanece. R4 foi medida e reprovou o score como gatilho único.
 
 **Estado do piloto:** **NO-GO** até resolver os gates registrados em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`
 
@@ -179,10 +179,10 @@ definida na seção 8 e as evidências de bloqueio na seção 7 e em
 ## 7. Rodada pós-74 — correção dos bloqueios do piloto
 
 A rodada original terminou em 74/74 com decisão NO-GO. A correção dos gates começou
-como uma rodada separada de **8 etapas**. R2 foi dispensada pelo proprietário para este ambiente
-de testes; a credencial compartilhada e sua exposição histórica permanecem. Isso não equivale a
-remediação nem libera produção. O piloto permanece NO-GO até as evidências obrigatórias restantes
-serem aprovadas e a decisão final ser refeita. Cada etapa de
+como uma rodada separada de **8 etapas**. R2 foi dispensada pelo proprietário para este ambiente de testes; a credencial compartilhada e sua
+exposição histórica permanecem. R3 foi encerrada somente para testes locais simulados; DAST/TLS
+remotos ficam como gate de implantação real. R4 foi medida e reprovou o score como gatilho único.
+O piloto permanece NO-GO até os gates restantes serem aprovados e a decisão ser refeita. Cada etapa de
 engenharia será dividida em entregas revisáveis de até 30 minutos; exercícios de operação,
 revisões humanas e ações de infraestrutura dependem das pessoas responsáveis.
 
@@ -190,8 +190,8 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 |---:|---|---|---|---|---|
 | 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Concluída em 26/11/2026 00:10 -03.** Auditorias iniciais: App 1 com 3 críticas/37 altas/64 totais e App 2 com 16 altas/29 totais. `react-scripts` foi removido dos dois apps e substituído por Vite/Vitest; `VITE_*` adotado como padrão e compatibilidade explícita mantida para as duas variáveis `REACT_APP_*` antigas. Audits finais: zero achados nos dois apps. `npm ci`, testes (App 1: 1; App 2: 97), TypeScript, builds e preview HTTP passaram. **Limitação:** App 2 gera um chunk acima de 500 kB; há erro interno ao atualizar lockfile com npm 10, mas instalação limpa com `npm ci` passou. **Evidência:** `docs/VALIDACAO_R1_2026-11-26.md` e `docs/evidence/UI_R1_FRONTEND_AUDIT_2026-11-26.json`. **Checkpoint:** `7c14fbc`; **implementação:** `cc984e4`. |
 | 2/8 | R2 | Rotacionar credenciais históricas | Critério original: identidade dedicada, inventário dos consumidores, teste de escopo e revogação da credencial antiga. | DBA/infra + donos dos sistemas que compartilham a conta global. | **Dispensada pelo proprietário para este ambiente de testes; não executada.** As configurações locais ignoradas compartilham uma credencial global, e o inventário encontrou o valor ativo em 177 blobs alcançáveis/18 caminhos. O working tree atual foi redigido, mas isso não remove o histórico Git nem elimina a exposição. Por instrução explícita, nenhuma credencial será alterada e nenhum acesso/mudança no banco será feito. A dispensa não atende ao critério original, não é correção de segurança e não autoriza produção. **Evidência:** `docs/VALIDACAO_R2_2026-11-26.md` e `docs/evidence/UI_R2_CREDENTIAL_INVENTORY_2026-11-26.json`. |
-| 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; alvo HTTPS homologado. | **Validação local parcial.** 87 testes passaram com DB/rede bloqueados. Bandit 1.9.4 analisou 14.144 linhas: 0 altos, 40 médios (39 B608 SQL dinâmico pendentes de revisão integral e 1 listener em 0.0.0.0) e 6 baixos (B110). `pip-audit`: 11 dependências, zero vulnerabilidades conhecidas. DAST autenticado/TLS remoto pendentes: sem alvo HTTPS isolado/contas sintéticas. Sem acesso ao banco nem alteração de credenciais. R2 dispensada para testes não significa credencial segura. Evidências: `docs/PREPARO_R3_DAST_TLS_2026-11-26.md`, `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json` e `docs/evidence/UI_R3_STATIC_AUDIT_2026-11-26.json`. **Checkpoint pré-auditoria:** `a3141ab`. |
-| 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset rotulado e autorizado, separado por Tracker/Dirija Bem, classe, severidade e contexto; regra de pontuação não é gatilho único; publicar matriz de confusão, FPR/FNR por classe e intervalos/amostra; revisão humana das divergências; critérios de aceite aprovados antes de ajustar pesos. Casos críticos sem cobertura mantêm detector independente e bloqueiam autonomia daquela classe. | Produto/operação + engenharia de dados; aprovação de uso dos dados. | Pendente |
+| 3/8 | R3 | Validar segurança no escopo simulado | Para o escopo local: testes de regressão de auth/RBAC/incidentes/cercas/ações, análise estática e dependências; registrar limitações. Para operação publicada: DAST autenticado e TLS no alvo real. | Engenharia; infraestrutura para futura publicação. | **Concluída apenas no escopo de simulação local, conforme esclarecimento do proprietário.** 87 testes locais passaram com rede/MySQL bloqueados; Bandit: 0 altos, 40 médios, 6 baixos; pip-audit: 11 dependências sem vulnerabilidades conhecidas. Nenhum HTTPS novo é necessário para os simuladores locais. DAST/TLS remotos ficam adiados até uma implantação e continuam gate de produção; os 40 avisos médios não foram todos corrigidos. Evidências: `docs/PREPARO_R3_DAST_TLS_2026-11-26.md` e JSONs R3. **Checkpoint:** `5a39921`. |
+| 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset sintético rotulado por fonte/classe/severidade/contexto; matriz, FPR/FNR e IC 95%; revisão de divergências; score não deve ser gatilho único. | Engenharia; revisão operacional antes de qualquer ajuste/autonomia real. | **Medição técnica concluída; resultado reprovado para uso do score como gatilho.** 17 casos: TP=3, FP=0, FN=7, TN=7; FNR 70% (IC95% 39,68–89,22%), FPR observada 0% (IC95% 0–35,43%). Tracker FNR 75%; Dirija Bem 66,67%; severidade alta 80%, crítica 60%. Classes com autonomia bloqueada: `harsh_brake`, `speeding`, `mixed`. Nenhum peso foi ajustado. Revisão técnica dos 7 FN anexada; revisão independente pela operação ainda exigida antes de autonomia/ajuste real. Evidência: `docs/VALIDACAO_R4_2026-11-26.md` e `docs/evidence/UI_R4_SYNTHETIC_SCORE_EVALUATION_2026-11-26.json`. Testes: 7 passaram. **Checkpoint:** `5a39921`. |
 | 5/8 | R5 | Homologar agentes e canais em sandbox | Agentes exercitam reconhecer, consultar contexto, decidir, redigir mensagem, respeitar consentimento/horário/limites, pedir aprovação quando exigido, registrar ação e transferir para humano. Provedores de mensagem/voz exclusivamente em sandbox; verificar idempotência, rate limit, timeout, fallback e zero destinatários reais. LLM gera proposta estruturada; política determinística autoriza efeitos. | Engenharia + operação; sandbox e R4 para limites por evento. | Pendente |
 | 6/8 | R6 | Homologar acessibilidade dos fluxos críticos | Operador percorre login, lista/detalhe de veículo, incidente, cerca circular/poligonal e painel de saúde por teclado e leitor de tela; contraste medido em estados normal/erro/foco; defeitos corrigidos; relatório com navegador, tecnologia assistiva, critérios WCAG 2.2 AA aplicáveis e evidências. | QA/acessibilidade + operador; build estável. | Pendente |
 | 7/8 | R7 | Executar exercício operacional e recuperação | Dois operadores e um supervisor executam playbooks sem ajuda do autor; provar reinício, rollback, backup/restauração e reconciliação em homologação; medir tempos contra RTO/RPO aprovados; verificar filas, incidentes e ações sem perda/duplicação; registrar observações e correções. | Operação + DBA/infra; R3 e R5. | Pendente |
@@ -205,8 +205,9 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 - R2 foi dispensada pelo proprietário somente neste ambiente de testes. Não publicar, copiar ou
   registrar valores de credenciais. A credencial/histórico permanecem expostos; a dispensa não
   constitui remediação nem libera produção.
-- R3, R5 e R7 ocorrem somente em homologação isolada; bancos reais e destinatários reais ficam
-  fora dos testes de segurança e de agentes.
+- R3 offline pode validar a simulação local. DAST autenticado/TLS só se aplicam ao serviço publicado
+  e continuam gate pré-produção. R5/R7 com integrações externas exigem sandbox; nunca usar destinatários
+  ou frota reais em testes.
 - R4 exige definição dos critérios por severidade antes de calibrar. Não reduzir falsos positivos
   às custas de esconder falsos negativos, nem declarar desempenho com apenas dados sintéticos.
 - R8 é um gate, não uma autorização automática. O estado inicial do piloto segue NO-GO.
@@ -218,13 +219,16 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 | 25/11/2026 | Plano R1–R8 | Converter cada bloqueio em tarefa ordenada, critério de aceite e responsável. | Plano criado; 8 etapas definidas, com gates de segurança, credenciais, DAST/TLS, detecção, agentes/canais, acessibilidade, operação e decisão. PDF regenerado e checado. | Plano mantido. |
 | 26/11/2026 | R1 | Zerar vulnerabilidades críticas/altas dos dois frontends preservando comportamento. | CRA removido, Vite/Vitest configurados; npm audit zero nos dois; instalações limpas, 98 testes totais, TypeScript, builds e HTTP preview passaram. Evidência: `docs/VALIDACAO_R1_2026-11-26.md`. | Bundle App 2 >500 kB e atualização do lock via npm10 falha; `npm ci` passou. R2 foi dispensada para testes; piloto segue NO-GO. |
 | 26/11/2026 | R2 | Rotacionar credenciais históricas. | **Dispensada pelo proprietário apenas para testes.** Nenhuma credencial ou banco foi alterado. A exposição no histórico Git permanece e R2 não atende ao critério original. Evidências de inventário permanecem em `docs/VALIDACAO_R2_2026-11-26.md`. | Não usar esta decisão como autorização de produção; piloto segue NO-GO. |
-| 26/11/2026 | R3 offline | Validar controles de segurança locais sem serviços externos. | 87 testes passaram em seis arquivos; Flask test client, MySQL/rede bloqueados. Evidência: `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json`. Bandit: 0 altos, 40 médios e 6 baixos; pip-audit: 11 dependências, 0 vulnerabilidades conhecidas. Evidência: `docs/evidence/UI_R3_STATIC_AUDIT_2026-11-26.json`. | Alertas B608/B110 e exposição do socket requerem revisão contextual; DAST/TLS remoto não executados por falta de alvo isolado. Piloto NO-GO. |
+| 26/11/2026 | R3 local | Executar verificações de segurança no escopo de simulação. | 87 testes passaram com rede/MySQL bloqueados; Bandit sem altos; pip-audit sem vulnerabilidades conhecidas. Não se exige HTTPS para execução local. Evidências em `docs/PREPARO_R3_DAST_TLS_2026-11-26.md`. | DAST/TLS remotos permanecem gate de implantação real; piloto NO-GO. |
+| 26/11/2026 | R4 | Medir FPR/FNR do score por Tracker/Dirija Bem, classe, severidade e contexto. | Dataset sintético v2: 17 casos, matriz TP=3/FP=0/FN=7/TN=7; IC Wilson 95%; testes focados 7/7. Análise identifica FNR 70%, classes bloqueadas e os sete casos perdidos; sem ajuste de parâmetros. Relatório: `docs/VALIDACAO_R4_2026-11-26.md`; JSON completo em `docs/evidence/UI_R4_SYNTHETIC_SCORE_EVALUATION_2026-11-26.json`. | Critério reprovado para score como gatilho único. Rótulos exigem validação independente da operação antes de autonomia real. Próxima etapa R5 limitada a simulação sem contato externo. |
 
 ## 8. Próxima execução
 
-**Próxima etapa 3 de 8 — R3: DAST autenticado e TLS em homologação.**
+**Próxima etapa 5 de 8 — R5: testar agentes e barreiras de ação em modo simulado.**
 
-R2 foi dispensada pelo proprietário para este ambiente de testes: credenciais e banco permanecem
-inalterados; o risco histórico continua registrado. Na R3, os 87 testes locais passaram sob bloqueio
-de rede/MySQL. Para concluir a etapa ainda é necessário alvo HTTPS isolado, contas e dados sintéticos
-e limites de teste aprovados. Até lá, não declarar DAST/TLS concluído. O piloto continua NO-GO. A auditoria estática também foi registrada: zero alertas altos no Bandit, 40 médios e 6 baixos; pip-audit não encontrou vulnerabilidades conhecidas em 11 dependências. Os avisos médios/baixos seguem triagem, e não houve scan remoto.
+R4 mediu 17 casos sintéticos e reprovou o score como gatilho único: 7 falsos negativos de 10 casos
+rotulados para intervenção, com limites de confiança amplos por amostra pequena. O score não será
+ajustado nesta etapa. R5 começa por provar que decisões de alto/crítico exigem revisão/aprovação,
+que as classes `harsh_brake`, `speeding` e `mixed` não ganham autonomia pelo score e que nenhum
+contato ou comando é enviado no modo simulado. Rótulos de R4 ainda precisam de revisão operacional
+antes de qualquer autonomia real. O piloto permanece NO-GO; DAST/TLS remoto fica para implantação publicada.
