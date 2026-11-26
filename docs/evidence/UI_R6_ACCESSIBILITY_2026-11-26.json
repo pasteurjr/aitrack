@@ -1,0 +1,40 @@
+{
+  "schema_version": "ui-accessibility-evidence.v1",
+  "stage": "R6",
+  "date": "2026-11-26",
+  "checkpoint_before": "6fa38ee",
+  "scope": "aitrackdatadrivr/frontend; local test build; no database or external services",
+  "automated_tests": {
+    "command": "npm test -- --reporter=dot",
+    "result": "passed",
+    "test_files": 22,
+    "tests": 98,
+    "axe_coverage": ["login initial and error states", "geofence designer", "health integrations"]
+  },
+  "build": {
+    "command": "npm run build",
+    "result": "passed",
+    "typescript": "passed",
+    "vite": "passed",
+    "bundle_warning": "JavaScript bundle 574.03 kB exceeds the 500 kB advisory threshold"
+  },
+  "playwright": {
+    "browser": "Chromium headless",
+    "url": "http://127.0.0.1:4174/",
+    "api": "authentication endpoints intercepted locally; no backend or database access",
+    "tab_sequence": ["auth-email", "auth-password", "Entrar"],
+    "invalid_login_error_linked_to": ["auth-email", "auth-password"],
+    "page_errors": 0,
+    "screenshot": "docs/evidence/UI_R6_ACCESSIBILITY_LOGIN_2026-11-26.png"
+  },
+  "contrast": [
+    {"foreground": "#ffffff", "background": "#047857", "ratio": 5.48, "minimum_normal_text": 4.5, "result": "pass"},
+    {"foreground": "#ecfdf5", "background": "#065f46", "ratio": 7.29, "minimum_normal_text": 4.5, "result": "pass"}
+  ],
+  "human_validation": {
+    "screen_reader": "pending; no NVDA/VoiceOver operator review performed",
+    "authenticated_vehicle_incident_geofence_health_flows": "pending; no authenticated operator session supplied",
+    "pilot_gate": true
+  },
+  "decision": "Automated local scope complete; full accessibility homologation remains pending before pilot."
+}
