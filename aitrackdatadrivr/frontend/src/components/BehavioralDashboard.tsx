@@ -260,6 +260,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
             <div style={styles.selectSection}>
                 <h3 style={styles.selectTitle}>🚗 TRACKER</h3>
                 <select
+                    aria-label="Veículo Tracker"
                     style={styles.select}
                     value={selectedVehicleId || ''}
                     onChange={handleTrackerSelect}
@@ -277,6 +278,7 @@ const BehavioralDashboard: React.FC<BehavioralDashboardProps> = ({
             <div style={styles.selectSection}>
                 <h3 style={styles.selectTitle}>🏁 DIRIJABEM</h3>
                 <select
+                    aria-label="Motorista Dirija Bem"
                     style={styles.select}
                     value={selectedUserId?.toString() || ''}
                     onChange={handleDirijabemSelect}
@@ -417,7 +419,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: '6px',
         fontSize: '14px',
         cursor: 'pointer',
-        outline: 'none',
     },
     kpiContainer: {
         display: 'flex',

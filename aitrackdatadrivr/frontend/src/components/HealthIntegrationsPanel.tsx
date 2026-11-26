@@ -138,7 +138,7 @@ const HealthIntegrationsPanel: React.FC = () => {
   const overallPresentation = STATUS_PRESENTATION[overall];
 
   return (
-    <main className="health-panel" aria-labelledby="health-panel-title">
+    <section className="health-panel" aria-labelledby="health-panel-title">
       <header className="health-panel__header">
         <div>
           <h2 id="health-panel-title">Saúde e integrações</h2>
@@ -175,7 +175,7 @@ const HealthIntegrationsPanel: React.FC = () => {
           );
         })}
       </section>
-    </main>
+    </section>
   );
 };
 

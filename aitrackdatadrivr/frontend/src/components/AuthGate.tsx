@@ -43,10 +43,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         <h1 style={{ marginTop: 0 }}>AITrack + DataDrivr</h1>
         <p>Acesso ao monitoramento veicular</p>
         <label htmlFor="auth-email">E-mail</label>
-        <input id="auth-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} style={styles.input} />
+        <input id="auth-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'auth-error' : undefined} style={styles.input} />
         <label htmlFor="auth-password">Senha</label>
-        <input id="auth-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} style={styles.input} />
-        {error && <div role="alert" style={styles.error}>{error}</div>}
+        <input id="auth-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'auth-error' : undefined} style={styles.input} />
+        {error && <div id="auth-error" role="alert" style={styles.error}>{error}</div>}
         <button type="submit" style={styles.primary}>Entrar</button>
         <button type="button" onClick={recover} style={styles.link}>Esqueci minha senha</button>
         {recoverySent && <p role="status">Se a conta existir, as instruções serão enviadas.</p>}
@@ -70,7 +70,7 @@ const styles: Record<string, React.CSSProperties> = {
   center: { minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#111827', color: '#f3f4f6' },
   card: { width: 360, maxWidth: 'calc(100vw - 32px)', padding: 28, borderRadius: 10, background: '#1f2937', display: 'grid', gap: 10 },
   input: { padding: 10, borderRadius: 6, border: '1px solid #4b5563', background: '#111827', color: 'white' },
-  primary: { padding: 10, border: 0, borderRadius: 6, background: '#059669', color: 'white', fontWeight: 700 },
+  primary: { padding: 10, border: 0, borderRadius: 6, background: '#047857', color: 'white', fontWeight: 700 },
   link: { border: 0, background: 'transparent', color: '#93c5fd' },
   error: { color: '#fecaca' },
   logout: { position: 'fixed', right: 12, bottom: 12, zIndex: 2000, padding: '7px 12px' },

@@ -69,84 +69,96 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
+      <a className="skip-link" href="#main-content">Pular para o conteúdo principal</a>
       {/* Top Navigation Bar */}
-      <div style={styles.navbar}>
+      <header style={styles.navbar}>
         <div style={styles.brand}>
           <h1 style={styles.logo}>AITrack + DataDrivr</h1>
           <OperationModeBadge />
         </div>
-        <div style={styles.navTabs}>
+        <nav aria-label="Navegação principal" style={styles.navTabs}>
           {can('fleet.read') && <button
+            aria-current={viewMode === 'replay' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'replay' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('replay')}
           >
             ▶ Replay
           </button>}
           {can('incident.read') && <button
+            aria-current={viewMode === 'notifications' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'notifications' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('notifications')}
           >
             🔔 Notificações
           </button>}
           {can('agent.configure') && <button
+            aria-current={viewMode === 'agentRuns' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'agentRuns' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('agentRuns')}
           >
             🧾 Execuções IA
           </button>}
           {can('agent.configure') && <button
+            aria-current={viewMode === 'agents' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'agents' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('agents')}
           >
             🧠 Agentes
           </button>}
           {can('fleet.read') && <button
+            aria-current={viewMode === 'dashboard' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'dashboard' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('dashboard')}
           >
             📊 Dashboard
           </button>}
           {can('fleet.read') && <button
+            aria-current={viewMode === 'timeline' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'timeline' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('timeline')}
           >
             ⏱️ Timeline
           </button>}
           {can('report.read') && <button
+            aria-current={viewMode === 'analytics' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'analytics' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('analytics')}
           >
             📈 Análises
           </button>}
           {can('fleet.read') && <button
+            aria-current={viewMode === 'monitors' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'monitors' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('monitors')}
           >
             🤖 Monitores AI
           </button>}
           {can('incident.read') && <button
+            aria-current={viewMode === 'alerts' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'alerts' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('alerts')}
           >
             🚨 Incidentes
           </button>}
           {can('fleet.read') && <button
+            aria-current={viewMode === 'events' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'events' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('events')}
           >
             📋 Eventos
           </button>}
           {can('health.read') && <button
+            aria-current={viewMode === 'health' ? 'page' : undefined}
             style={{...styles.navTab, ...(viewMode === 'health' ? styles.navTabActive : {})}}
             onClick={() => setViewMode('health')}
           >
             ♥ Saúde
           </button>}
-        </div>
-      </div>
+        </nav>
+      </header>
 
       {/* Main Content */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <main id="main-content" tabIndex={-1} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {viewMode === 'health' ? <HealthIntegrationsPanel /> : viewMode === 'replay' ? <TripReplayPanel /> : viewMode === 'agents' ? <AgentConfigurationPanel /> : viewMode === 'agentRuns' ? <AgentRunsPanel /> : viewMode==='notifications'?<InternalNotificationsPanel onOpenIncident={id=>{setNotificationIncidentId(id);setViewMode('alerts')}}/> : <>
         {/* Left Sidebar - Conditional Content */}
         <div style={styles.sidebar}>
@@ -239,7 +251,7 @@ function App() {
           )}
         </div>
         </>}
-      </div>
+      </main>
     </div>
   );
 }
@@ -286,8 +298,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'all 0.2s ease',
   },
   navTabActive: {
-    backgroundColor: '#10b981',
-    color: 'white',
+    backgroundColor: '#065f46',
+    color: '#ecfdf5',
   },
   sidebar: {
     width: '350px',

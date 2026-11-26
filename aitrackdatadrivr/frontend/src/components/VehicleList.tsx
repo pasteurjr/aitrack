@@ -96,6 +96,7 @@ const VehicleList: React.FC<VehicleListProps> = ({
             <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>🚗 TRACKER</h3>
                 <select
+                    aria-label="Veículo Tracker"
                     style={styles.scrollableSelect}
                     value={selectedVehicleId?.toString() || ''}
                     onChange={handleTrackerSelect}
@@ -113,6 +114,7 @@ const VehicleList: React.FC<VehicleListProps> = ({
             <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>🏁 DIRIJABEM</h3>
                 <select
+                    aria-label="Motorista Dirija Bem"
                     style={styles.scrollableSelect}
                     value={selectedUserId?.toString() || ''}
                     onChange={handleDirijabemSelect}
@@ -157,7 +159,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: '6px',
         fontSize: '14px',
         cursor: 'pointer',
-        outline: 'none',
     } as React.CSSProperties,
     error: {
         padding: '10px',

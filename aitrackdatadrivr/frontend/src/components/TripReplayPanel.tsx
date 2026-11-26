@@ -79,7 +79,7 @@ export default function TripReplayPanel() {
   };
 
   return (
-    <main style={styles.root}>
+    <section aria-label="Replay de viagem" style={styles.root}>
       <header style={styles.header}>
         <div>
           <h2 style={{ margin: 0 }}>Replay de viagem</h2>
@@ -159,7 +159,7 @@ export default function TripReplayPanel() {
           </section>
         </>
       )}
-    </main>
+    </section>
   );
 }
 

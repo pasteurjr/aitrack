@@ -60,6 +60,10 @@ test('renderiza a marca e mostra o modo confirmado pelo backend', async () => {
   render(<App />);
 
   expect(screen.getByRole('heading', { name: 'AITrack + DataDrivr' })).toBeInTheDocument();
+  expect(screen.getByRole('navigation', { name: 'Navegação principal' })).toBeInTheDocument();
+  expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+  expect(screen.getByRole('link', { name: 'Pular para o conteúdo principal' })).toHaveAttribute('href', '#main-content');
+  expect(screen.getByRole('button', { name: /Dashboard/ })).toHaveAttribute('aria-current', 'page');
   expect(await screen.findByRole('status', { name: 'Ambiente: SIMULAÇÃO' })).toBeInTheDocument();
 });
 
