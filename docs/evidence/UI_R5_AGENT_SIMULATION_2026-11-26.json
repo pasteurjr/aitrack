@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-26",
+  "stage": "R5 local agent and action safeguards simulation",
+  "checkpoint_before_stage": "11bc9ec",
+  "result": {
+    "passed": 83,
+    "failed": 0,
+    "warning": "Non-failing PytestAssertRewriteWarning for anyio already imported"
+  },
+  "test_files": [
+    "tests/test_agent_runs.py",
+    "tests/test_agent_autonomy.py",
+    "tests/test_agent_analysis_worker.py",
+    "tests/test_agent_simulation.py",
+    "tests/test_agent_decision_schema.py",
+    "tests/test_ai_provider.py",
+    "tests/test_ai_resilience.py",
+    "tests/test_message_sandbox.py",
+    "tests/test_voice_sandbox.py",
+    "tests/test_communication_outcomes.py",
+    "tests/test_action_contact_policy.py"
+  ],
+  "isolation": {
+    "mysql_connector_connect_blocked": true,
+    "non_loopback_network_blocked": true,
+    "loopback_only_for_local_provider_fixtures": true,
+    "database_access": false,
+    "external_network": false,
+    "real_llm_call": false,
+    "real_message_or_voice_delivery": false,
+    "vehicle_command": false
+  },
+  "change": {
+    "trusted_incident_severity": "Persisted run input severity is passed to deterministic autonomy authorization.",
+    "high_critical_incident": "Forces approval_required even if the model claims low risk and human_review=false.",
+    "invalid_persisted_input": "Fails closed."
+  },
+  "provider_status": {
+    "implemented_adapters": ["anthropic", "openai"],
+    "adapter_tests": "Fake SDK clients only; no provider API was called.",
+    "active_agent_model": "Not inspected in the database and not inferred from adapter availability."
+  },
+  "limitations": [
+    "Local tests do not validate model quality or provider account configuration.",
+    "Loopback sandbox fixtures are not a vendor-hosted sandbox integration.",
+    "Real provider/channel acceptance remains a precondition for real-world actions."
+  ],
+  "credentials_changed": false,
+  "database_modified": false
+}
