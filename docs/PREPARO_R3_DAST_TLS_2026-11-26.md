@@ -1,16 +1,16 @@
 # Preparação R3 — escopo DAST e TLS
 
-**Data:** 26/11/2026 00:52 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 03:02 (`America/Sao_Paulo`)
 
 **Checkpoint pré-preparação:** `1b6e0ed`
 
-**Estado:** matriz preparada; execução remota **não iniciada**
+**Estado:** pré-flight local validado; DAST/TLS remoto **não iniciado**
 
 ## Limite desta preparação
 
-A inspeção foi feita estaticamente no código local. Não houve requisição HTTP, autenticação,
-scan de portas, alteração de banco nem tentativa de exploração. O DAST real requer R2 concluída
-(identidade de banco dedicada) e ambiente HTTPS isolado de homologação.
+A inspeção e os testes foram feitos localmente. Não houve requisição a serviço remoto, scan de
+portas, alteração de banco nem tentativa de exploração. O DAST real requer um alvo HTTPS isolado
+de homologação e contas/dados sintéticos.
 
 ## Áreas e cobertura a executar em homologação
 
@@ -46,16 +46,24 @@ scan de portas, alteração de banco nem tentativa de exploração. O DAST real 
 
 ## Bloqueios antes da execução
 
-- R2 continua sem identidade dedicada: a credencial ativa é global/compartilhada e permanece no
-  histórico Git. Não iniciar backend/DAST com ela em ambiente compartilhado.
+- R2 foi dispensada pelo proprietário para este ambiente de testes: não rotacionar credenciais
+  nem alterar o banco. A credencial compartilhada continua no histórico Git; essa decisão não
+  elimina a exposição nem constitui correção de segurança. Não usar essa configuração em produção.
 - Não foi fornecido hostname HTTPS, certificado, janela de teste, tenant/usuário de teste,
   banco descartável nem sandbox de canais.
 - Para liberar active scan, DBA/infra deve fornecer ambiente isolado, usuário least-privilege,
   contas sintéticas e configuração de sandbox; segurança/owner aprova janela e limites de carga.
 
-## Resultado obtido
+## Validação local obtida
+
+Foram executados 87 testes focados com `pytest`, usando Flask test client e serviços de banco
+substituídos por mocks. Uma trava no processo fez falhar qualquer tentativa de conexão de rede ou
+MySQL. Resultado: **87 passaram**; nenhuma conexão foi aberta. Arquivos: `test_security_hardening.py`,
+`test_authentication.py`, `test_incident_api.py`, `test_geofence_api.py`, `test_device_commands.py`
+e `test_rbac.py`. Evidência estruturada: `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json`.
 
 A matriz inclui auth, RBAC, isolamento tenant, incidentes, cercas, agentes, frota, operações
 com efeitos e TLS. A análise local confirmou que existem endpoints mutativos de replay Dirija Bem
 e comandos; eles foram explicitamente excluídos de fuzzing ativo até isolamento. **R3 continua
-pendente e não há resultado de DAST/TLS para declarar.**
+pendente e não há resultado de DAST/TLS ou TLS remoto para declarar.** Os 87 testes validam somente
+os comportamentos locais cobertos; não substituem scan autenticado em homologação.

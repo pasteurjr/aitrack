@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-26",
+  "stage": "R3 offline security regression tests",
+  "checkpoint_before_run": "28ade09",
+  "result": {
+    "passed": 87,
+    "failed": 0,
+    "warning": "PytestAssertRewriteWarning: anyio was already imported; non-failing"
+  },
+  "test_files": [
+    "tests/test_security_hardening.py",
+    "tests/test_authentication.py",
+    "tests/test_incident_api.py",
+    "tests/test_geofence_api.py",
+    "tests/test_device_commands.py",
+    "tests/test_rbac.py"
+  ],
+  "isolation": {
+    "flask_test_client": true,
+    "mysql_connector_connect_blocked": true,
+    "socket_create_connection_blocked": true,
+    "socket_connect_blocked": true,
+    "database_access": false,
+    "network_access": false
+  },
+  "scope_limit": "Offline regression tests only; no authenticated DAST or remote TLS validation was performed.",
+  "credential_decision": "Per owner instruction, credentials and database remain unchanged for this test environment. Historical Git exposure remains and is not considered remediated."
+}

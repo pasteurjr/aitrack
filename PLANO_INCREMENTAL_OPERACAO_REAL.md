@@ -1,12 +1,12 @@
 # Plano incremental para operação real
 
-**Atualizado em:** 26/11/2026 00:52 (`America/Sao_Paulo`)
+**Atualizado em:** 26/11/2026 03:02 (`America/Sao_Paulo`)
 
-**Checkpoint mais recente:** `1b6e0ed` — antes do pré-flight R3, criado em 26/11/2026 00:50 -03
+**Checkpoint mais recente:** `28ade09` — antes da validação local R3, criado em 26/11/2026 03:00 -03
 
 **Etapas da rodada anterior:** 74/74 concluídas
 
-**Tarefas pendentes de remediação:** 7
+**Tarefas pendentes de remediação:** 6 (R2 dispensada pelo proprietário; exposição histórica permanece)
 
 **Estado do piloto:** **NO-GO** até resolver os gates registrados em `docs/DECISAO_PILOTO_CONTROLADO_2026-11-25.md`
 
@@ -170,7 +170,7 @@ Para cada linha concluída, substituir `Pendente` por um registro com:
 
 ## 6. Próxima execução
 
-**Rodada de avaliação anterior concluída: 74 de 74.** A rodada pós-74 possui **7 tarefas de remediação pendentes**; R1 foi concluída.
+**Rodada de avaliação anterior concluída: 74 de 74.** A rodada pós-74 mantém **6 tarefas a executar (R3–R8)**; R1 foi concluída e R2 foi dispensada pelo proprietário para este ambiente de testes, sem remediação da exposição.
 
 A decisão do gate final foi **NO-GO**. O piloto não está liberado. A próxima execução está
 definida na seção 8 e as evidências de bloqueio na seção 7 e em
@@ -179,16 +179,18 @@ definida na seção 8 e as evidências de bloqueio na seção 7 e em
 ## 7. Rodada pós-74 — correção dos bloqueios do piloto
 
 A rodada original terminou em 74/74 com decisão NO-GO. A correção dos gates começou
-como uma rodada separada de **8 etapas**. O piloto permanece bloqueado até todas
-as evidências obrigatórias serem aprovadas e a decisão final ser refeita. Cada etapa de
+como uma rodada separada de **8 etapas**. R2 foi dispensada pelo proprietário para este ambiente
+de testes; a credencial compartilhada e sua exposição histórica permanecem. Isso não equivale a
+remediação nem libera produção. O piloto permanece NO-GO até as evidências obrigatórias restantes
+serem aprovadas e a decisão final ser refeita. Cada etapa de
 engenharia será dividida em entregas revisáveis de até 30 minutos; exercícios de operação,
 revisões humanas e ações de infraestrutura dependem das pessoas responsáveis.
 
 | Etapa | ID | Ação | Critério de aceite e evidência exigida | Dependências / responsável | Estado |
 |---:|---|---|---|---|---|
 | 1/8 | R1 | Resolver vulnerabilidades altas do frontend | Inventário reproduzível da árvore; estratégia suportada para remover os achados altos; zero críticos/altos no scanner escolhido; testes, TypeScript e build aprovados. Se exigir migração de bundler, preservar rotas, autenticação e os dois apps, com mudanças em fatias pequenas. Anexar JSON do scanner antes/depois. | Engenharia; nenhuma dependência. | **Concluída em 26/11/2026 00:10 -03.** Auditorias iniciais: App 1 com 3 críticas/37 altas/64 totais e App 2 com 16 altas/29 totais. `react-scripts` foi removido dos dois apps e substituído por Vite/Vitest; `VITE_*` adotado como padrão e compatibilidade explícita mantida para as duas variáveis `REACT_APP_*` antigas. Audits finais: zero achados nos dois apps. `npm ci`, testes (App 1: 1; App 2: 97), TypeScript, builds e preview HTTP passaram. **Limitação:** App 2 gera um chunk acima de 500 kB; há erro interno ao atualizar lockfile com npm 10, mas instalação limpa com `npm ci` passou. **Evidência:** `docs/VALIDACAO_R1_2026-11-26.md` e `docs/evidence/UI_R1_FRONTEND_AUDIT_2026-11-26.json`. **Checkpoint:** `7c14fbc`; **implementação:** `cc984e4`. |
-| 2/8 | R2 | Rotacionar credenciais históricas | DBA/infra provisiona identidade AITrack de privilégio mínimo; todos os consumidores são inventariados; app autentica com credencial nova, escopo é testado, senha antiga é revogada e rejeitada; registrar evidência sem segredo. | DBA/infra + donos dos sistemas que compartilham a conta global. | **Em andamento, bloqueada por dependência externa.** As duas configurações locais ignoradas usam a mesma senha de conta compartilhada global; o valor atual está em 177 blobs alcançáveis de 18 caminhos. Scanner do working tree marca zero porque não lê `.env`. Trocar a senha agora pode parar 35+ sistemas. Nenhum SQL ou mudança de credencial foi executado. **Evidência:** `docs/VALIDACAO_R2_2026-11-26.md` e `docs/evidence/UI_R2_CREDENTIAL_INVENTORY_2026-11-26.json`. **Checkpoint:** `f893995`; **limpeza parcial:** `c6a9010`. Aguardar DBA provisionar usuário dedicado e atualizar config local via cofre. |
-| 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; R1 e R2. | **Pré-flight local documentado; execução pendente.** Matriz cobre rotas, roles/tenant, headers/TLS e ações proibidas no scanner ativo. Rotas de replay Dirija Bem e comandos físicos estão excluídas até isolamento específico. **Sem requisições ou scan remoto.** R2, hostname HTTPS, contas sintéticas, banco descartável e canais sandbox pendentes. Evidência: `docs/PREPARO_R3_DAST_TLS_2026-11-26.md`. **Checkpoint:** `1b6e0ed`. |
+| 2/8 | R2 | Rotacionar credenciais históricas | Critério original: identidade dedicada, inventário dos consumidores, teste de escopo e revogação da credencial antiga. | DBA/infra + donos dos sistemas que compartilham a conta global. | **Dispensada pelo proprietário para este ambiente de testes; não executada.** As configurações locais ignoradas compartilham uma credencial global, e o inventário encontrou o valor ativo em 177 blobs alcançáveis/18 caminhos. O working tree atual foi redigido, mas isso não remove o histórico Git nem elimina a exposição. Por instrução explícita, nenhuma credencial será alterada e nenhum acesso/mudança no banco será feito. A dispensa não atende ao critério original, não é correção de segurança e não autoriza produção. **Evidência:** `docs/VALIDACAO_R2_2026-11-26.md` e `docs/evidence/UI_R2_CREDENTIAL_INVENTORY_2026-11-26.json`. |
+| 3/8 | R3 | Fazer DAST e validar TLS em homologação | Ambiente isolado com dados sintéticos e contas de teste; DAST autenticado cobre login, RBAC, isolamento multiempresa, incidentes, cercas e ações; certificado/cadeia, TLS e headers verificados; achados críticos/altos corrigidos ou formalmente bloqueantes; relatório sem tokens/dados pessoais. | Segurança + infra; alvo HTTPS homologado. | **Validação local concluída parcialmente.** 87 testes focados passaram; Flask test client, DB mockado e trava contra rede/MySQL. Nenhum acesso ao banco/rede ocorreu. DAST autenticado e TLS remoto seguem pendentes: não há alvo HTTPS isolado/contas sintéticas. R2 foi dispensada para testes e não é pré-requisito para os testes offline; isso não significa credencial segura. Evidências: `docs/PREPARO_R3_DAST_TLS_2026-11-26.md` e `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json`. **Checkpoint pré-teste:** `28ade09`. |
 | 4/8 | R4 | Validar falsos positivos e falsos negativos | Dataset rotulado e autorizado, separado por Tracker/Dirija Bem, classe, severidade e contexto; regra de pontuação não é gatilho único; publicar matriz de confusão, FPR/FNR por classe e intervalos/amostra; revisão humana das divergências; critérios de aceite aprovados antes de ajustar pesos. Casos críticos sem cobertura mantêm detector independente e bloqueiam autonomia daquela classe. | Produto/operação + engenharia de dados; aprovação de uso dos dados. | Pendente |
 | 5/8 | R5 | Homologar agentes e canais em sandbox | Agentes exercitam reconhecer, consultar contexto, decidir, redigir mensagem, respeitar consentimento/horário/limites, pedir aprovação quando exigido, registrar ação e transferir para humano. Provedores de mensagem/voz exclusivamente em sandbox; verificar idempotência, rate limit, timeout, fallback e zero destinatários reais. LLM gera proposta estruturada; política determinística autoriza efeitos. | Engenharia + operação; sandbox e R4 para limites por evento. | Pendente |
 | 6/8 | R6 | Homologar acessibilidade dos fluxos críticos | Operador percorre login, lista/detalhe de veículo, incidente, cerca circular/poligonal e painel de saúde por teclado e leitor de tela; contraste medido em estados normal/erro/foco; defeitos corrigidos; relatório com navegador, tecnologia assistiva, critérios WCAG 2.2 AA aplicáveis e evidências. | QA/acessibilidade + operador; build estável. | Pendente |
@@ -200,8 +202,9 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 - R1 removeu o CRA dos dois apps e deixou `npm audit` sem achados. A atualização de
   lockfiles deve usar `npm ci`; instalar/atualizar dependências precisa de npm 11.6.4 enquanto
   npm 10.9.2 apresentar o erro interno de Arborist observado nesta etapa.
-- R2 exige coordenação com DBA/infra. Não publicar, copiar ou registrar valores de credenciais.
-  Rotação e revogação precedem qualquer decisão de reescrever histórico.
+- R2 foi dispensada pelo proprietário somente neste ambiente de testes. Não publicar, copiar ou
+  registrar valores de credenciais. A credencial/histórico permanecem expostos; a dispensa não
+  constitui remediação nem libera produção.
 - R3, R5 e R7 ocorrem somente em homologação isolada; bancos reais e destinatários reais ficam
   fora dos testes de segurança e de agentes.
 - R4 exige definição dos critérios por severidade antes de calibrar. Não reduzir falsos positivos
@@ -213,13 +216,15 @@ revisões humanas e ações de infraestrutura dependem das pessoas responsáveis
 | Data | Etapa | Resultado esperado | Resultado obtido / evidências | Limitações / próximo passo |
 |---|---|---|---|---|
 | 25/11/2026 | Plano R1–R8 | Converter cada bloqueio em tarefa ordenada, critério de aceite e responsável. | Plano criado; 8 etapas definidas, com gates de segurança, credenciais, DAST/TLS, detecção, agentes/canais, acessibilidade, operação e decisão. PDF regenerado e checado. | Plano mantido. |
-| 26/11/2026 | R1 | Zerar vulnerabilidades críticas/altas dos dois frontends preservando comportamento. | CRA removido, Vite/Vitest configurados; npm audit zero nos dois; instalações limpas, 98 testes totais, TypeScript, builds e HTTP preview passaram. Evidência: `docs/VALIDACAO_R1_2026-11-26.md`. | Bundle App 2 >500 kB e atualização do lock via npm10 falha; `npm ci` passou. Próxima: R2. Piloto segue NO-GO. |
+| 26/11/2026 | R1 | Zerar vulnerabilidades críticas/altas dos dois frontends preservando comportamento. | CRA removido, Vite/Vitest configurados; npm audit zero nos dois; instalações limpas, 98 testes totais, TypeScript, builds e HTTP preview passaram. Evidência: `docs/VALIDACAO_R1_2026-11-26.md`. | Bundle App 2 >500 kB e atualização do lock via npm10 falha; `npm ci` passou. R2 foi dispensada para testes; piloto segue NO-GO. |
+| 26/11/2026 | R2 | Rotacionar credenciais históricas. | **Dispensada pelo proprietário apenas para testes.** Nenhuma credencial ou banco foi alterado. A exposição no histórico Git permanece e R2 não atende ao critério original. Evidências de inventário permanecem em `docs/VALIDACAO_R2_2026-11-26.md`. | Não usar esta decisão como autorização de produção; piloto segue NO-GO. |
+| 26/11/2026 | R3 offline | Validar controles de segurança locais sem serviços externos. | 87 testes passaram em seis arquivos; Flask test client, MySQL/rede bloqueados por guardas no processo. JSON em `docs/evidence/UI_R3_OFFLINE_SECURITY_TESTS_2026-11-26.json`. | DAST autenticado/TLS remoto não executados; aguarda alvo de homologação e contas sintéticas. Piloto segue NO-GO. |
 
 ## 8. Próxima execução
 
-**Próxima etapa 2 de 8 — R2: rotacionar credenciais históricas.**
+**Próxima etapa 3 de 8 — R3: DAST autenticado e TLS em homologação.**
 
-R2 segue bloqueada aguardando DBA provisionar identidade dedicada; a credencial atual é compartilhada
-e está no histórico Git. O pré-flight local da R3 foi preparado em `docs/PREPARO_R3_DAST_TLS_2026-11-26.md`,
-mas nenhum DAST/TLS remoto foi iniciado. Resolver R2 e entregar hostname HTTPS, contas sintéticas,
-banco descartável e sandbox para então executar R3.
+R2 foi dispensada pelo proprietário para este ambiente de testes: credenciais e banco permanecem
+inalterados; o risco histórico continua registrado. Na R3, os 87 testes locais passaram sob bloqueio
+de rede/MySQL. Para concluir a etapa ainda é necessário alvo HTTPS isolado, contas e dados sintéticos
+e limites de teste aprovados. Até lá, não declarar DAST/TLS concluído. O piloto continua NO-GO.
