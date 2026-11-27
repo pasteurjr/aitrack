@@ -1,0 +1,20 @@
+{
+  "schema_version": "local-recovery-drill.v1",
+  "passed": true,
+  "generated_at": "2026-11-27T15:53:14.641725+00:00",
+  "current_release": "7ba8479e45e715b70abb1ab6b6a299a1e9fb71f5",
+  "rollback_release": "11bc9ec6fe7cb59747a5740e25ef74e915ea9781",
+  "environment": "two disposable MariaDB instances using private UNIX sockets; API bound to loopback",
+  "migration_numbers": [10, 12, 14, 15, 17, 18, 23, 24, 25, 28, 29, 32, 33, 42, 43, 66],
+  "backup": {"bytes": 91481, "sha256": "a9ca0caf59941fc03100c31697aaebb60c39e9888c96699bfac8b28fcdc8516f"},
+  "seconds_to_ready": {"after_database_and_api_restart": 0.713, "after_restore": 1.543, "after_application_rollback": 0.845},
+  "counts_at_backup_and_restart": {"source_receipts": 2, "incidents": 2, "actions": 3, "action_events": 5, "triggers": 9},
+  "restored_rows_and_triggers_match": true,
+  "records_lost": 0,
+  "duplicate_actions_on_idempotent_replay": 0,
+  "expired_leases_recovered": {"retried": 1, "dead_letter": 1, "processed": 2},
+  "second_recovery_processed": 0,
+  "final_action_events": 9,
+  "external_side_effects": {"shared_database_connections": 0, "external_network": 0, "messages": 0, "voice_calls": 0, "vehicle_commands": 0},
+  "limitation": "Local technical rehearsal only. Human operator exercise and approved organizational RTO/RPO remain outstanding."
+}
