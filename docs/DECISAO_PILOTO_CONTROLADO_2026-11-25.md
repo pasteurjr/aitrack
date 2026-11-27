@@ -1,7 +1,7 @@
 # Decisão de prontidão — piloto controlado
 
 **Etapa:** 74/74 — UI-8.12  
-**Data:** 25/11/2026 16:46 (`America/Sao_Paulo`)  
+**Reavaliação:** 27/11/2026 12:55 (`America/Sao_Paulo`)
 **Checkpoint pré-etapa:** `268ada8`  
 **Decisão:** **NO-GO — não liberar o piloto neste momento**
 
@@ -22,8 +22,8 @@ proprietários.
 | Dependências sem vulnerabilidades críticas/altas abertas | Auditoria encontrou 16 vulnerabilidades altas transitivas na cadeia `react-scripts`. | **Bloqueado** |
 | Credenciais históricas rotacionadas | O working tree foi limpo, mas há ocorrências em commits históricos; rotação efetiva não foi comprovada. | **Bloqueado** |
 | Segurança validada no ambiente-alvo | DAST autenticado e validação TLS ainda não executados. | **Bloqueado** |
-| Acessibilidade dos fluxos críticos homologada | Testes automatizados passaram; leitor de tela e contraste visual completo não foram homologados. | **Pendente** |
-| Procedimentos operacionais exercitados | Playbooks passaram em harness determinístico; exercício com dois operadores e supervisor não ocorreu. Backup, restore, rollback e TLS também carecem de execução em homologação. | **Pendente** |
+| Acessibilidade dos fluxos críticos homologada | R6 corrigiu landmarks, teclado, foco e contrastes medidos. Testes axe cobrem login/cerca/saúde e Playwright cobriu login. Percurso interno autenticado e leitor de tela não foram homologados. Evidência `docs/VALIDACAO_R6_2026-11-26.md`. | **Pendente** |
+| Procedimentos operacionais exercitados | Playbooks e harness local aprovados. R7 provou backup/restore, restart e rollback em duas instâncias MariaDB descartáveis com API loopback. Exercício com dois operadores/supervisor e aprovação RTO/RPO continuam pendentes. Evidência `docs/VALIDACAO_R7_PREFLIGHT_2026-11-26.md` e JSON MariaDB. | **Pendente** |
 | Detecção aprovada para uso operacional | Dataset sintético mostrou FNR de 70% usando score `< 70` sozinho. O score não deve ser gatilho único; detector/eventos independentes continuam necessários. | **Bloqueado para score isolado** |
 | Canais e autonomia de agentes validados em sandbox | O ensaio técnico não enviou mensagens, não realizou chamadas e não executou comandos físicos. | **Pendente** |
 | Suporte, consentimento, métricas, rollback e aprovação formal | O runbook descreve procedimentos, mas exercício/aceite formal do grupo piloto não foi registrado. | **Pendente** |
