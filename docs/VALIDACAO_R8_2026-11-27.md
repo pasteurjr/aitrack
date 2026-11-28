@@ -3,7 +3,7 @@
 **Data:** 27/11/2026 (`America/Sao_Paulo`)
 **Etapa:** 8 de 8 — decisão concluída
 **Checkpoint da revisão:** `05db271`
-**Decisão:** **NO-GO — manter o piloto bloqueado**
+**Decisão:** **GO para testes controlados sintéticos; NO-GO para operação com veículos/clientes reais**
 
 ## Resultado esperado
 
@@ -24,7 +24,7 @@ Revisar gates de segurança, detecção, acessibilidade, autonomia e operação,
 
 ## Resultado obtido
 
-Os ensaios R6 e R7 aumentaram a evidência automatizada local, mas não satisfazem todos os gates de homologação humana e do ambiente alvo. Não há aprovação para expor clientes, veículos ou proprietários a monitoramento e ações autônomas. Mantém-se **NO-GO**.
+Os ensaios R6 e R7, as suítes de provedores e canais locais, e as auditorias de dependências sustentam **GO para continuar testes controlados** com dados sintéticos, simuladores e serviços locais. Nenhuma senha foi alterada, conforme instrução do proprietário. Permanecem **NO-GO** monitoramento de veículos/clientes reais, envio de mensagens/chamadas e comandos físicos até a homologação de implantação.
 
 ## Próximos requisitos antes de uma nova decisão
 

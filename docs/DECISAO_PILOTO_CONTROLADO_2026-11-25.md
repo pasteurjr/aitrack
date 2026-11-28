@@ -1,7 +1,7 @@
 # Decisão de prontidão — piloto controlado
 
 **Etapa:** 74/74 — UI-8.12  
-**Reavaliação:** 27/11/2026 12:55 (`America/Sao_Paulo`)
+**Reavaliação:** 28/11/2026 01:16 (`America/Sao_Paulo`)
 **Checkpoint pré-etapa:** `268ada8`  
 **Decisão:** **NO-GO — não liberar o piloto neste momento**
 
@@ -12,7 +12,7 @@ monitoramento, consentimento, suporte, rollback, critérios de sucesso e aprova�
 
 ## Resultado obtido
 
-A decisão é **NO-GO**. A rodada de 74 etapas está encerrada como avaliação e preparação,
+A decisão para operação com veículos e clientes reais é **NO-GO**. Testes controlados com simuladores, dados sintéticos e serviços locais estão **GO**, conforme `docs/GO_TESTES_CONTROLADOS_2026-11-28.md`. Nenhuma senha foi alterada, por instrução do proprietário, e esse assunto fica fora da validação de teste. A rodada de 74 etapas está encerrada como avaliação e preparação,
 mas isso não significa que o piloto esteja autorizado. Os bloqueios abaixo precisam ser
 resolvidos e reavaliados antes de qualquer operação real com autonomia ou comunicação a
 proprietários.
