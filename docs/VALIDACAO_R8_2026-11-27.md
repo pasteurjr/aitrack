@@ -36,6 +36,10 @@ Os ensaios R6 e R7 aumentaram a evidência automatizada local, mas não satisfaz
 6. Homologar provedores LLM e canais em sandbox e aprovar limites de ação.
 7. Definir grupo, janela, suporte, consentimento, métricas de sucesso/aborto, responsáveis e rollback.
 
+## Roteiro para fechar R7
+
+O roteiro de oito cenários, formulários de registro e proposta de RTO até 15 minutos/RPO zero para dados confirmados está em `docs/EXERCICIO_OPERACIONAL_R7.md`. Os números são proposta para aprovação do responsável operacional, não aceite registrado.
+
 ## Contagem
 
 R8 concluiu sua decisão e registrou NO-GO. **R7 continua em andamento**, portanto resta uma etapa de execução de oito. O piloto não está autorizado.
