@@ -1,0 +1,23 @@
+{
+  "schema_version": "local-recovery-drill.v1",
+  "passed": true,
+  "generated_at": "2026-11-28T04:11:24.971235+00:00",
+  "current_release": "9ac1765f1faea2e75d5f59a678aa9a67a0135b02",
+  "rollback_release": "11bc9ec6fe7cb59747a5740e25ef74e915ea9781",
+  "environment": "two disposable MariaDB instances on private UNIX sockets; API on loopback",
+  "migration_numbers": [10, 12, 14, 15, 17, 18, 23, 24, 25, 28, 29, 32, 33, 42, 43, 66],
+  "backup": {"bytes": 91481, "sha256": "17739b94f8f53cc493526d613c4a766e3496526d73162848816d16dceddf87ba"},
+  "seconds_to_ready": {"after_database_and_api_restart": 1.244, "after_restore": 2.723, "after_application_rollback": 0.897},
+  "counts": {"source_receipts": 2, "incidents": 2, "actions": 3, "action_events_before_recovery": 5, "triggers": 9},
+  "restored_rows_and_triggers_match": true,
+  "records_lost": 0,
+  "duplicate_actions_on_idempotent_replay": 0,
+  "expired_leases_recovered": {"retried": 1, "dead_letter": 1, "processed": 2},
+  "second_recovery_processed": 0,
+  "final_action_events": 9,
+  "external_side_effects": {"shared_database_connections": 0, "external_network": 0, "messages": 0, "voice_calls": 0, "vehicle_commands": 0},
+  "focused_tests": {"passed": 5, "failed": 0},
+  "runbook_validator_findings": 0,
+  "human_operator_exercise": "not performed",
+  "approved_rto_rpo": "pending"
+}

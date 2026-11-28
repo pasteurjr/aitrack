@@ -1,6 +1,6 @@
 # R7 — preflight técnico local de operação e recuperação
 
-**Atualizado:** 27/11/2026 (`America/Sao_Paulo`)
+**Atualizado:** 28/11/2026 (`America/Sao_Paulo`)
 **Etapa:** 7 de 8 — em andamento
 **Checkpoint pré-etapa:** `295800f`
 **Ambiente:** harness determinístico local; SQLite temporário; nenhum serviço externo ou banco compartilhado acessado.
@@ -43,6 +43,10 @@ Evidência completa: `docs/evidence/UI_R7_MARIADB_RECOVERY_2026-11-27.json`. Val
 
 ## Decisão e pendências para concluir R7
 
+### Repetição do ensaio em 28/11
+
+Reexecutei `python3 scripts/run_local_recovery_drill.py --current HEAD --previous 11bc9ec`. Passou em duas instâncias MariaDB descartáveis, agora com o commit de documentação `9ac1765` como release atual. Backup de 91.481 bytes restaurado com linhas e triggers idênticas. API live/ready passou após restart (1,244 s), restore (2,723 s) e rollback (0,897 s). Dois leases foram resolvidos uma vez, a repetição recuperou zero, e replay idempotente não criou duplicatas. Os 5 testes focados passaram e o validador do runbook teve zero achados. Evidência: `docs/evidence/UI_R7_MARIADB_RECOVERY_2026-11-28.json`.
+
 R7 tem evidência técnica automatizada de restart, backup, restore, rollback de aplicação e reconciliação em MariaDB sintético. O ensaio local não representa janela de serviço, hardware, carga ou topologia de homologação. Para fechar R7 ainda falta o exercício de dois operadores e supervisor e a aprovação formal das metas RTO/RPO pelo responsável operacional. A homologação manual de acessibilidade de R6 também continua gate para R8.
 
-**Saldo:** 2 etapas de execução (R7 em andamento e R8 pendente). O piloto permanece NO-GO.
+**Saldo:** 1 etapa de execução (R7 em andamento; R8 decidiu NO-GO). O piloto permanece NO-GO.
